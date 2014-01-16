@@ -24,21 +24,5 @@ html(ng-app)
           Label(for='b2') Button 2
 
     p Count = {{ count }}
-    hr
-    #messages
 
-    script(src='//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js')
-    script.
-      var socket = new WebSocket('ws://localhost:3333/ws')
-      socket.onopen = function () {
-        $('#messages').prepend('<div><b>Open</b></div>');
-      };
-      socket.onmessage = function (m) {
-        $('#messages').prepend('<div>' + m.data + '</div>');
-      };
-      socket.onerror = function (m) {
-        $('#messages').prepend('<div>ERROR: ' + m.data + '</div>');
-      };
-      socket.onclose = function () {
-        $('#messages').prepend('<div><b>Closed</b></div>');
-      };
+    script(src='client.js')

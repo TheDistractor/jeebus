@@ -48,7 +48,7 @@ func main() {
 			line := <-input
 			fmt.Println(line)
 			if connection != nil {
-				websocket.Message.Send(connection, line)
+				websocket.JSON.Send(connection, line)
 			}
 		}
 	}()
