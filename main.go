@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 
@@ -11,11 +10,11 @@ import (
 	"github.com/chimera/go-inside/rs232"
 )
 
-func main() {
-	mux := http.NewServeMux()
+var connection *websocket.Conn
 
-	mux.Handle("/", http.FileServer(http.Dir("public")))
-	mux.Handle("/engine.io/", websocket.Handler(wsHandler))
+func main() {
+	http.Handle("/", http.FileServer(http.Dir("public")))
+	http.Handle("/ws", websocket.Handler(sockServer))
 
 	// open the serial port
 	options := rs232.Options{
@@ -48,13 +47,29 @@ func main() {
 		for {
 			line := <-input
 			fmt.Println(line)
+			if connection != nil {
+				websocket.Message.Send(connection, line)
+			}
 		}
 	}()
 
 	println("listening on port 3333")
-	log.Fatal(http.ListenAndServe("localhost:3333", mux))
+	log.Fatal(http.ListenAndServe("localhost:3333", nil))
 }
 
-func wsHandler(ws *websocket.Conn) {
-	io.Copy(ws, ws)
+func sockServer(ws *websocket.Conn) {
+	defer ws.Close()
+	connection = ws
+	client := ws.Request().RemoteAddr
+	log.Println("Client connected:", client)
+	var msg string
+	for {
+		if err := websocket.Message.Receive(ws, msg); err != nil {
+			break;
+		}
+		fmt.Printf("msg %v = %v\n", client, msg)
+		websocket.Message.Send(ws, "hi!")
+	}
+	log.Println("Client disconnected:", client)
+	connection = nil
 }
