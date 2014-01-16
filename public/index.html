@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html ng-app>
+<html ng-app="myApp">
   <head>
     <title>Blink demo</title>
     <style>body { margin: 30px; }</style>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.9/angular.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.7/angular.js"></script>
   </head>
-  <body>
+  <body ng-controller="MainCtrl">
     <h1>Blink</h1>
     <table cellpadding="10">
       <tr>
@@ -20,16 +20,15 @@
       </tr>
       <tr>
         <td>
-          <input type="checkbox" name="button1" id="b1">
-          <Label for="b1">Button 1</Label>
+          <button ng-mouseDown="button(&quot;b1&quot;,1)" ng-mouseup="button(&quot;b1&quot;,0)">Button 1</button>
         </td>
         <td>
-          <input type="checkbox" name="button2" id="b2">
-          <Label for="b2">Button 2</Label>
+          <button ng-mouseDown="button(&quot;b2&quot;,1)" ng-mouseup="button(&quot;b2&quot;,0)">Button 2</button>
         </td>
       </tr>
     </table>
     <p>Count = {{ count }}</p>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.2.0/angular-ui-router.js"></script>
     <script src="client.js"></script>
   </body>
 </html>

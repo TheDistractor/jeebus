@@ -1,17 +1,35 @@
-# the websocket is served from the same site as the web page
+ng = angular.module 'myApp', ['ui.router']
 
-reconnect = ->
-	ws = new WebSocket "ws://#{location.host}/ws"
+ws = null
 
-	ws.onopen = ->
-		console.log 'Open'
+ng.run ($rootScope) ->
 
-	ws.onmessage = (m) ->
-		data = JSON.parse(m.data)
-		console.log data
+	setCount = (data) ->
+		$rootScope.$apply ->
+			$rootScope.count = data
 
-	ws.onclose = ->
-		console.log 'Closed'
-		setTimeout reconnect, 1000
+	reconnect = (firstCall) ->
+		# the websocket is served from the same site as the web page
+		ws = new WebSocket "ws://#{location.host}/ws"
 
-reconnect()
+		ws.onopen = ->
+			location.reload()  unless firstCall
+			console.log 'Open'
+
+		ws.onmessage = (m) ->
+			setCount JSON.parse(m.data)
+
+		ws.onclose = ->
+			console.log 'Closed'
+			setCount null
+			setTimeout reconnect, 1000
+		
+	reconnect true
+
+ng.controller 'MainCtrl', ($scope) ->
+	$scope.leds =
+		redLed: true
+		greenLed: false
+	$scope.button = (b, v) ->
+		console.log JSON.stringify {b, v}
+		ws.send JSON.stringify {b, v}

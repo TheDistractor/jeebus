@@ -62,13 +62,23 @@ func sockServer(ws *websocket.Conn) {
 	connection = ws
 	client := ws.Request().RemoteAddr
 	log.Println("Client connected:", client)
-	var msg string
+
+	var msg struct {
+		b string
+		v int
+	}
+
 	for {
-		if err := websocket.Message.Receive(ws, msg); err != nil {
-			break;
+		var str string
+		websocket.Message.Receive(ws, &str)
+		fmt.Printf("str %v\n", str)
+
+		if err := websocket.JSON.Receive(ws, &msg); err != nil {
+			log.Print(err)
+			break
 		}
-		fmt.Printf("msg %v = %v\n", client, msg)
-		websocket.Message.Send(ws, "hi!")
+		fmt.Printf("msg %v = %+v %s\n", client, msg, msg.b)
+		websocket.JSON.Send(ws, "hi!")
 	}
 	log.Println("Client disconnected:", client)
 	connection = nil

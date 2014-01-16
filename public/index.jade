@@ -1,10 +1,10 @@
 doctype
-html(ng-app)
+html(ng-app='myApp')
   head
     title Blink demo
     style body { margin: 30px; }
-    script(src='https://ajax.googleapis.com/ajax/libs/angularjs/1.2.9/angular.min.js')
-  body
+    script(src='//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.7/angular.js')
+  body(ng-controller='MainCtrl')
     h1 Blink
 
     table(cellpadding=10)
@@ -17,12 +17,13 @@ html(ng-app)
           Label(for='gl') Green LED
       tr
         td
-          input(type='checkbox',name='button1',id='b1')
-          Label(for='b1') Button 1
+          button(ng-mouseDown='button("b1",1)',ng-mouseup='button("b1",0)')
+            | Button 1
         td
-          input(type='checkbox',name='button2',id='b2')
-          Label(for='b2') Button 2
+          button(ng-mouseDown='button("b2",1)',ng-mouseup='button("b2",0)')
+            | Button 2
 
     p Count = {{ count }}
 
+    script(src='//cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.2.0/angular-ui-router.js')
     script(src='client.js')
