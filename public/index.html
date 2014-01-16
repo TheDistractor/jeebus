@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html ng-app>
+  <head>
+    <title>Blink demo</title>
+    <style>body { margin: 30px; }</style>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.9/angular.min.js"></script>
+  </head>
+  <body>
+    <h1>Blink</h1>
+    <table cellpadding="10">
+      <tr>
+        <td>
+          <input type="checkbox" name="redLed" id="rl" disabled>
+          <Label for="rl">Red LED</Label>
+        </td>
+        <td>
+          <input type="checkbox" name="greenLed" id="gl" disabled>
+          <Label for="gl">Green LED</Label>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <input type="checkbox" name="button1" id="b1">
+          <Label for="b1">Button 1</Label>
+        </td>
+        <td>
+          <input type="checkbox" name="button2" id="b2">
+          <Label for="b2">Button 2</Label>
+        </td>
+      </tr>
+    </table>
+    <p>AngularJS says: 1 + 1 = {{ 1 + 1 }}</p>
+  </body>
+</html>
