@@ -30,5 +30,22 @@
       </tr>
     </table>
     <p>Count = {{ count }}</p>
+    <hr>
+    <div id="messages"></div>
+    <script src="https://raw.github.com/LearnBoost/engine.io-client/master/engine.io.js"></script>
+    <script>
+      var socket = new eio.Socket('ws://localhost:3333', {
+        transports: ['websocket']
+      });
+      socket.on('open', function () {
+        $('#messages').prepend('<div><b>Open</b></div>');
+        socket.on('message', function (data) {
+          $('#messages').prepend('<div>' + data + '</div>');
+        });
+        socket.on('close', function() {
+          $('#messages').prepend('<div><b>Closed</b></div>');
+        });
+      });
+    </script>
   </body>
 </html>

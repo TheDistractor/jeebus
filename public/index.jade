@@ -24,3 +24,20 @@ html(ng-app)
           Label(for='b2') Button 2
 
     p Count = {{ count }}
+    hr
+    #messages
+
+    script(src='https://raw.github.com/LearnBoost/engine.io-client/master/engine.io.js')
+    script.
+      var socket = new eio.Socket('ws://localhost:3333', {
+        transports: ['websocket']
+      });
+      socket.on('open', function () {
+        $('#messages').prepend('<div><b>Open</b></div>');
+        socket.on('message', function (data) {
+          $('#messages').prepend('<div>' + data + '</div>');
+        });
+        socket.on('close', function() {
+          $('#messages').prepend('<div><b>Closed</b></div>');
+        });
+      });
