@@ -32,4 +32,4 @@ ng.controller 'MainCtrl', ($scope) ->
 		greenLed: false
 	$scope.button = (b, v) ->
 		console.log JSON.stringify {b, v}
-		ws.send JSON.stringify {b, v}
+		ws.send JSON.stringify [b, v]

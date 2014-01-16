@@ -43,10 +43,7 @@
         b: b,
         v: v
       }));
-      return ws.send(JSON.stringify({
-        b: b,
-        v: v
-      }));
+      return ws.send(JSON.stringify([b, v]));
     };
   });
 
