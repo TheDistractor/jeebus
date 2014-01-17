@@ -15,6 +15,10 @@ var (
 	serial *rs232.Port
 )
 
+func init() {
+	connections = make(map[string]*websocket.Conn)
+}
+
 func main() {
 	// open the serial port
 	options := rs232.Options{
@@ -57,8 +61,6 @@ func main() {
 		}
 	}()
 
-	connections = make(map[string]*websocket.Conn)
-
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.Handle("/ws", websocket.Handler(sockServer))
 
@@ -86,6 +88,7 @@ func sockServer(ws *websocket.Conn) {
 		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
 		serial.Write([]byte(cmd))
 	}
+
 	log.Println("Client disconnected:", client)
 	delete(connections, client)
 }

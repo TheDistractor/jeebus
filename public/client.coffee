@@ -28,8 +28,8 @@ ng.run ($rootScope) ->
   reconnect true
 
 ng.controller 'MainCtrl', ($scope) ->
-  $scope.$on 'R', (e, v) -> $scope.redLed = v isnt 0
-  $scope.$on 'G', (e, v) -> $scope.greenLed = v isnt 0
+  $scope.$on 'R', (e, v) -> $scope.redLed = v is 1
+  $scope.$on 'G', (e, v) -> $scope.greenLed = v is 1
   $scope.$on 'C', (e, v) -> $scope.count = v
 
   $scope.button = (b, v) ->
