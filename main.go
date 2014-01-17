@@ -29,27 +29,27 @@ func main() {
 	if len(os.Args) > 1 {
 		dev = os.Args[1]
 	}
-	fmt.Println("opening serial port", dev)
-	serialConnect(dev)
+	log.Println("opening serial port", dev)
+	serialPort = serialConnect(dev)
 
-	fmt.Println("starting MQTT server")
+	log.Println("starting MQTT server")
 	go mqttServer()
 
-	fmt.Println("opening database")
+	log.Println("opening database")
 	openDatabase("./storage")
 
-	println("web server is listening on port 3333")
+	log.Println("web server is listening on port 3333")
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.Handle("/ws", websocket.Handler(sockServer))
 	log.Fatal(http.ListenAndServe("localhost:3333", nil))
 }
 
 func mqttServer() {
-	l, err := net.Listen("tcp", ":1883")
+	port, err := net.Listen("tcp", ":1883")
 	if err != nil {
 		log.Fatal("listen: ", err)
 	}
-	svr := mqtt.NewServer(l)
+	svr := mqtt.NewServer(port)
 	svr.Start()
 	<-svr.Done
 }
@@ -65,7 +65,7 @@ func openDatabase(dbname string) {
 	_ = db // ignore value for now
 }
 
-func serialConnect(dev string) {
+func serialConnect(dev string) *rs232.Port {
 	// open the serial port
 	options := rs232.Options{
 		BitRate:  57600,
@@ -76,13 +76,12 @@ func serialConnect(dev string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	serialPort = ser
 
 	// turn incoming data into a channel of text lines
 	inputLines := make(chan string)
 
 	go func() {
-		scanner := bufio.NewScanner(serialPort)
+		scanner := bufio.NewScanner(ser)
 		for scanner.Scan() {
 			inputLines <- scanner.Text()
 		}
@@ -91,7 +90,7 @@ func serialConnect(dev string) {
 	// process incoming data
 	go func() {
 		// flush all old data from the serial port
-		fmt.Println("waiting for blinker to start")
+		log.Println("waiting for blinker to start")
 		for line := range inputLines {
 			if line == "[blinker]" {
 				break
@@ -100,12 +99,14 @@ func serialConnect(dev string) {
 		}
 
 		for line := range inputLines {
-			fmt.Println(line)
+			log.Println(line)
 			for _, conn := range openConnections {
 				websocket.JSON.Send(conn, line)
 			}
 		}
 	}()
+
+	return ser
 }
 
 func sockServer(ws *websocket.Conn) {
@@ -122,7 +123,7 @@ func sockServer(ws *websocket.Conn) {
 			log.Print(err)
 			break
 		}
-		fmt.Println(any)
+		log.Println(any)
 
 		// send as L<n><m> to the serial port
 		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
