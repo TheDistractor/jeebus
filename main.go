@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"code.google.com/p/go.net/websocket"
-	"github.com/chimera/go-inside/rs232"
+	"github.com/chimera/rs232"
 )
 
 var (
