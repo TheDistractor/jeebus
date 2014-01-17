@@ -11,6 +11,7 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"github.com/chimera/rs232"
 	"github.com/jeffallen/mqtt"
+	"github.com/jmhodges/levigo"
 )
 
 var (
@@ -23,7 +24,7 @@ func init() {
 }
 
 func main() {
-	// pass serial port as first arg to override the default
+	// passing serial port as first arg will override the default
 	dev := "/dev/tty.usbserial-A40115A2"
 	if len(os.Args) > 1 {
 		dev = os.Args[1]
@@ -33,6 +34,9 @@ func main() {
 
 	fmt.Println("starting MQTT server")
 	go mqttServer()
+
+	fmt.Println("opening database")
+	openDatabase("./storage")
 
 	println("web server is listening on port 3333")
 	http.Handle("/", http.FileServer(http.Dir("public")))
@@ -48,6 +52,17 @@ func mqttServer() {
 	svr := mqtt.NewServer(l)
 	svr.Start()
 	<-svr.Done
+}
+
+func openDatabase(dbname string) {
+	opts := levigo.NewOptions()
+	// opts.SetCache(levigo.NewLRUCache(1<<10))
+	opts.SetCreateIfMissing(true)
+	db, err := levigo.Open(dbname, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_ = db // ignore value for now
 }
 
 func serialConnect(dev string) {
