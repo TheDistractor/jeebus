@@ -10,8 +10,10 @@ import (
 	"github.com/chimera/go-inside/rs232"
 )
 
-var connection *websocket.Conn
-var serial *rs232.Port
+var (
+	connection *websocket.Conn
+	serial *rs232.Port
+)
 
 func main() {
 	http.Handle("/", http.FileServer(http.Dir("public")))
