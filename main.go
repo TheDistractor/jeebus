@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/chimera/rs232"
@@ -22,18 +23,24 @@ func init() {
 }
 
 func main() {
-	serialConnect("/dev/tty.usbserial-A40115A2")
+	// pass serial port as first arg to override the default
+	dev := "/dev/tty.usbserial-A40115A2"
+	if len(os.Args) > 1 {
+		dev = os.Args[1]
+	}
+	fmt.Println("opening serial port", dev)
+	serialConnect(dev)
 
-	go startMqttServer()
+	fmt.Println("starting MQTT server")
+	go mqttServer()
 
-	println("listening on port 3333")
+	println("web server is listening on port 3333")
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.Handle("/ws", websocket.Handler(sockServer))
 	log.Fatal(http.ListenAndServe("localhost:3333", nil))
 }
 
-func startMqttServer() {
-	fmt.Println("starting MQTT server")
+func mqttServer() {
 	l, err := net.Listen("tcp", ":1883")
 	if err != nil {
 		log.Fatal("listen: ", err)
