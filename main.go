@@ -11,12 +11,12 @@ import (
 )
 
 var (
-	connections map[string]*websocket.Conn
-	serial *rs232.Port
+	openConnections map[string]*websocket.Conn
+	serialPort      *rs232.Port
 )
 
 func init() {
-	connections = make(map[string]*websocket.Conn)
+	openConnections = make(map[string]*websocket.Conn)
 }
 
 func main() {
@@ -30,32 +30,32 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	serial = ser
+	serialPort = ser
 
 	// turn incoming data into a channel of text lines
-	input := make(chan string)
+	inputLines := make(chan string)
 
 	go func() {
-		scanner := bufio.NewScanner(serial)
+		scanner := bufio.NewScanner(serialPort)
 		for scanner.Scan() {
-			input <- scanner.Text()
+			inputLines <- scanner.Text()
 		}
 	}()
 
-	// flush all old data from the serial port
-	fmt.Println("waiting for blinker to start")
-	for line := range input {
-		if line == "[blinker]" {
-			break
-		}
-		// TODO bail out if another sketch type is found
-	}
-
 	// process incoming data
 	go func() {
-		for line := range input {
+		// flush all old data from the serial port
+		fmt.Println("waiting for blinker to start")
+		for line := range inputLines {
+			if line == "[blinker]" {
+				break
+			}
+			// TODO bail out if another sketch type is found
+		}
+
+		for line := range inputLines {
 			fmt.Println(line)
-			for _, conn := range connections {
+			for _, conn := range openConnections {
 				websocket.JSON.Send(conn, line)
 			}
 		}
@@ -71,7 +71,7 @@ func main() {
 func sockServer(ws *websocket.Conn) {
 	defer ws.Close()
 	client := ws.Request().RemoteAddr
-	connections[client] = ws
+	openConnections[client] = ws
 	log.Println("Client connected:", client)
 
 	for {
@@ -86,9 +86,9 @@ func sockServer(ws *websocket.Conn) {
 
 		// send as L<n><m> to the serial port
 		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
-		serial.Write([]byte(cmd))
+		serialPort.Write([]byte(cmd))
 	}
 
 	log.Println("Client disconnected:", client)
-	delete(connections, client)
+	delete(openConnections, client)
 }
