@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/chimera/rs232"
+	"github.com/jeffallen/mqtt"
 )
 
 var (
@@ -20,13 +22,35 @@ func init() {
 }
 
 func main() {
+	serialConnect("/dev/tty.usbserial-A40115A2")
+
+	go startMqttServer()
+
+	println("listening on port 3333")
+	http.Handle("/", http.FileServer(http.Dir("public")))
+	http.Handle("/ws", websocket.Handler(sockServer))
+	log.Fatal(http.ListenAndServe("localhost:3333", nil))
+}
+
+func startMqttServer() {
+	fmt.Println("starting MQTT server")
+	l, err := net.Listen("tcp", ":1883")
+	if err != nil {
+		log.Fatal("listen: ", err)
+	}
+	svr := mqtt.NewServer(l)
+	svr.Start()
+	<-svr.Done
+}
+
+func serialConnect(dev string) {
 	// open the serial port
 	options := rs232.Options{
 		BitRate:  57600,
 		DataBits: 8,
 		StopBits: 1,
 	}
-	ser, err := rs232.Open("/dev/tty.usbserial-A40115A2", options)
+	ser, err := rs232.Open(dev, options)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,12 +84,6 @@ func main() {
 			}
 		}
 	}()
-
-	http.Handle("/", http.FileServer(http.Dir("public")))
-	http.Handle("/ws", websocket.Handler(sockServer))
-
-	println("listening on port 3333")
-	log.Fatal(http.ListenAndServe("localhost:3333", nil))
 }
 
 func sockServer(ws *websocket.Conn) {
