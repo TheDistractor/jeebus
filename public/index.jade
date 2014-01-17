@@ -10,17 +10,17 @@ html(ng-app='myApp')
     table(cellpadding=10)
       tr
         td
-          input(type='checkbox',name='redLed',id='rl',disabled)
-          Label(for='rl') Red LED
-        td
-          input(type='checkbox',name='greenLed',id='gl',disabled)
+          input(type='checkbox',ng-model='greenLed',id='gl',disabled)
           Label(for='gl') Green LED
+        td
+          input(type='checkbox',ng-model='redLed',id='rl',disabled)
+          Label(for='rl') Red LED
       tr
         td
-          button(ng-mouseDown='button("b1",1)',ng-mouseup='button("b1",0)')
+          button(ng-mouseDown='button(1,1)',ng-mouseup='button(1,0)')
             | Button 1
         td
-          button(ng-mouseDown='button("b2",1)',ng-mouseup='button("b2",0)')
+          button(ng-mouseDown='button(2,1)',ng-mouseup='button(2,0)')
             | Button 2
 
     p Count = {{ count }}

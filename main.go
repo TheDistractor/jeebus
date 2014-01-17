@@ -11,6 +11,7 @@ import (
 )
 
 var connection *websocket.Conn
+var serial *rs232.Port
 
 func main() {
 	http.Handle("/", http.FileServer(http.Dir("public")))
@@ -22,10 +23,11 @@ func main() {
 		DataBits: 8,
 		StopBits: 1,
 	}
-	serial, err := rs232.Open("/dev/tty.usbserial-A40115A2", options)
+	ser, err := rs232.Open("/dev/tty.usbserial-A40115A2", options)
 	if err != nil {
 		log.Fatal(err)
 	}
+	serial = ser
 
 	// turn incoming data into a channel of text lines
 	input := make(chan string)
@@ -73,7 +75,9 @@ func sockServer(ws *websocket.Conn) {
 		}
 		fmt.Println(any)
 
-		websocket.JSON.Send(ws, "hi!")
+		// send as L<n><m> to the serial port
+		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
+		serial.Write([]byte(cmd))
 	}
 	log.Println("Client disconnected:", client)
 	connection = nil

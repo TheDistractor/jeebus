@@ -10,20 +10,20 @@
     <table cellpadding="10">
       <tr>
         <td>
-          <input type="checkbox" name="redLed" id="rl" disabled>
-          <Label for="rl">Red LED</Label>
+          <input type="checkbox" ng-model="greenLed" id="gl" disabled>
+          <Label for="gl">Green LED</Label>
         </td>
         <td>
-          <input type="checkbox" name="greenLed" id="gl" disabled>
-          <Label for="gl">Green LED</Label>
+          <input type="checkbox" ng-model="redLed" id="rl" disabled>
+          <Label for="rl">Red LED</Label>
         </td>
       </tr>
       <tr>
         <td>
-          <button ng-mouseDown="button(&quot;b1&quot;,1)" ng-mouseup="button(&quot;b1&quot;,0)">Button 1</button>
+          <button ng-mouseDown="button(1,1)" ng-mouseup="button(1,0)">Button 1</button>
         </td>
         <td>
-          <button ng-mouseDown="button(&quot;b2&quot;,1)" ng-mouseup="button(&quot;b2&quot;,0)">Button 2</button>
+          <button ng-mouseDown="button(2,1)" ng-mouseup="button(2,0)">Button 2</button>
         </td>
       </tr>
     </table>

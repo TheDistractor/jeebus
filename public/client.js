@@ -22,11 +22,14 @@
         return console.log('Open');
       };
       ws.onmessage = function(m) {
-        return setCount(JSON.parse(m.data));
+        return $rootScope.$apply(function() {
+          var msg;
+          msg = JSON.parse(m.data);
+          return $rootScope.$broadcast(msg[0], msg.slice(1) | 0);
+        });
       };
       return ws.onclose = function() {
         console.log('Closed');
-        setCount(null);
         return setTimeout(reconnect, 1000);
       };
     };
@@ -34,15 +37,16 @@
   });
 
   ng.controller('MainCtrl', function($scope) {
-    $scope.leds = {
-      redLed: true,
-      greenLed: false
-    };
+    $scope.$on('R', function(e, v) {
+      return $scope.redLed = v !== 0;
+    });
+    $scope.$on('G', function(e, v) {
+      return $scope.greenLed = v !== 0;
+    });
+    $scope.$on('C', function(e, v) {
+      return $scope.count = v;
+    });
     return $scope.button = function(b, v) {
-      console.log(JSON.stringify({
-        b: b,
-        v: v
-      }));
       return ws.send(JSON.stringify([b, v]));
     };
   });
