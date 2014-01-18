@@ -7,13 +7,15 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 
+	"github.com/syndtr/goleveldb/leveldb"
+	// "github.com/jmhodges/levigo"
 	"code.google.com/p/go.net/websocket"
 	"github.com/aarzilli/golua/lua"
 	"github.com/chimera/rs232"
 	"github.com/jeffallen/mqtt"
-	"github.com/syndtr/goleveldb/leveldb"
-	// "github.com/jmhodges/levigo"
+	"github.com/stevedonovan/luar"
 )
 
 var (
@@ -155,6 +157,33 @@ func test2(L *lua.State) int {
 	return 0
 }
 
+const testr = `
+for i = 1,3 do
+    Print(MSG,i)
+end
+`
+
+func GoFun(args []int) (res map[string]int) {
+	res = make(map[string]int)
+	for i, val := range args {
+		res[strconv.Itoa(i)] = val * val
+	}
+	return
+}
+
+const code = `
+print 'here we go'
+-- Lua tables auto-convert to slices
+local res = GoFun {10,20,30,40}
+-- the result is a map-proxy
+print(res['1'],res['2'])
+-- which we may explicitly convert to a table
+res = luar.map2table(res)
+for k,v in pairs(res) do
+      print(k,v)
+end
+`
+
 func setupLua() {
 	L := lua.NewState()
 	defer L.Close()
@@ -179,8 +208,14 @@ func setupLua() {
 	L.Call(0, 0)
 	L.Call(0, 0)
 
-	// this will fail as we didn't register test2 function
-	err := L.DoString("test2(42)")
+	luar.Register(L, "", luar.Map{
+		"Print": fmt.Println,
+		"MSG":   "hello", // can also register constants
+		"GoFun": GoFun,
+	})
 
-	fmt.Printf("Ciao %v\n", err)
+	err := L.DoString(code)
+	fmt.Printf("error %v\n", err)
+
+	L.DoString(testr)
 }
