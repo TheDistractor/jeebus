@@ -7,7 +7,7 @@ Windows will probably not work as is, due to COM port and DLL differences.
 
 ## Installation
 
-The Go tools must be installed and GOPATH has to be set
+The Go tools must be installed and GOPATH has to be set, then:
 
 * A recent LevelDB must be installed, i.e. header files and the shared library.
 * Lua 5.1 must be installed as shared library, a static build is not enough.

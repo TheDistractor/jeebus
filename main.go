@@ -25,7 +25,14 @@ func init() {
 }
 
 func main() {
-	tryLua()
+	log.Println("opening database")
+	openDatabase("./storage")
+
+	log.Println("setting up Lua")
+	setupLua()
+
+	log.Println("starting MQTT server")
+	go mqttServer()
 
 	// passing serial port as first arg will override the default
 	dev := "/dev/tty.usbserial-A40115A2"
@@ -35,15 +42,9 @@ func main() {
 	log.Println("opening serial port", dev)
 	serialPort = serialConnect(dev)
 
-	log.Println("starting MQTT server")
-	go mqttServer()
-
-	log.Println("opening database")
-	openDatabase("./storage")
-
-	log.Println("web server is listening on port 3333")
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.Handle("/ws", websocket.Handler(sockServer))
+	log.Println("web server is listening on port 3333")
 	log.Fatal(http.ListenAndServe("localhost:3333", nil))
 }
 
@@ -152,7 +153,7 @@ func test2(L *lua.State) int {
 	return 0
 }
 
-func tryLua() {
+func setupLua() {
 	L := lua.NewState()
 	defer L.Close()
 	L.OpenLibs()
