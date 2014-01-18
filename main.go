@@ -12,7 +12,8 @@ import (
 	"github.com/aarzilli/golua/lua"
 	"github.com/chimera/rs232"
 	"github.com/jeffallen/mqtt"
-	"github.com/jmhodges/levigo"
+	"github.com/syndtr/goleveldb/leveldb"
+	// "github.com/jmhodges/levigo"
 )
 
 var (
@@ -59,10 +60,11 @@ func mqttServer() {
 }
 
 func openDatabase(dbname string) {
-	opts := levigo.NewOptions()
-	// opts.SetCache(levigo.NewLRUCache(1<<10))
-	opts.SetCreateIfMissing(true)
-	db, err := levigo.Open(dbname, opts)
+	db, err := leveldb.OpenFile(dbname, nil)
+	// opts := levigo.NewOptions()
+	// // opts.SetCache(levigo.NewLRUCache(1<<10))
+	// opts.SetCreateIfMissing(true)
+	// db, err := levigo.Open(dbname, opts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -157,6 +159,8 @@ func setupLua() {
 	L := lua.NewState()
 	defer L.Close()
 	L.OpenLibs()
+
+	// L.Register("test2", test2)
 
 	L.GetField(lua.LUA_GLOBALSINDEX, "print")
 	L.PushString("Hello World!")
