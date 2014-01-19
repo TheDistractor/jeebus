@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
-	// "github.com/jmhodges/levigo"
 	"code.google.com/p/go.net/websocket"
 	"github.com/aarzilli/golua/lua"
 	"github.com/chimera/rs232"
@@ -34,8 +33,6 @@ func init() {
 }
 
 func main() {
-	now := time.Now().String()
-
 	log.Println("opening database")
 	openDatabase("./storage")
 
@@ -61,62 +58,6 @@ func main() {
 	log.Println("opening serial port", dev)
 	serialPort = serialConnect(dev)
 
-	// set up an mqtt client connection and subscribe to all topics
-	go func() {
-		conn, _ := net.Dial("tcp", "localhost:1883")
-		mqttClient = mqtt.NewClientConn(conn)
-		// mqttClient.Dump = true
-		mqttClient.Connect("", "")
-		Publish("st/admin/started", []byte(now))
-
-		mqttClient.Subscribe([]proto.TopicQos{
-			{Topic: "#", Qos: proto.QosAtMostOnce},
-		})
-
-		for m := range mqttClient.Incoming {
-			topic := m.TopicName
-			message := []byte(m.Payload.(proto.BytesPayload))
-			log.Printf("msg %s = %s r: %v", topic, message, m.Header.Retain)
-			// FIXME can't work: retain flag is not published to subscribers!
-			//	solving this will require a modified mqtt package
-			// if m.Header.Retain {
-			// 	Store("mqtt/" + topic, message, nil)
-			// }
-			switch {
-
-			// st/key... -> current state, stored as key and with timestamp
-			case strings.HasPrefix(topic, "st/"):
-				key := strings.TrimPrefix(topic, "st/")
-				Store(key, message)
-				millis := time.Now().UnixNano() / 1000000
-				Store(fmt.Sprintf("hist/%s/%d", key, millis), message)
-
-			// db/... -> database requests, value is reply topic
-			case strings.HasPrefix(topic, "db/get/"):
-				value := Fetch(strings.TrimPrefix(topic, "db/get/"))
-				Publish(string(message), value)
-
-			// FIXME hardcoded serial port to websocket pass-through for now
-			case strings.HasPrefix(topic, "if/serial/"):
-				for _, conn := range openConnections {
-					websocket.JSON.Send(conn, string(message))
-				}
-			// FIXME hardcoded websocket to serial port pass-through for now
-			case strings.HasPrefix(topic, "ws/"):
-				// accept arrays of arbitrary data types
-				var any []interface{}
-				log.Printf("got %#v", message)
-				err := json.Unmarshal(message, &any)
-				if err != nil {
-					log.Fatal("err?", topic, message, err)
-				}
-				// send as L<n><m> to the serial port
-				cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
-				serialPort.Write([]byte(cmd))
-			}
-		}
-	}()
-
 	// set up a web server to handle static files and websockets
 	http.Handle("/", http.FileServer(http.Dir("./public")))
 	http.Handle("/ws", websocket.Handler(sockServer))
@@ -135,11 +76,72 @@ func startMqttServer() {
 		svr := mqtt.NewServer(port)
 		svr.Start()
 		ready <- true
-		<-svr.Done
+
+		conn, _ := net.Dial("tcp", "localhost:1883")
+		mqttClient = mqtt.NewClientConn(conn)
+		// mqttClient.Dump = true
+		mqttClient.Connect("", "")
+		Publish("st/admin/started", []byte(time.Now().String()))
+
+		mqttClient.Subscribe([]proto.TopicQos{
+			{Topic: "#", Qos: proto.QosAtMostOnce},
+		})
+
+		for m := range mqttClient.Incoming {
+			mqttDispatch(m)
+		}
+		// <-svr.Done
 	}()
 
 	// resume here only when the MQTT server has actually been started
 	<-ready
+}
+
+func mqttDispatch(m *proto.Publish) {
+	topic := m.TopicName
+	message := []byte(m.Payload.(proto.BytesPayload))
+	log.Printf("msg %s = %s r: %v", topic, message, m.Header.Retain)
+	// FIXME can't work: retain flag is not published to subscribers!
+	//	solving this will require a modified mqtt package
+	// if m.Header.Retain {
+	// 	Store("mqtt/" + topic, message, nil)
+	// }
+	switch topic[:3] {
+
+	// st/key... -> current state, stored as key and with timestamp
+	case "st/":
+		key := topic[3:]
+		Store(key, message)
+		millis := time.Now().UnixNano() / 1000000
+		Store(fmt.Sprintf("hist/%s/%d", key, millis), message)
+
+	// db/... -> database requests, value is reply topic
+	case "db/":
+		if strings.HasPrefix(topic, "db/get/") {
+			value := Fetch(topic[7:])
+			Publish(string(message), value)
+		}
+
+	// TODO hardcoded serial port to websocket pass-through for now
+	case "if/":
+		if strings.HasPrefix(topic, "if/serial/") {
+			for _, conn := range openConnections {
+				websocket.JSON.Send(conn, string(message))
+			}
+		}
+	// TODO hardcoded websocket to serial port pass-through for now
+	case "ws/":
+		// accept arrays of arbitrary data types
+		var any []interface{}
+		log.Printf("got %#v", message)
+		err := json.Unmarshal(message, &any)
+		if err != nil {
+			log.Fatal("err?", topic, message, err)
+		}
+		// send as L<n><m> to the serial port
+		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
+		serialPort.Write([]byte(cmd))
+	}
 }
 
 func Publish(key string, value []byte) {
@@ -153,10 +155,6 @@ func Publish(key string, value []byte) {
 
 func openDatabase(dbname string) {
 	db, err := leveldb.OpenFile(dbname, nil)
-	// opts := levigo.NewOptions()
-	// // opts.SetCache(levigo.NewLRUCache(1<<10))
-	// opts.SetCreateIfMissing(true)
-	// db, err := levigo.Open(dbname, opts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -208,6 +206,7 @@ func serialConnect(dev string) *rs232.Port {
 			}
 			// TODO bail out if another sketch type is found
 		}
+		log.Println("blinker start detected")
 
 		serKey := "if/serial/" + strings.TrimPrefix(dev, "/dev/")
 		for line := range inputLines {
