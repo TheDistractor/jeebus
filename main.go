@@ -49,7 +49,8 @@ func main() {
 	setupLua()
 
 	log.Println("starting MQTT server")
-	go mqttServer()
+	startMqttServer()
+	log.Println("MQTT server is running")
 
 	// passing serial port as first arg will override the default
 	dev := "/dev/tty.usbserial-A40115A2"
@@ -71,20 +72,27 @@ func main() {
 		})
 
 		for m := range mqttClient.Incoming {
-			fmt.Printf("msg %s = ", m.TopicName)
-			m.Payload.WritePayload(os.Stdout)
-			fmt.Println("\tr:", m.Header.Retain)
+			log.Printf("msg %s = %s r: %v",
+				m.TopicName, m.Payload, m.Header.Retain)
+			// FIXME can't work: retain flag is not published to subscribers!
+			// if m.Header.Retain {
+			// 	dbKey := []byte("mqtt/" + m.TopicName)
+			// 	dataStore.Put(dbKey, m.Payload.(proto.BytesPayload), nil)
+			// }
 		}
 	}()
 
 	// publish one message on topic "ha" every 3 seconds
-	periodic := time.NewTicker(3 * time.Second)
-	for _ = range periodic.C {
-		mqttClient.Publish(&proto.Publish{
-			TopicName: "ha",
-			Payload:   proto.BytesPayload([]byte("yes!")),
-		})
-	}
+	go func() {
+		periodic := time.NewTicker(3 * time.Second)
+		for _ = range periodic.C {
+			mqttClient.Publish(&proto.Publish{
+				Header:    proto.Header{Retain: true},
+				TopicName: "ha",
+				Payload:   proto.BytesPayload([]byte("yes!")),
+			})
+		}
+	}()
 
 	// set up a web server to handle static files and websockets
 	http.Handle("/", http.FileServer(http.Dir("./public")))
@@ -93,14 +101,22 @@ func main() {
 	log.Fatal(http.ListenAndServe(":3333", nil))
 }
 
-func mqttServer() {
-	port, err := net.Listen("tcp", ":1883")
-	if err != nil {
-		log.Fatal("listen: ", err)
-	}
-	svr := mqtt.NewServer(port)
-	svr.Start()
-	<-svr.Done
+func startMqttServer() {
+	ready := make(chan bool)
+
+	go func() {
+		port, err := net.Listen("tcp", ":1883")
+		if err != nil {
+			log.Fatal("listen: ", err)
+		}
+		svr := mqtt.NewServer(port)
+		svr.Start()
+		ready <- true
+		<-svr.Done
+	}()
+
+	// resume here only when the MQTT server has actually been started
+	<-ready
 }
 
 func openDatabase(dbname string) {
