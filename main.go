@@ -94,15 +94,16 @@ func main() {
 			case strings.HasPrefix(topic, "db/get/"):
 				value := Fetch(strings.TrimPrefix(topic, "db/get/"))
 				Publish(string(message), value);
-			}
-		}
-	}()
 
-	// publish one message on topic "ha" every 3 seconds
-	go func() {
-		periodic := time.NewTicker(3 * time.Second)
-		for _ = range periodic.C {
-			Publish("ha", []byte("yes!"))
+			// FIXME hardcoded serial port to websocket pass-through for now
+			case strings.HasPrefix(topic, "if/serial/"):
+				for _, conn := range openConnections {
+					websocket.JSON.Send(conn, string(message))
+				}
+			// FIXME hardcoded websocket to serial port pass-through for now
+			case strings.HasPrefix(topic, "ws/"):
+				serialPort.Write(message)
+			}
 		}
 	}()
 
@@ -187,7 +188,7 @@ func serialConnect(dev string) *rs232.Port {
 		}
 	}()
 
-	// process incoming data
+	// publish incoming data
 	go func() {
 		// flush all old data from the serial port
 		log.Println("waiting for blinker to start")
@@ -198,11 +199,9 @@ func serialConnect(dev string) *rs232.Port {
 			// TODO bail out if another sketch type is found
 		}
 
+		serKey := "if/serial/" + strings.TrimPrefix(dev, "/dev/")
 		for line := range inputLines {
-			log.Println(line)
-			for _, conn := range openConnections {
-				websocket.JSON.Send(conn, line)
-			}
+			Publish(serKey, []byte(line))
 		}
 	}()
 
@@ -228,7 +227,6 @@ func sockServer(ws *websocket.Conn) {
 		// send as L<n><m> to the serial port
 		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
 		serialPort.Write([]byte(cmd))
-
 		Publish("ws/" + client, []byte(cmd));
 	}
 
