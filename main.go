@@ -14,17 +14,17 @@ import (
 	// "github.com/jmhodges/levigo"
 	"code.google.com/p/go.net/websocket"
 	"github.com/aarzilli/golua/lua"
-	"github.com/stevedonovan/luar"
 	"github.com/chimera/rs232"
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
+	"github.com/stevedonovan/luar"
 )
 
 var (
 	openConnections map[string]*websocket.Conn
 	serialPort      *rs232.Port
 	mqttClient      *mqtt.ClientConn
-	dataStore		*leveldb.DB
+	dataStore       *leveldb.DB
 )
 
 func init() {
@@ -34,8 +34,11 @@ func init() {
 func main() {
 	log.Println("opening database")
 	openDatabase("./storage")
+
+	// add a new item to the database on each startup
 	dataStore.Put([]byte(time.Now().String()), []byte("blah"), nil)
 
+	// print all the key/value pairs stored in the database
 	iter := dataStore.NewIterator(nil)
 	for iter.Next() {
 		log.Printf("key: %s, value: %s\n", iter.Key(), iter.Value())
