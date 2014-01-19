@@ -23,7 +23,7 @@ import (
 var (
 	openConnections map[string]*websocket.Conn
 	serialPort      *rs232.Port
-	cc  *mqtt.ClientConn
+	mqttClient      *mqtt.ClientConn
 )
 
 func init() {
@@ -51,12 +51,15 @@ func main() {
 	// set up an mqtt client connection and subscribe to all topics
 	go func() {
 		conn, _ := net.Dial("tcp", "localhost:1883")
-		cc = mqtt.NewClientConn(conn)
-		// cc.Dump = true
-		cc.Connect("", "")
+		mqttClient = mqtt.NewClientConn(conn)
+		// mqttClient.Dump = true
+		mqttClient.Connect("", "")
 
-		cc := subscribe("#")
-		for m := range cc.Incoming {
+		mqttClient.Subscribe([]proto.TopicQos{
+			{Topic: "#", Qos: proto.QosAtMostOnce},
+		})
+
+		for m := range mqttClient.Incoming {
 			fmt.Printf("msg %s = ", m.TopicName)
 			m.Payload.WritePayload(os.Stdout)
 			fmt.Println("\tr:", m.Header.Retain)
@@ -65,8 +68,11 @@ func main() {
 
 	// publish one message on topic "ha" every 3 seconds
 	periodic := time.NewTicker(3 * time.Second)
-	for _ = range periodic.C  {
-		publish("ha", "yes!")
+	for _ = range periodic.C {
+		mqttClient.Publish(&proto.Publish{
+			TopicName: "ha",
+			Payload:   proto.BytesPayload([]byte("yes!")),
+		})
 	}
 
 	// set up a web server to handle static files and websockets
@@ -84,22 +90,6 @@ func mqttServer() {
 	svr := mqtt.NewServer(port)
 	svr.Start()
 	<-svr.Done
-}
-
-func subscribe(topic string) *mqtt.ClientConn {
-	tq := make([]proto.TopicQos, 1)
-	tq[0].Topic = topic
-	tq[0].Qos = proto.QosAtMostOnce
-	cc.Subscribe(tq)
-	return cc
-}
-
-func publish(topic, message string) {
-	cc.Publish(&proto.Publish{
-		Header:    proto.Header{Retain: false},
-		TopicName: topic,
-		Payload:   proto.BytesPayload([]byte(message)),
-	})
 }
 
 func openDatabase(dbname string) {
