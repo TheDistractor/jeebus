@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -93,7 +94,7 @@ func main() {
 			// db/... -> database requests, value is reply topic
 			case strings.HasPrefix(topic, "db/get/"):
 				value := Fetch(strings.TrimPrefix(topic, "db/get/"))
-				Publish(string(message), value);
+				Publish(string(message), value)
 
 			// FIXME hardcoded serial port to websocket pass-through for now
 			case strings.HasPrefix(topic, "if/serial/"):
@@ -102,7 +103,16 @@ func main() {
 				}
 			// FIXME hardcoded websocket to serial port pass-through for now
 			case strings.HasPrefix(topic, "ws/"):
-				serialPort.Write(message)
+				// accept arrays of arbitrary data types
+				var any []interface{}
+				log.Printf("got %#v", message)
+				err := json.Unmarshal(message, &any)
+				if err != nil {
+					log.Fatal("err?", topic, message, err)
+				}
+				// send as L<n><m> to the serial port
+				cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
+				serialPort.Write([]byte(cmd))
 			}
 		}
 	}()
@@ -215,19 +225,13 @@ func sockServer(ws *websocket.Conn) {
 	log.Println("Client connected:", client)
 
 	for {
-		// accept arrays of arbitrary data types
-		var any []interface{}
-		err := websocket.JSON.Receive(ws, &any)
+		var msg string
+		err := websocket.Message.Receive(ws, &msg)
 		if err != nil {
 			log.Print(err)
 			break
 		}
-		log.Println(any)
-
-		// send as L<n><m> to the serial port
-		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
-		serialPort.Write([]byte(cmd))
-		Publish("ws/" + client, []byte(cmd));
+		Publish("ws/"+client, []byte(msg))
 	}
 
 	log.Println("Client disconnected:", client)
