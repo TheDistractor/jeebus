@@ -8,12 +8,14 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	// "github.com/jmhodges/levigo"
 	"code.google.com/p/go.net/websocket"
 	"github.com/aarzilli/golua/lua"
 	"github.com/chimera/rs232"
+	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
 	"github.com/stevedonovan/luar"
 )
@@ -45,6 +47,19 @@ func main() {
 	log.Println("opening serial port", dev)
 	serialPort = serialConnect(dev)
 
+	go func() {
+		cc := subscribe("#")
+		for m := range cc.Incoming {
+			m.Payload.WritePayload(os.Stdout)
+			fmt.Println("\tr: ", m.Header.Retain)
+		}
+	}()
+
+	periodic := time.NewTicker(3 * time.Second)
+	for _ = range periodic.C  {
+		publish("ha", "yes!")
+	}
+
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.Handle("/ws", websocket.Handler(sockServer))
 	log.Println("web server is listening on port 3333")
@@ -59,6 +74,30 @@ func mqttServer() {
 	svr := mqtt.NewServer(port)
 	svr.Start()
 	<-svr.Done
+}
+
+func subscribe(topic string) *mqtt.ClientConn {
+	conn, _ := net.Dial("tcp", "localhost:1883")
+	cc := mqtt.NewClientConn(conn)
+	// cc.Dump = true
+	tq := make([]proto.TopicQos, 1)
+	tq[0].Topic = topic
+	tq[0].Qos = proto.QosAtMostOnce
+	cc.Connect("", "")
+	cc.Subscribe(tq)
+	return cc
+}
+
+func publish(topic, message string) {
+	conn, _ := net.Dial("tcp", "localhost:1883")
+	cc := mqtt.NewClientConn(conn)
+	// cc.Dump = true
+	cc.Connect("", "")
+	cc.Publish(&proto.Publish{
+		Header:    proto.Header{Retain: false},
+		TopicName: topic,
+		Payload:   proto.BytesPayload([]byte(message)),
+	})
 }
 
 func openDatabase(dbname string) {
