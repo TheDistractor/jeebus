@@ -23,6 +23,7 @@ import (
 var (
 	openConnections map[string]*websocket.Conn
 	serialPort      *rs232.Port
+	cc  *mqtt.ClientConn
 )
 
 func init() {
@@ -47,19 +48,28 @@ func main() {
 	log.Println("opening serial port", dev)
 	serialPort = serialConnect(dev)
 
+	// set up an mqtt client connection and subscribe to all topics
 	go func() {
+		conn, _ := net.Dial("tcp", "localhost:1883")
+		cc = mqtt.NewClientConn(conn)
+		// cc.Dump = true
+		cc.Connect("", "")
+
 		cc := subscribe("#")
 		for m := range cc.Incoming {
+			fmt.Printf("msg %s = ", m.TopicName)
 			m.Payload.WritePayload(os.Stdout)
-			fmt.Println("\tr: ", m.Header.Retain)
+			fmt.Println("\tr:", m.Header.Retain)
 		}
 	}()
 
+	// publish one message on topic "ha" every 3 seconds
 	periodic := time.NewTicker(3 * time.Second)
 	for _ = range periodic.C  {
 		publish("ha", "yes!")
 	}
 
+	// set up a web server to handle static files and websockets
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.Handle("/ws", websocket.Handler(sockServer))
 	log.Println("web server is listening on port 3333")
@@ -77,22 +87,14 @@ func mqttServer() {
 }
 
 func subscribe(topic string) *mqtt.ClientConn {
-	conn, _ := net.Dial("tcp", "localhost:1883")
-	cc := mqtt.NewClientConn(conn)
-	// cc.Dump = true
 	tq := make([]proto.TopicQos, 1)
 	tq[0].Topic = topic
 	tq[0].Qos = proto.QosAtMostOnce
-	cc.Connect("", "")
 	cc.Subscribe(tq)
 	return cc
 }
 
 func publish(topic, message string) {
-	conn, _ := net.Dial("tcp", "localhost:1883")
-	cc := mqtt.NewClientConn(conn)
-	// cc.Dump = true
-	cc.Connect("", "")
 	cc.Publish(&proto.Publish{
 		Header:    proto.Header{Retain: false},
 		TopicName: topic,
