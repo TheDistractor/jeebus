@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/syndtr/goleveldb/leveldb"
 	"code.google.com/p/go.net/websocket"
 	"github.com/aarzilli/golua/lua"
 	"github.com/chimera/rs232"
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
 	"github.com/stevedonovan/luar"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
@@ -26,7 +26,14 @@ var (
 	serialPort      *rs232.Port
 	mqttClient      *mqtt.ClientConn
 	dataStore       *leveldb.DB
+	pubChan         chan *PubMessage
 )
+
+type PubMessage struct {
+	T string
+	M interface{}
+	R bool
+}
 
 func init() {
 	openConnections = make(map[string]*websocket.Conn)
@@ -67,7 +74,6 @@ func main() {
 
 func startMqttServer() {
 	ready := make(chan bool)
-
 	go func() {
 		port, err := net.Listen("tcp", ":1883")
 		if err != nil {
@@ -81,7 +87,7 @@ func startMqttServer() {
 		mqttClient = mqtt.NewClientConn(conn)
 		// mqttClient.Dump = true
 		mqttClient.Connect("", "")
-		Publish("st/admin/started", []byte(time.Now().String()))
+		Publish("st/admin/started", []byte(time.Now().Format(time.RFC822Z)))
 
 		mqttClient.Subscribe([]proto.TopicQos{
 			{Topic: "#", Qos: proto.QosAtMostOnce},
@@ -95,6 +101,23 @@ func startMqttServer() {
 
 	// resume here only when the MQTT server has actually been started
 	<-ready
+
+	// set up a channel to publish through
+	pubChan = make(chan *PubMessage)
+	go func() {
+		for msg := range pubChan {
+			log.Printf("C %s => %v", msg.T, msg.M)
+			value, err := json.Marshal(msg.M)
+			if err != nil {
+				log.Fatal(msg, err)
+			}
+			mqttClient.Publish(&proto.Publish{
+				Header:    proto.Header{Retain: msg.R},
+				TopicName: msg.T,
+				Payload:   proto.BytesPayload(value),
+			})
+		}
+	}()
 }
 
 func mqttDispatch(m *proto.Publish) {
@@ -104,7 +127,7 @@ func mqttDispatch(m *proto.Publish) {
 	// FIXME can't work: retain flag is not published to subscribers!
 	//	solving this will require a modified mqtt package
 	// if m.Header.Retain {
-	// 	Store("mqtt/" + topic, message, nil)
+	// 	Store("mqtt/"+topic, message, nil)
 	// }
 	switch topic[:3] {
 
@@ -126,7 +149,7 @@ func mqttDispatch(m *proto.Publish) {
 	case "if/":
 		if strings.HasPrefix(topic, "if/serial/") {
 			for _, conn := range openConnections {
-				websocket.JSON.Send(conn, string(message))
+				websocket.Message.Send(conn, string(message))
 			}
 		}
 	// TODO hardcoded websocket to serial port pass-through for now
@@ -210,7 +233,7 @@ func serialConnect(dev string) *rs232.Port {
 
 		serKey := "if/serial/" + strings.TrimPrefix(dev, "/dev/")
 		for line := range inputLines {
-			Publish(serKey, []byte(line))
+			pubChan <- &PubMessage{T: serKey, M: line}
 		}
 	}()
 
