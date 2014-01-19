@@ -14,16 +14,17 @@ import (
 	// "github.com/jmhodges/levigo"
 	"code.google.com/p/go.net/websocket"
 	"github.com/aarzilli/golua/lua"
+	"github.com/stevedonovan/luar"
 	"github.com/chimera/rs232"
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
-	"github.com/stevedonovan/luar"
 )
 
 var (
 	openConnections map[string]*websocket.Conn
 	serialPort      *rs232.Port
 	mqttClient      *mqtt.ClientConn
+	dataStore		*leveldb.DB
 )
 
 func init() {
@@ -33,6 +34,13 @@ func init() {
 func main() {
 	log.Println("opening database")
 	openDatabase("./storage")
+	dataStore.Put([]byte(time.Now().String()), []byte("blah"), nil)
+
+	iter := dataStore.NewIterator(nil)
+	for iter.Next() {
+		log.Printf("key: %s, value: %s\n", iter.Key(), iter.Value())
+	}
+	iter.Release()
 
 	log.Println("setting up Lua")
 	setupLua()
@@ -101,7 +109,7 @@ func openDatabase(dbname string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_ = db // ignore value for now
+	dataStore = db
 }
 
 func serialConnect(dev string) *rs232.Port {
