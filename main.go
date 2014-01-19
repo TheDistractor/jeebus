@@ -33,13 +33,12 @@ func init() {
 }
 
 func main() {
+	now := time.Now().String()
+
 	log.Println("opening database")
 	openDatabase("./storage")
 
-	// add a new item to the database on each startup
-	dataStore.Put([]byte(time.Now().String()), []byte("blah"), nil)
-
-	// print all the key/value pairs stored in the database
+	// get and print all the key/value pairs from the database
 	iter := dataStore.NewIterator(nil)
 	for iter.Next() {
 		log.Printf("key: %s, value: %s\n", iter.Key(), iter.Value())
@@ -67,6 +66,7 @@ func main() {
 		mqttClient = mqtt.NewClientConn(conn)
 		// mqttClient.Dump = true
 		mqttClient.Connect("", "")
+		Publish("st/admin/started", []byte(now))
 
 		mqttClient.Subscribe([]proto.TopicQos{
 			{Topic: "#", Qos: proto.QosAtMostOnce},
@@ -79,25 +79,21 @@ func main() {
 			// FIXME can't work: retain flag is not published to subscribers!
 			//	solving this will require a modified mqtt package
 			// if m.Header.Retain {
-			// 	dbKey := []byte("mqtt/" + topic)
-			// 	dataStore.Put(dbKey, message, nil)
+			// 	Store("mqtt/" + topic, message, nil)
 			// }
 			switch {
 
-			// st/key... -> current state, stored in database with given key
+			// st/key... -> current state, stored as key and with timestamp
 			case strings.HasPrefix(topic, "st/"):
 				key := strings.TrimPrefix(topic, "st/")
-				dataStore.Put([]byte(key), message, nil)
+				Store(key, message)
+				millis := time.Now().UnixNano() / 1000000
+				Store(fmt.Sprintf("hist/%s/%d", key, millis), message)
 
 			// db/... -> database requests, value is reply topic
 			case strings.HasPrefix(topic, "db/get/"):
-				key := strings.TrimPrefix(topic, "db/get/")
-				value, _ := dataStore.Get([]byte(key), nil)
-				log.Printf(" %s => %s", topic, value)
-				mqttClient.Publish(&proto.Publish{
-					TopicName: string(message),
-					Payload:   proto.BytesPayload(value),
-				})
+				value := Fetch(strings.TrimPrefix(topic, "db/get/"))
+				Publish(string(message), value);
 			}
 		}
 	}()
@@ -106,11 +102,7 @@ func main() {
 	go func() {
 		periodic := time.NewTicker(3 * time.Second)
 		for _ = range periodic.C {
-			mqttClient.Publish(&proto.Publish{
-				// Header:    proto.Header{Retain: true},
-				TopicName: "ha",
-				Payload:   proto.BytesPayload([]byte("yes!")),
-			})
+			Publish("ha", []byte("yes!"))
 		}
 	}()
 
@@ -139,6 +131,15 @@ func startMqttServer() {
 	<-ready
 }
 
+func Publish(key string, value []byte) {
+	log.Printf("P %s => %s", key, value)
+	mqttClient.Publish(&proto.Publish{
+		// Header:    proto.Header{Retain: true},
+		TopicName: key,
+		Payload:   proto.BytesPayload(value),
+	})
+}
+
 func openDatabase(dbname string) {
 	db, err := leveldb.OpenFile(dbname, nil)
 	// opts := levigo.NewOptions()
@@ -149,6 +150,19 @@ func openDatabase(dbname string) {
 		log.Fatal(err)
 	}
 	dataStore = db
+}
+
+func Fetch(key string) []byte {
+	value, err := dataStore.Get([]byte(key), nil)
+	if err != nil {
+		log.Println(err)
+	}
+	return value
+}
+
+func Store(key string, value []byte) {
+	log.Printf("S %s => %s", key, value)
+	dataStore.Put([]byte(key), value, nil)
 }
 
 func serialConnect(dev string) *rs232.Port {
@@ -214,6 +228,8 @@ func sockServer(ws *websocket.Conn) {
 		// send as L<n><m> to the serial port
 		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
 		serialPort.Write([]byte(cmd))
+
+		Publish("ws/" + client, []byte(cmd));
 	}
 
 	log.Println("Client disconnected:", client)
