@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -72,13 +73,32 @@ func main() {
 		})
 
 		for m := range mqttClient.Incoming {
-			log.Printf("msg %s = %s r: %v",
-				m.TopicName, m.Payload, m.Header.Retain)
+			topic := m.TopicName
+			message := []byte(m.Payload.(proto.BytesPayload))
+			log.Printf("msg %s = %s r: %v", topic, message, m.Header.Retain)
 			// FIXME can't work: retain flag is not published to subscribers!
+			//	solving this will require a modified mqtt package
 			// if m.Header.Retain {
-			// 	dbKey := []byte("mqtt/" + m.TopicName)
-			// 	dataStore.Put(dbKey, m.Payload.(proto.BytesPayload), nil)
+			// 	dbKey := []byte("mqtt/" + topic)
+			// 	dataStore.Put(dbKey, message, nil)
 			// }
+			switch {
+
+			// st/key... -> current state, stored in database with given key
+			case strings.HasPrefix(topic, "st/"):
+				key := strings.TrimPrefix(topic, "st/")
+				dataStore.Put([]byte(key), message, nil)
+
+			// db/... -> database requests, value is reply topic
+			case strings.HasPrefix(topic, "db/get/"):
+				key := strings.TrimPrefix(topic, "db/get/")
+				value, _ := dataStore.Get([]byte(key), nil)
+				log.Printf(" %s => %s", topic, value)
+				mqttClient.Publish(&proto.Publish{
+					TopicName: string(message),
+					Payload:   proto.BytesPayload(value),
+				})
+			}
 		}
 	}()
 
@@ -87,7 +107,7 @@ func main() {
 		periodic := time.NewTicker(3 * time.Second)
 		for _ = range periodic.C {
 			mqttClient.Publish(&proto.Publish{
-				Header:    proto.Header{Retain: true},
+				// Header:    proto.Header{Retain: true},
 				TopicName: "ha",
 				Payload:   proto.BytesPayload([]byte("yes!")),
 			})
