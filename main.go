@@ -22,21 +22,22 @@ import (
 )
 
 var (
-	openConnections map[string]*websocket.Conn
-	serialPort      *rs232.Port
-	mqttClient      *mqtt.ClientConn
-	dataStore       *leveldb.DB
-	pubChan         chan *PubMessage
+	openWebSockets map[string]*websocket.Conn
+	serialPort     *rs232.Port
+	mqttClient     *mqtt.ClientConn
+	dataStore      *leveldb.DB
+	busPubChan     chan *BusMessage
 )
 
-type PubMessage struct {
-	T string
-	M interface{}
-	R bool
+type BusMessage struct {
+	T string      // topic
+	M interface{} // message
+	R bool        // retain
 }
 
 func init() {
-	openConnections = make(map[string]*websocket.Conn)
+	openWebSockets = make(map[string]*websocket.Conn)
+	busPubChan = make(chan *BusMessage)
 }
 
 func main() {
@@ -103,9 +104,8 @@ func startMqttServer() {
 	<-ready
 
 	// set up a channel to publish through
-	pubChan = make(chan *PubMessage)
 	go func() {
-		for msg := range pubChan {
+		for msg := range busPubChan {
 			log.Printf("C %s => %v", msg.T, msg.M)
 			value, err := json.Marshal(msg.M)
 			if err != nil {
@@ -148,8 +148,8 @@ func mqttDispatch(m *proto.Publish) {
 	// TODO hardcoded serial port to websocket pass-through for now
 	case "if/":
 		if strings.HasPrefix(topic, "if/serial/") {
-			for _, conn := range openConnections {
-				websocket.Message.Send(conn, string(message))
+			for _, ws := range openWebSockets {
+				websocket.Message.Send(ws, string(message))
 			}
 		}
 	// TODO hardcoded websocket to serial port pass-through for now
@@ -233,7 +233,7 @@ func serialConnect(dev string) *rs232.Port {
 
 		serKey := "if/serial/" + strings.TrimPrefix(dev, "/dev/")
 		for line := range inputLines {
-			pubChan <- &PubMessage{T: serKey, M: line}
+			busPubChan <- &BusMessage{T: serKey, M: line}
 		}
 	}()
 
@@ -243,7 +243,7 @@ func serialConnect(dev string) *rs232.Port {
 func sockServer(ws *websocket.Conn) {
 	defer ws.Close()
 	client := ws.Request().RemoteAddr
-	openConnections[client] = ws
+	openWebSockets[client] = ws
 	log.Println("Client connected:", client)
 
 	for {
@@ -257,7 +257,7 @@ func sockServer(ws *websocket.Conn) {
 	}
 
 	log.Println("Client disconnected:", client)
-	delete(openConnections, client)
+	delete(openWebSockets, client)
 }
 
 func test(L *lua.State) int {
@@ -274,12 +274,6 @@ func test2(L *lua.State) int {
 	fmt.Println(argfrombottom)
 	return 0
 }
-
-const testr = `
-for i = 1,3 do
-    Print(MSG,i)
-end
-`
 
 func GoFun(args []int) (res map[string]int) {
 	res = make(map[string]int)
@@ -334,6 +328,4 @@ func setupLua() {
 
 	err := L.DoString(code)
 	fmt.Printf("error %v\n", err)
-
-	L.DoString(testr)
 }
