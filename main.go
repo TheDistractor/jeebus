@@ -48,10 +48,18 @@ func main() {
 	}
 }
 
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func activity() {
-	conn, _ := net.Dial("tcp", "localhost:1883")
+	conn, err := net.Dial("tcp", "localhost:1883")
+	check(err)
 	mqttClient = mqtt.NewClientConn(conn)
-	mqttClient.Connect("", "")
+	err = mqttClient.Connect("", "")
+	check(err)
 
 	mqttClient.Subscribe([]proto.TopicQos{
 		{Topic: "#", Qos: proto.QosAtMostOnce},
@@ -108,14 +116,13 @@ func startMqttServer() {
 	ready := make(chan bool)
 	go func() {
 		port, err := net.Listen("tcp", ":1883")
-		if err != nil {
-			log.Fatal("listen: ", err)
-		}
+		check(err);
 		svr := mqtt.NewServer(port)
 		svr.Start()
 		ready <- true
 
-		conn, _ := net.Dial("tcp", "localhost:1883")
+		conn, err2 := net.Dial("tcp", "localhost:1883")
+		check(err2)
 		mqttClient = mqtt.NewClientConn(conn)
 		// mqttClient.Dump = true
 		mqttClient.Connect("", "")
@@ -139,9 +146,7 @@ func startMqttServer() {
 		for msg := range busPubChan {
 			log.Printf("C %s => %v", msg.T, msg.M)
 			value, err := json.Marshal(msg.M)
-			if err != nil {
-				log.Fatal(msg, err)
-			}
+			check(err)
 			mqttClient.Publish(&proto.Publish{
 				Header:    proto.Header{Retain: msg.R},
 				TopicName: msg.T,
@@ -189,9 +194,7 @@ func mqttDispatch(m *proto.Publish) {
 		var any []interface{}
 		log.Printf("got %#v", message)
 		err := json.Unmarshal(message, &any)
-		if err != nil {
-			log.Fatal("err?", topic, message, err)
-		}
+		check(err)
 		// send as L<n><m> to the serial port
 		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
 		serialPort.Write([]byte(cmd))
@@ -209,9 +212,7 @@ func Publish(key string, value []byte) {
 
 func openDatabase(dbname string) {
 	db, err := leveldb.OpenFile(dbname, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 	dataStore = db
 }
 
@@ -236,9 +237,7 @@ func serialConnect(dev string) *rs232.Port {
 		StopBits: 1,
 	}
 	ser, err := rs232.Open(dev, options)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	// turn incoming data into a channel of text lines
 	inputLines := make(chan string)
