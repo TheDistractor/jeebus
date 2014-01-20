@@ -144,7 +144,7 @@ func startMqttServer() {
 	// set up a channel to publish through
 	go func() {
 		for msg := range busPubChan {
-			log.Printf("C %s => %v", msg.T, msg.M)
+			// log.Printf("C %s => %v", msg.T, msg.M)
 			value, err := json.Marshal(msg.M)
 			check(err)
 			mqttClient.Publish(&proto.Publish{
@@ -192,7 +192,7 @@ func mqttDispatch(m *proto.Publish) {
 	case "ws/":
 		// accept arrays of arbitrary data types
 		var any []interface{}
-		log.Printf("got %#v", message)
+		// log.Printf("got %s", message)
 		err := json.Unmarshal(message, &any)
 		check(err)
 		// send as L<n><m> to the serial port
@@ -202,7 +202,7 @@ func mqttDispatch(m *proto.Publish) {
 }
 
 func Publish(key string, value []byte) {
-	log.Printf("P %s => %s", key, value)
+	// log.Printf("P %s => %s", key, value)
 	mqttClient.Publish(&proto.Publish{
 		// Header:    proto.Header{Retain: true},
 		TopicName: key,
