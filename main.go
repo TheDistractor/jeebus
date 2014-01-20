@@ -38,8 +38,10 @@ type BusMessage struct {
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
-		case "activity":
-			activity()
+		case "see":
+			seeCmd()
+		case "serial":
+			serialCmd()
 		default:
 			server()
 		}
@@ -54,7 +56,7 @@ func check(err error) {
 	}
 }
 
-func activity() {
+func seeCmd() {
 	conn, err := net.Dial("tcp", "localhost:1883")
 	check(err)
 	mqttClient = mqtt.NewClientConn(conn)
@@ -73,6 +75,53 @@ func activity() {
 			retain = " (retain)"
 		}
 		log.Println(topic+retain, "=", string(message))
+	}
+}
+
+func serialCmd() {
+  if len(os.Args) < 4 {
+    log.Fatal("usage: jeebus serial <dev> <baud> ?tag?")
+  }
+  dev, sbaud, tag := os.Args[2], os.Args[3], ""
+  if len(os.Args) > 4 {
+    tag = os.Args[4]
+  }
+  nbaud, err := strconv.Atoi(sbaud)
+  check(err)
+
+	busPubChan = make(chan *BusMessage)
+
+	conn, err := net.Dial("tcp", "localhost:1883")
+	check(err)
+	mqttClient = mqtt.NewClientConn(conn)
+	err = mqttClient.Connect("", "")
+	check(err)
+
+	log.Println("opening serial port", dev)
+	serialPort = serialConnect(dev, nbaud, tag)
+
+	mqttClient.Subscribe([]proto.TopicQos{
+		{Topic: "if/serial", Qos: proto.QosAtMostOnce},
+	})
+
+	// set up a channel to publish through
+	go func() {
+		for msg := range busPubChan {
+			// log.Printf("C %s => %v", msg.T, msg.M)
+			value, err := json.Marshal(msg.M)
+			check(err)
+			mqttClient.Publish(&proto.Publish{
+				Header:    proto.Header{Retain: msg.R},
+				TopicName: msg.T,
+				Payload:   proto.BytesPayload(value),
+			})
+		}
+	}()
+
+	for m := range mqttClient.Incoming {
+		message := []byte(m.Payload.(proto.BytesPayload))
+    log.Printf("Ser: %s", message)
+		serialPort.Write(message)
 	}
 }
 
@@ -98,12 +147,12 @@ func server() {
 	log.Println("MQTT server is running")
 
 	// passing serial port as first arg will override the default
-	dev := "/dev/tty.usbserial-A40115A2"
-	if len(os.Args) > 1 {
-		dev = os.Args[1]
-	}
-	log.Println("opening serial port", dev)
-	serialPort = serialConnect(dev)
+	// dev := "/dev/tty.usbserial-A40115A2"
+	// if len(os.Args) > 1 {
+	// 	dev = os.Args[1]
+	// }
+	// log.Println("opening serial port", dev)
+	// serialPort = serialConnect(dev, 57600, "")
 
 	// set up a web server to handle static files and websockets
 	http.Handle("/", http.FileServer(http.Dir("./public")))
@@ -197,7 +246,7 @@ func mqttDispatch(m *proto.Publish) {
 		check(err)
 		// send as L<n><m> to the serial port
 		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
-		serialPort.Write([]byte(cmd))
+    Publish("if/serial", []byte(cmd))
 	}
 }
 
@@ -229,10 +278,10 @@ func Store(key string, value []byte) {
 	dataStore.Put([]byte(key), value, nil)
 }
 
-func serialConnect(dev string) *rs232.Port {
+func serialConnect(dev string, baud int, tag string) *rs232.Port {
 	// open the serial port
 	options := rs232.Options{
-		BitRate:  57600,
+		BitRate:  uint32(baud),
 		DataBits: 8,
 		StopBits: 1,
 	}
@@ -254,16 +303,18 @@ func serialConnect(dev string) *rs232.Port {
 	// publish incoming data
 	go func() {
 		// flush all old data from the serial port
-		log.Println("waiting for blinker to start")
-		for line := range inputLines {
-			if line == "[blinker]" {
-				break
-			}
-			// TODO bail out if another sketch type is found
-		}
-		log.Println("blinker start detected")
+    if tag == "" {
+      log.Println("waiting for serial")
+      for line := range inputLines {
+        if strings.HasPrefix(line, "[") && strings.Contains(line, "]") {
+          tag = line[1:strings.IndexAny(line, ".]")]
+          break
+        }
+      }
+      log.Println("serial started:", tag)
+    }
 
-		serKey := "if/serial/" + strings.TrimPrefix(dev, "/dev/")
+		serKey := "if/serial/" + tag + "/" + strings.TrimPrefix(dev, "/dev/")
 		for line := range inputLines {
 			busPubChan <- &BusMessage{T: serKey, M: line}
 		}
