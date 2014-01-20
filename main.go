@@ -35,12 +35,43 @@ type BusMessage struct {
 	R bool        // retain
 }
 
-func init() {
-	openWebSockets = make(map[string]*websocket.Conn)
-	busPubChan = make(chan *BusMessage)
+func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "activity":
+			activity()
+		default:
+			server()
+		}
+	} else {
+		server()
+	}
 }
 
-func main() {
+func activity() {
+	conn, _ := net.Dial("tcp", "localhost:1883")
+	mqttClient = mqtt.NewClientConn(conn)
+	mqttClient.Connect("", "")
+
+	mqttClient.Subscribe([]proto.TopicQos{
+		{Topic: "#", Qos: proto.QosAtMostOnce},
+	})
+
+	for m := range mqttClient.Incoming {
+		topic := m.TopicName
+		message := []byte(m.Payload.(proto.BytesPayload))
+		retain := ""
+		if m.Header.Retain {
+			retain = " (retain)"
+		}
+		log.Println(topic+retain, "=", string(message))
+	}
+}
+
+func server() {
+	openWebSockets = make(map[string]*websocket.Conn)
+	busPubChan = make(chan *BusMessage)
+
 	log.Println("opening database")
 	openDatabase("./storage")
 
@@ -123,7 +154,7 @@ func startMqttServer() {
 func mqttDispatch(m *proto.Publish) {
 	topic := m.TopicName
 	message := []byte(m.Payload.(proto.BytesPayload))
-	log.Printf("msg %s = %s r: %v", topic, message, m.Header.Retain)
+	// log.Printf("msg %s = %s r: %v", topic, message, m.Header.Retain)
 	// FIXME can't work: retain flag is not published to subscribers!
 	//	solving this will require a modified mqtt package
 	// if m.Header.Retain {
