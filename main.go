@@ -142,14 +142,6 @@ func server() {
 	startMqttServer()
 	log.Println("MQTT server is running")
 
-	// passing serial port as first arg will override the default
-	// dev := "/dev/tty.usbserial-A40115A2"
-	// if len(os.Args) > 1 {
-	// 	dev = os.Args[1]
-	// }
-	// log.Println("opening serial port", dev)
-	// serialPort = serialConnect(dev, 57600, "")
-
 	// set up a web server to handle static files and websockets
 	http.Handle("/", http.FileServer(http.Dir("./public")))
 	http.Handle("/ws", websocket.Handler(sockServer))
@@ -158,38 +150,33 @@ func server() {
 }
 
 func startMqttServer() {
-	ready := make(chan bool)
+	port, err := net.Listen("tcp", ":1883")
+	check(err)
+	svr := mqtt.NewServer(port)
+	svr.Start()
+	// <-svr.Done
+
+	feed := listenToServer("#")
+
+	Publish("st/admin/started", []byte(time.Now().Format(time.RFC822Z)))
+
 	go func() {
-		port, err := net.Listen("tcp", ":1883")
-		check(err)
-		svr := mqtt.NewServer(port)
-		svr.Start()
-
-		feed := listenToServer("#")
-
-		Publish("st/admin/started", []byte(time.Now().Format(time.RFC822Z)))
-
-		ready <- true
-
 		for m := range feed {
 			mqttDispatch(m)
 		}
-		// <-svr.Done
 	}()
-
-	// resume here only when the MQTT server has actually been started
-	<-ready
 }
 
 func mqttDispatch(m *proto.Publish) {
 	topic := m.TopicName
 	message := []byte(m.Payload.(proto.BytesPayload))
-	// log.Printf("msg %s = %s r: %v", topic, message, m.Header.Retain)
+
 	// FIXME can't work: retain flag is not published to subscribers!
 	//	solving this will require a modified mqtt package
 	// if m.Header.Retain {
 	// 	Store("mqtt/"+topic, message, nil)
 	// }
+
 	switch topic[:3] {
 
 	// st/key... -> current state, stored as key and with timestamp
@@ -226,6 +213,7 @@ func mqttDispatch(m *proto.Publish) {
 	}
 }
 
+// TODO get rid of this, use busPubChan and add support for raw sending
 func Publish(key string, value []byte) {
 	// log.Printf("P %s => %s", key, value)
 	mqttClient.Publish(&proto.Publish{
