@@ -116,7 +116,7 @@ func startMqttServer() {
 	ready := make(chan bool)
 	go func() {
 		port, err := net.Listen("tcp", ":1883")
-		check(err);
+		check(err)
 		svr := mqtt.NewServer(port)
 		svr.Start()
 		ready <- true
@@ -267,7 +267,7 @@ func serialConnect(dev string) *rs232.Port {
 		for line := range inputLines {
 			busPubChan <- &BusMessage{T: serKey, M: line}
 		}
-		
+
 		log.Printf("no more data on: %s", dev)
 	}()
 
