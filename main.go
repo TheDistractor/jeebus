@@ -247,6 +247,8 @@ func serialConnect(dev string) *rs232.Port {
 		for scanner.Scan() {
 			inputLines <- scanner.Text()
 		}
+		log.Printf("serial port disconnect: %s", dev)
+		close(inputLines)
 	}()
 
 	// publish incoming data
@@ -265,6 +267,8 @@ func serialConnect(dev string) *rs232.Port {
 		for line := range inputLines {
 			busPubChan <- &BusMessage{T: serKey, M: line}
 		}
+		
+		log.Printf("no more data on: %s", dev)
 	}()
 
 	return ser
