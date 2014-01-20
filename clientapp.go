@@ -9,7 +9,7 @@ import (
 	//"net/http"
 	//"os"
 	//"strconv"
-	//"strings"
+	"strings"
 	"time"
 
 	proto "github.com/huin/mqtt"
@@ -63,7 +63,7 @@ func startMqttClient() {
 		})
 
 		for m := range mqttClient.Incoming {
-			mqttDispatch(m)
+			mqttHandleIncoming(m)
 		}
 	}()
 
@@ -84,10 +84,13 @@ func startMqttClient() {
 	}()
 }
 
-func mqttDispatch(m *proto.Publish) {
+func mqttHandleIncoming(m *proto.Publish) {
 	topic := m.TopicName
 	message := []byte(m.Payload.(proto.BytesPayload))
-	log.Printf("msg %s = %s r: %v", topic, message, m.Header.Retain)
+	switch {
+	case !strings.HasPrefix(topic, "$SYS"): log.Printf("msg %s = %s r: %v", topic, message, m.Header.Retain)
+	}
+	
 }
 
 func Publish(key string, value []byte) {
