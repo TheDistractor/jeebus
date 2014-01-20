@@ -45,10 +45,10 @@ func main() {
 	log.Println("opening serial port", dev)
 	serialPort = serialConnect(dev)
 
-	http.Handle("/", http.FileServer(http.Dir("public")))
+	http.Handle("/", http.FileServer(http.Dir(".")))
 	http.Handle("/ws", websocket.Handler(sockServer))
 	log.Println("web server is listening on port 3333")
-	log.Fatal(http.ListenAndServe("localhost:3333", nil))
+	log.Fatal(http.ListenAndServe(":3333", nil))
 }
 
 func mqttServer() {
