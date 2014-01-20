@@ -16,16 +16,18 @@ import (
 	"github.com/jeffallen/mqtt"
 )
 
-var (
-	mqttClient     *mqtt.ClientConn
-	busPubChan     chan *BusMessage
-)
-
 type BusMessage struct {
 	T string      // topic
 	M interface{} // message
 	R bool        // retain
 }
+
+var (
+	mqttClient     *mqtt.ClientConn
+	busPubChan     chan *BusMessage
+)
+
+
 
 func init() {
 	busPubChan = make(chan *BusMessage)
@@ -33,7 +35,7 @@ func init() {
 
 func main() {
 	log.Println("starting MQTT client")
-	startMqttClient()
+	startmqttClient()
 	log.Println("MQTT client is running")
 	
 	// publish simulated data
@@ -45,7 +47,7 @@ func main() {
 	}
 }
 
-func startMqttClient() {
+func startmqttClient() {
 	go func() {
 		//port, err := net.Listen("tcp", ":1883")
 		//if err != nil {
