@@ -13,6 +13,7 @@ The Go tools must be installed and GOPATH has to be set, then:
 * fetch and install this project with: `go get -tags luaa github.com/jcw/jeebus`
 * go to the source directory using: `cd $GOPATH/github.com/jcw/jeebus`
 * launch as: `jeebus ?serial-device?` (e.g. `/dev/ttyUSB0`)
+* to see all messages on MQTT, run `jeebus activity` from a separate console
 
 To make the demo work, the Arduino sketch in `./blinker` has to be uploaded  
 to a JeeNode, with a Blink Plug attached to port 1.
