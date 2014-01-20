@@ -56,55 +56,21 @@ func check(err error) {
 	}
 }
 
-func seeCmd() {
+func listenToServer(topic string) chan *proto.Publish {
 	conn, err := net.Dial("tcp", "localhost:1883")
 	check(err)
+
 	mqttClient = mqtt.NewClientConn(conn)
-	err = mqttClient.Connect("", "")
-	check(err)
+	err2 := mqttClient.Connect("", "")
+	check(err2)
 
 	mqttClient.Subscribe([]proto.TopicQos{
-		{Topic: "#", Qos: proto.QosAtMostOnce},
-	})
-
-	for m := range mqttClient.Incoming {
-		topic := m.TopicName
-		message := []byte(m.Payload.(proto.BytesPayload))
-		retain := ""
-		if m.Header.Retain {
-			retain = " (retain)"
-		}
-		log.Println(topic+retain, "=", string(message))
-	}
-}
-
-func serialCmd() {
-  if len(os.Args) < 4 {
-    log.Fatal("usage: jeebus serial <dev> <baud> ?tag?")
-  }
-  dev, sbaud, tag := os.Args[2], os.Args[3], ""
-  if len(os.Args) > 4 {
-    tag = os.Args[4]
-  }
-  nbaud, err := strconv.Atoi(sbaud)
-  check(err)
-
-	busPubChan = make(chan *BusMessage)
-
-	conn, err := net.Dial("tcp", "localhost:1883")
-	check(err)
-	mqttClient = mqtt.NewClientConn(conn)
-	err = mqttClient.Connect("", "")
-	check(err)
-
-	log.Println("opening serial port", dev)
-	serialPort = serialConnect(dev, nbaud, tag)
-
-	mqttClient.Subscribe([]proto.TopicQos{
-		{Topic: "if/serial", Qos: proto.QosAtMostOnce},
+		{Topic: topic, Qos: proto.QosAtMostOnce},
 	})
 
 	// set up a channel to publish through
+	busPubChan = make(chan *BusMessage)
+
 	go func() {
 		for msg := range busPubChan {
 			// log.Printf("C %s => %v", msg.T, msg.M)
@@ -118,16 +84,46 @@ func serialCmd() {
 		}
 	}()
 
-	for m := range mqttClient.Incoming {
+	return mqttClient.Incoming
+}
+
+func seeCmd() {
+	for m := range listenToServer("#") {
+		topic := m.TopicName
 		message := []byte(m.Payload.(proto.BytesPayload))
-    log.Printf("Ser: %s", message)
+		retain := ""
+		if m.Header.Retain {
+			retain = " (retain)"
+		}
+		log.Println(topic+retain, "=", string(message))
+	}
+}
+
+func serialCmd() {
+	if len(os.Args) < 4 {
+		log.Fatal("usage: jeebus serial <dev> <baud> ?tag?")
+	}
+	dev, sbaud, tag := os.Args[2], os.Args[3], ""
+	if len(os.Args) > 4 {
+		tag = os.Args[4]
+	}
+	nbaud, err := strconv.Atoi(sbaud)
+	check(err)
+
+	feed := listenToServer("if/serial")
+
+	log.Println("opening serial port", dev)
+	serialPort = serialConnect(dev, nbaud, tag)
+
+	for m := range feed {
+		message := []byte(m.Payload.(proto.BytesPayload))
+		log.Printf("Ser: %s", message)
 		serialPort.Write(message)
 	}
 }
 
 func server() {
 	openWebSockets = make(map[string]*websocket.Conn)
-	busPubChan = make(chan *BusMessage)
 
 	log.Println("opening database")
 	openDatabase("./storage")
@@ -168,20 +164,14 @@ func startMqttServer() {
 		check(err)
 		svr := mqtt.NewServer(port)
 		svr.Start()
-		ready <- true
 
-		conn, err2 := net.Dial("tcp", "localhost:1883")
-		check(err2)
-		mqttClient = mqtt.NewClientConn(conn)
-		// mqttClient.Dump = true
-		mqttClient.Connect("", "")
+		feed := listenToServer("#")
+
 		Publish("st/admin/started", []byte(time.Now().Format(time.RFC822Z)))
 
-		mqttClient.Subscribe([]proto.TopicQos{
-			{Topic: "#", Qos: proto.QosAtMostOnce},
-		})
+		ready <- true
 
-		for m := range mqttClient.Incoming {
+		for m := range feed {
 			mqttDispatch(m)
 		}
 		// <-svr.Done
@@ -189,20 +179,6 @@ func startMqttServer() {
 
 	// resume here only when the MQTT server has actually been started
 	<-ready
-
-	// set up a channel to publish through
-	go func() {
-		for msg := range busPubChan {
-			// log.Printf("C %s => %v", msg.T, msg.M)
-			value, err := json.Marshal(msg.M)
-			check(err)
-			mqttClient.Publish(&proto.Publish{
-				Header:    proto.Header{Retain: msg.R},
-				TopicName: msg.T,
-				Payload:   proto.BytesPayload(value),
-			})
-		}
-	}()
 }
 
 func mqttDispatch(m *proto.Publish) {
@@ -246,7 +222,7 @@ func mqttDispatch(m *proto.Publish) {
 		check(err)
 		// send as L<n><m> to the serial port
 		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
-    Publish("if/serial", []byte(cmd))
+		Publish("if/serial", []byte(cmd))
 	}
 }
 
@@ -303,16 +279,16 @@ func serialConnect(dev string, baud int, tag string) *rs232.Port {
 	// publish incoming data
 	go func() {
 		// flush all old data from the serial port
-    if tag == "" {
-      log.Println("waiting for serial")
-      for line := range inputLines {
-        if strings.HasPrefix(line, "[") && strings.Contains(line, "]") {
-          tag = line[1:strings.IndexAny(line, ".]")]
-          break
-        }
-      }
-      log.Println("serial started:", tag)
-    }
+		if tag == "" {
+			log.Println("waiting for serial")
+			for line := range inputLines {
+				if strings.HasPrefix(line, "[") && strings.Contains(line, "]") {
+					tag = line[1:strings.IndexAny(line, ".]")]
+					break
+				}
+			}
+			log.Println("serial started:", tag)
+		}
 
 		serKey := "if/serial/" + tag + "/" + strings.TrimPrefix(dev, "/dev/")
 		for line := range inputLines {
