@@ -12,10 +12,10 @@ func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "see":
-			jeebus.SeeCmd()
+			seeCmd()
 		case "serial":
 			if len(os.Args) < 4 {
-				log.Fatal("usage: jeebus serial <dev> <baud> ?tag?")
+				log.Fatal("usage: jb serial <dev> <baud> ?tag?")
 			}
 			dev, sbaud, tag := os.Args[2], os.Args[3], ""
 			if len(os.Args) > 4 {
@@ -25,11 +25,35 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			jeebus.SerialCmd(dev, baud, tag)
+			serialCmd(dev, baud, tag)
 		default:
 			jeebus.Server()
 		}
 	} else {
 		jeebus.Server()
+	}
+}
+
+func seeCmd() {
+	for m := range jeebus.ListenToServer("#") {
+		topic := m.T
+		message := m.P
+		retain := ""
+		if m.R {
+			retain = "(retain)"
+		}
+		log.Println(topic, retain, string(message.([]byte)))
+	}
+}
+
+func serialCmd(dev string, baud int, tag string) {
+	feed := jeebus.ListenToServer("if/serial")
+
+	log.Println("opening serial port", dev)
+	serial := jeebus.SerialConnect(dev, baud, tag)
+
+	for m := range feed {
+		log.Printf("Ser: %s", m.P.([]byte))
+		serial.Write(m.P.([]byte))
 	}
 }

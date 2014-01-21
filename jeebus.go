@@ -29,7 +29,7 @@ var (
 
 type Message struct {
 	T string      // topic
-	M interface{} // message
+	P interface{} // payload
 	R bool        // retain
 }
 
@@ -39,7 +39,7 @@ func check(err error) {
 	}
 }
 
-func listenToServer(topic string) chan *proto.Publish {
+func ListenToServer(topic string) chan Message {
 	conn, err := net.Dial("tcp", "localhost:1883")
 	check(err)
 
@@ -53,11 +53,10 @@ func listenToServer(topic string) chan *proto.Publish {
 
 	// set up a channel to publish through
 	PubChan = make(chan *Message)
-
 	go func() {
 		for msg := range PubChan {
-			// log.Printf("C %s => %v", msg.T, msg.M)
-			value, err := json.Marshal(msg.M)
+			// log.Printf("C %s => %v", msg.T, msg.P)
+			value, err := json.Marshal(msg.P)
 			check(err)
 			mqttClient.Publish(&proto.Publish{
 				Header:    proto.Header{Retain: msg.R},
@@ -67,32 +66,18 @@ func listenToServer(topic string) chan *proto.Publish {
 		}
 	}()
 
-	return mqttClient.Incoming
-}
-
-func SeeCmd() {
-	for m := range listenToServer("#") {
-		topic := m.TopicName
-		message := []byte(m.Payload.(proto.BytesPayload))
-		retain := ""
-		if m.Header.Retain {
-			retain = " (retain)"
-		}
-		log.Println(topic+retain, "=", string(message))
-	}
-}
-
-func SerialCmd(dev string, baud int, tag string) {
-	feed := listenToServer("if/serial")
-
-	log.Println("opening serial port", dev)
-	serial := serialConnect(dev, baud, tag)
-
-	for m := range feed {
-		message := []byte(m.Payload.(proto.BytesPayload))
-		log.Printf("Ser: %s", message)
-		serial.Write(message)
-	}
+  listenChan := make(chan Message)
+  go func() {
+    for m := range mqttClient.Incoming {
+      listenChan <- Message{
+        T: m.TopicName,
+        P: []byte(m.Payload.(proto.BytesPayload)),
+        R: m.Header.Retain,
+      }
+    }
+  }()
+  
+	return listenChan
 }
 
 func Server() {
@@ -131,20 +116,20 @@ func startMqttServer() {
 	svr.Start()
 	// <-svr.Done
 
-	feed := listenToServer("#")
+	feed := ListenToServer("#")
 
 	publish("st/admin/started", []byte(time.Now().Format(time.RFC822Z)))
 
 	go func() {
 		for m := range feed {
-			mqttDispatch(m)
+			mqttDispatch(&m)
 		}
 	}()
 }
 
-func mqttDispatch(m *proto.Publish) {
-	topic := m.TopicName
-	message := []byte(m.Payload.(proto.BytesPayload))
+func mqttDispatch(m *Message) {
+	topic := m.T
+	message := m.P.([]byte)
 
 	// FIXME can't work: retain flag is not published to subscribers!
 	//	solving this will require a modified mqtt package
@@ -211,7 +196,7 @@ func store(key string, value []byte) {
 	dataStore.Put([]byte(key), value, nil)
 }
 
-func serialConnect(dev string, baud int, tag string) *rs232.Port {
+func SerialConnect(dev string, baud int, tag string) *rs232.Port {
 	// open the serial port
 	options := rs232.Options{
 		BitRate:  uint32(baud),
@@ -249,7 +234,7 @@ func serialConnect(dev string, baud int, tag string) *rs232.Port {
 
 		serKey := "if/serial/" + tag + "/" + strings.TrimPrefix(dev, "/dev/")
 		for line := range inputLines {
-			PubChan <- &Message{T: serKey, M: line}
+			PubChan <- &Message{T: serKey, P: line}
 		}
 
 		log.Printf("no more data on: %s", dev)
