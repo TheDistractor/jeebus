@@ -105,7 +105,7 @@ func Server(port string) {
 	log.Println("MQTT server is running")
 
 	// set up a web server to handle static files and websockets
-	http.Handle("/", http.FileServer(http.Dir("./public")))
+	http.Handle("/", http.FileServer(http.Dir("./app")))
 	http.Handle("/ws", websocket.Handler(sockServer))
 	log.Println("web server started on ", port)
 	log.Fatal(http.ListenAndServe(port, nil))
