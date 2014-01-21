@@ -23,36 +23,29 @@ func main() {
 		if len(os.Args) > 2 {
 			topics = os.Args[2]
 		}
-		seeCmd(topics)
+		for m := range jeebus.ListenToServer(topics) {
+			log.Println(m.T, string(m.P.([]byte)), m.R)
+		}
 
 	case "serial":
-		if len(os.Args) < 4 {
-			log.Fatal("usage: jb serial <dev> <baud> ?tag?")
+		if len(os.Args) <= 2 {
+			log.Fatal("usage: jb serial <dev> ?baud? ?tag?")
 		}
-		dev, sbaud, tag := os.Args[2], os.Args[3], ""
+		dev, baud, tag := os.Args[2], "57600", ""
+		if len(os.Args) > 3 {
+			baud = os.Args[3]
+		}
 		if len(os.Args) > 4 {
 			tag = os.Args[4]
 		}
-		baud, err := strconv.Atoi(sbaud)
+		nbaud, err := strconv.Atoi(baud)
 		if err != nil {
 			log.Fatal(err)
 		}
-		serialCmd(dev, baud, tag)
+		serialCmd(dev, nbaud, tag)
 
 	default:
 		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
-	}
-}
-
-func seeCmd(topics string) {
-	for m := range jeebus.ListenToServer(topics) {
-		topic := m.T
-		message := m.P
-		retain := ""
-		if m.R {
-			retain = "(retain)"
-		}
-		log.Println(topic, retain, string(message.([]byte)))
 	}
 }
 
