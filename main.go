@@ -23,8 +23,7 @@ import (
 
 var (
 	openWebSockets map[string]*websocket.Conn
-	serialPort     *rs232.Port
-	mqttClient     *mqtt.ClientConn
+	mqttClient     *mqtt.ClientConn // TODO get rid of this
 	dataStore      *leveldb.DB
 	busPubChan     chan *BusMessage
 )
@@ -113,12 +112,12 @@ func serialCmd() {
 	feed := listenToServer("if/serial")
 
 	log.Println("opening serial port", dev)
-	serialPort = serialConnect(dev, nbaud, tag)
+	serial := serialConnect(dev, nbaud, tag)
 
 	for m := range feed {
 		message := []byte(m.Payload.(proto.BytesPayload))
 		log.Printf("Ser: %s", message)
-		serialPort.Write(message)
+		serial.Write(message)
 	}
 }
 
@@ -126,7 +125,9 @@ func server() {
 	openWebSockets = make(map[string]*websocket.Conn)
 
 	log.Println("opening database")
-	openDatabase("./storage")
+	db, err := leveldb.OpenFile("./storage", nil)
+	check(err)
+	dataStore = db
 
 	// get and print all the key/value pairs from the database
 	iter := dataStore.NewIterator(nil)
@@ -221,12 +222,6 @@ func Publish(key string, value []byte) {
 		TopicName: key,
 		Payload:   proto.BytesPayload(value),
 	})
-}
-
-func openDatabase(dbname string) {
-	db, err := leveldb.OpenFile(dbname, nil)
-	check(err)
-	dataStore = db
 }
 
 func Fetch(key string) []byte {
