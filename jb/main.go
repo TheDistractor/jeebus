@@ -16,7 +16,11 @@ func main() {
 
 	switch os.Args[1] {
 	case "run":
-		jeebus.Server()
+		port := ":3333"
+		if len(os.Args) > 2 {
+			port = os.Args[2]
+		}
+		jeebus.Server(port)
 
 	case "see":
 		topics := "#"

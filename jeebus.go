@@ -82,7 +82,7 @@ func ListenToServer(topic string) chan Message {
 	return listenChan
 }
 
-func Server() {
+func Server(port string) {
 	openWebSockets = make(map[string]*websocket.Conn)
 
 	log.Println("opening database")
@@ -107,8 +107,8 @@ func Server() {
 	// set up a web server to handle static files and websockets
 	http.Handle("/", http.FileServer(http.Dir("./public")))
 	http.Handle("/ws", websocket.Handler(sockServer))
-	log.Println("web server is listening on port 3333")
-	log.Fatal(http.ListenAndServe(":3333", nil))
+	log.Println("web server started on ", port)
+	log.Fatal(http.ListenAndServe(port, nil))
 }
 
 func startMqttServer() {
