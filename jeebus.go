@@ -75,6 +75,8 @@ func ListenToServer(topic string) chan Message {
 				R: m.Header.Retain,
 			}
 		}
+		log.Println("server connection lost")
+		close(listenChan)
 	}()
 
 	return listenChan

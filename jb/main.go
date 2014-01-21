@@ -19,7 +19,7 @@ func main() {
 		jeebus.Server()
 
 	case "see":
-    topics := "#"
+		topics := "#"
 		if len(os.Args) > 2 {
 			topics = os.Args[2]
 		}

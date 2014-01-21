@@ -13,9 +13,10 @@ The Go tools must be installed and GOPATH has to be set, then:
 * install this project with: `go get -tags luaa github.com/jcw/jeebus/jb`
 * go to the source directory using: `cd $GOPATH/github.com/jcw/jeebus`
 * launch the server as: `jb run` and leave it running in a console window
-* to see all the messages on MQTT, run `jb see` from a separate console
+* to see messages from MQTT, run `jb see ?topics?` from a separate console
+    * `topics` defaults to '#' if not specified, i.e. all topics
 * connect a serial port using: `jb serial <dev> <baud> ?tag?`
-* include a tag if the serial device does not start by sending a `[...]` line
+    * use a `tag` if the serial device does not start by sending a `[...]` line
 
 To make the demo work, the Arduino sketch in `./blinker` has to be uploaded  
 to a JeeNode, with a Blink Plug attached to port 1.
