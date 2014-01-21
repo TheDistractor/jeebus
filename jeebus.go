@@ -66,17 +66,17 @@ func ListenToServer(topic string) chan Message {
 		}
 	}()
 
-  listenChan := make(chan Message)
-  go func() {
-    for m := range mqttClient.Incoming {
-      listenChan <- Message{
-        T: m.TopicName,
-        P: []byte(m.Payload.(proto.BytesPayload)),
-        R: m.Header.Retain,
-      }
-    }
-  }()
-  
+	listenChan := make(chan Message)
+	go func() {
+		for m := range mqttClient.Incoming {
+			listenChan <- Message{
+				T: m.TopicName,
+				P: []byte(m.Payload.(proto.BytesPayload)),
+				R: m.Header.Retain,
+			}
+		}
+	}()
+
 	return listenChan
 }
 

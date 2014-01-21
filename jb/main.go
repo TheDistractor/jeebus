@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	".."
+	".." // the fully-specified path is "github.com/jcw/jeebus"
 )
 
 func main() {
