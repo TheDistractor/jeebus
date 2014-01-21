@@ -12,7 +12,7 @@ The Go tools must be installed and GOPATH has to be set, then:
 * Lua 5.1 must be installed as library in /usr/lib or /usr/local/lib
 * install this project with: `go get -tags luaa github.com/jcw/jeebus/jb`
 * go to the source directory using: `cd $GOPATH/github.com/jcw/jeebus`
-* launch the server as: `jb` and leave it running in a console window
+* launch the server as: `jb run` and leave it running in a console window
 * to see all the messages on MQTT, run `jb see` from a separate console
 * connect a serial port using: `jb serial <dev> <baud> ?tag?`
 * include a tag if the serial device does not start by sending a `[...]` line
