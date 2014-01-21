@@ -1,4 +1,4 @@
-package main
+package jeebus
 
 import (
 	"bufio"
@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -25,28 +24,13 @@ var (
 	openWebSockets map[string]*websocket.Conn
 	mqttClient     *mqtt.ClientConn // TODO get rid of this
 	dataStore      *leveldb.DB
-	busPubChan     chan *BusMessage
+	PubChan        chan *Message
 )
 
-type BusMessage struct {
+type Message struct {
 	T string      // topic
 	M interface{} // message
 	R bool        // retain
-}
-
-func main() {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "see":
-			seeCmd()
-		case "serial":
-			serialCmd()
-		default:
-			server()
-		}
-	} else {
-		server()
-	}
 }
 
 func check(err error) {
@@ -68,10 +52,10 @@ func listenToServer(topic string) chan *proto.Publish {
 	})
 
 	// set up a channel to publish through
-	busPubChan = make(chan *BusMessage)
+	PubChan = make(chan *Message)
 
 	go func() {
-		for msg := range busPubChan {
+		for msg := range PubChan {
 			// log.Printf("C %s => %v", msg.T, msg.M)
 			value, err := json.Marshal(msg.M)
 			check(err)
@@ -86,7 +70,7 @@ func listenToServer(topic string) chan *proto.Publish {
 	return mqttClient.Incoming
 }
 
-func seeCmd() {
+func SeeCmd() {
 	for m := range listenToServer("#") {
 		topic := m.TopicName
 		message := []byte(m.Payload.(proto.BytesPayload))
@@ -98,21 +82,11 @@ func seeCmd() {
 	}
 }
 
-func serialCmd() {
-	if len(os.Args) < 4 {
-		log.Fatal("usage: jeebus serial <dev> <baud> ?tag?")
-	}
-	dev, sbaud, tag := os.Args[2], os.Args[3], ""
-	if len(os.Args) > 4 {
-		tag = os.Args[4]
-	}
-	nbaud, err := strconv.Atoi(sbaud)
-	check(err)
-
+func SerialCmd(dev string, baud int, tag string) {
 	feed := listenToServer("if/serial")
 
 	log.Println("opening serial port", dev)
-	serial := serialConnect(dev, nbaud, tag)
+	serial := serialConnect(dev, baud, tag)
 
 	for m := range feed {
 		message := []byte(m.Payload.(proto.BytesPayload))
@@ -121,7 +95,7 @@ func serialCmd() {
 	}
 }
 
-func server() {
+func Server() {
 	openWebSockets = make(map[string]*websocket.Conn)
 
 	log.Println("opening database")
@@ -159,7 +133,7 @@ func startMqttServer() {
 
 	feed := listenToServer("#")
 
-	Publish("st/admin/started", []byte(time.Now().Format(time.RFC822Z)))
+	publish("st/admin/started", []byte(time.Now().Format(time.RFC822Z)))
 
 	go func() {
 		for m := range feed {
@@ -175,7 +149,7 @@ func mqttDispatch(m *proto.Publish) {
 	// FIXME can't work: retain flag is not published to subscribers!
 	//	solving this will require a modified mqtt package
 	// if m.Header.Retain {
-	// 	Store("mqtt/"+topic, message, nil)
+	// 	store("mqtt/"+topic, message, nil)
 	// }
 
 	switch topic[:3] {
@@ -183,15 +157,15 @@ func mqttDispatch(m *proto.Publish) {
 	// st/key... -> current state, stored as key and with timestamp
 	case "st/":
 		key := topic[3:]
-		Store(key, message)
+		store(key, message)
 		millis := time.Now().UnixNano() / 1000000
-		Store(fmt.Sprintf("hist/%s/%d", key, millis), message)
+		store(fmt.Sprintf("hist/%s/%d", key, millis), message)
 
 	// db/... -> database requests, value is reply topic
 	case "db/":
 		if strings.HasPrefix(topic, "db/get/") {
-			value := Fetch(topic[7:])
-			Publish(string(message), value)
+			value := fetch(topic[7:])
+			publish(string(message), value)
 		}
 
 	// TODO hardcoded serial port to websocket pass-through for now
@@ -210,12 +184,12 @@ func mqttDispatch(m *proto.Publish) {
 		check(err)
 		// send as L<n><m> to the serial port
 		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
-		Publish("if/serial", []byte(cmd))
+		publish("if/serial", []byte(cmd))
 	}
 }
 
-// TODO get rid of this, use busPubChan and add support for raw sending
-func Publish(key string, value []byte) {
+// TODO get rid of this, use PubChan and add support for raw sending
+func publish(key string, value []byte) {
 	// log.Printf("P %s => %s", key, value)
 	mqttClient.Publish(&proto.Publish{
 		// Header:    proto.Header{Retain: true},
@@ -224,7 +198,7 @@ func Publish(key string, value []byte) {
 	})
 }
 
-func Fetch(key string) []byte {
+func fetch(key string) []byte {
 	value, err := dataStore.Get([]byte(key), nil)
 	if err != nil {
 		log.Println(err)
@@ -232,7 +206,7 @@ func Fetch(key string) []byte {
 	return value
 }
 
-func Store(key string, value []byte) {
+func store(key string, value []byte) {
 	log.Printf("S %s => %s", key, value)
 	dataStore.Put([]byte(key), value, nil)
 }
@@ -275,7 +249,7 @@ func serialConnect(dev string, baud int, tag string) *rs232.Port {
 
 		serKey := "if/serial/" + tag + "/" + strings.TrimPrefix(dev, "/dev/")
 		for line := range inputLines {
-			busPubChan <- &BusMessage{T: serKey, M: line}
+			PubChan <- &Message{T: serKey, M: line}
 		}
 
 		log.Printf("no more data on: %s", dev)
@@ -297,7 +271,7 @@ func sockServer(ws *websocket.Conn) {
 			log.Print(err)
 			break
 		}
-		Publish("ws/"+client, []byte(msg))
+		publish("ws/"+client, []byte(msg))
 	}
 
 	log.Println("Client disconnected:", client)
