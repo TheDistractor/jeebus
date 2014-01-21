@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	// TODO figure out how to use the "flag" package
+	// TODO figure out how to use the "flag" package with sub-commands
 	if len(os.Args) <= 1 {
 		log.Fatal("usage: jb <cmd> ... (try 'jb run')")
 	}
@@ -17,8 +17,14 @@ func main() {
 	switch os.Args[1] {
 	case "run":
 		jeebus.Server()
+
 	case "see":
-		seeCmd()
+    topics := "#"
+		if len(os.Args) > 2 {
+			topics = os.Args[2]
+		}
+		seeCmd(topics)
+
 	case "serial":
 		if len(os.Args) < 4 {
 			log.Fatal("usage: jb serial <dev> <baud> ?tag?")
@@ -32,13 +38,14 @@ func main() {
 			log.Fatal(err)
 		}
 		serialCmd(dev, baud, tag)
+
 	default:
 		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
 	}
 }
 
-func seeCmd() {
-	for m := range jeebus.ListenToServer("#") {
+func seeCmd(topics string) {
+	for m := range jeebus.ListenToServer(topics) {
 		topic := m.T
 		message := m.P
 		retain := ""
