@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+  "os"
 	"strconv"
 	"strings"
 	"time"
@@ -83,7 +84,72 @@ func ListenToServer(topic string) chan Message {
 	return listenChan
 }
 
-func DumpDatabase(from, to string) {
+func SubCommand(cmdName string) string {
+	// TODO figure out how to use the "flag" package with sub-commands
+	if len(os.Args) <= 1 {
+		log.Fatalf("usage: %s <cmd> ... (try '%s run')", cmdName, cmdName)
+	}
+
+	switch os.Args[1] {
+
+	case "dump":
+		switch len(os.Args) {
+		case 2:
+			dumpDatabase("", "")
+		case 3:
+			dumpDatabase(os.Args[2], "")
+		case 4:
+			dumpDatabase(os.Args[2], os.Args[3])
+		}
+
+	case "run":
+		port := ":3333"
+		if len(os.Args) > 2 {
+			port = os.Args[2]
+		}
+		startAllServers(port)
+
+	case "see":
+		topics := "#"
+		if len(os.Args) > 2 {
+			topics = os.Args[2]
+		}
+		for m := range ListenToServer(topics) {
+			log.Println(m.T, string(m.P.([]byte)), m.R)
+		}
+
+	case "serial":
+		if len(os.Args) <= 2 {
+			log.Fatalf("usage: %s serial <dev> ?baud? ?tag?", cmdName)
+		}
+		dev, baud, tag := os.Args[2], "57600", ""
+		if len(os.Args) > 3 {
+			baud = os.Args[3]
+		}
+		if len(os.Args) > 4 {
+			tag = os.Args[4]
+		}
+		nbaud, err := strconv.Atoi(baud)
+		check(err)
+  	feed := ListenToServer("if/serial")
+
+  	log.Println("opening serial port", dev)
+  	serial := serialConnect(dev, nbaud, tag)
+
+  	for m := range feed {
+  		log.Printf("Ser: %s", m.P.([]byte))
+  		serial.Write(m.P.([]byte))
+  	}
+
+	default:
+    return os.Args[1]
+  }
+  
+  os.Exit(0)  // sub-command has been processed, normal exit
+  return ""   // never reached
+}
+
+func dumpDatabase(from, to string) {
 	// o := &opt.Options{ ErrorIfMissing: true }
 	db, err := leveldb.OpenFile("./storage", nil)
 	check(err)
@@ -105,7 +171,7 @@ func DumpDatabase(from, to string) {
 	iter.Release()
 }
 
-func Server(port string) {
+func startAllServers(port string) {
 	openWebSockets = make(map[string]*websocket.Conn)
 
 	log.Println("opening database")
@@ -214,7 +280,7 @@ func store(key string, value []byte) {
 	dataStore.Put([]byte(key), value, nil)
 }
 
-func SerialConnect(dev string, baud int, tag string) *rs232.Port {
+func serialConnect(dev string, baud int, tag string) *rs232.Port {
 	// open the serial port
 	options := rs232.Options{
 		BitRate:  uint32(baud),
