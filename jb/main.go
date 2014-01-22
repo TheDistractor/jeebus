@@ -18,13 +18,13 @@ func main() {
 
 	case "dump":
 		switch len(os.Args) {
-    case 2:
-      jeebus.DumpDatabase("", "")
-    case 3:
-      jeebus.DumpDatabase(os.Args[2], "")
-    case 4:
-      jeebus.DumpDatabase(os.Args[2], os.Args[3])
-    }
+		case 2:
+			jeebus.DumpDatabase("", "")
+		case 3:
+			jeebus.DumpDatabase(os.Args[2], "")
+		case 4:
+			jeebus.DumpDatabase(os.Args[2], os.Args[3])
+		}
 
 	case "run":
 		port := ":3333"
