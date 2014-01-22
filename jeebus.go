@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net"
-	"os"
 
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
@@ -78,17 +77,4 @@ func ListenToServer(topic string) chan Message {
 	}()
 
 	return listenChan
-}
-
-func SubCommand(cmdName string) string {
-	// TODO figure out how to use the "flag" package with sub-commands
-
-	switch os.Args[1] {
-
-	default:
-		return os.Args[1]
-	}
-
-	os.Exit(0) // sub-command has been processed, normal exit
-	return ""  // never reached
 }

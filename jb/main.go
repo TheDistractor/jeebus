@@ -2,23 +2,17 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/jcw/jeebus"
 
 	"code.google.com/p/go.net/websocket"
-	"github.com/aarzilli/golua/lua"
 	"github.com/chimera/rs232"
+	"github.com/jcw/jeebus"
 	"github.com/jeffallen/mqtt"
-	"github.com/stevedonovan/luar"
 	"github.com/syndtr/goleveldb/leveldb"
 	// "github.com/syndtr/goleveldb/leveldb/opt"
 )
@@ -187,70 +181,6 @@ func startAllServers(port string) {
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
-func startMqttServer() {
-	port, err := net.Listen("tcp", ":1883")
-	check(err)
-	svr := mqtt.NewServer(port)
-	svr.Start()
-	// <-svr.Done
-
-	feed := jeebus.ListenToServer("#")
-
-	jeebus.Publish("st/admin/started", []byte(time.Now().Format(time.RFC822Z)))
-
-	go func() {
-		for m := range feed {
-			mqttDispatch(&m)
-		}
-	}()
-}
-
-func mqttDispatch(m *jeebus.Message) {
-	topic := m.T
-	message := m.P.([]byte)
-
-	// FIXME can't work: retain flag is not published to subscribers!
-	//	solving this will require a modified mqtt package
-	// if m.Header.Retain {
-	// 	store("mqtt/"+topic, message, nil)
-	// }
-
-	switch topic[:3] {
-
-	// st/key... -> current state, stored as key and with timestamp
-	case "st/":
-		key := topic[3:]
-		store(key, message)
-		millis := time.Now().UnixNano() / 1000000
-		store(fmt.Sprintf("hist/%s/%d", key, millis), message)
-
-	// db/... -> database requests, value is reply topic
-	case "db/":
-		if strings.HasPrefix(topic, "db/get/") {
-			value := fetch(topic[7:])
-			jeebus.Publish(string(message), value)
-		}
-
-	// TODO hardcoded serial port to websocket pass-through for now
-	case "if/":
-		if strings.HasPrefix(topic, "if/serial/") {
-			for _, ws := range openWebSockets {
-				websocket.Message.Send(ws, string(message))
-			}
-		}
-	// TODO hardcoded websocket to serial port pass-through for now
-	case "ws/":
-		// accept arrays of arbitrary data types
-		var any []interface{}
-		// log.Printf("got %s", message)
-		err := json.Unmarshal(message, &any)
-		check(err)
-		// send as L<n><m> to the serial port
-		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
-		jeebus.Publish("if/serial", []byte(cmd))
-	}
-}
-
 func fetch(key string) []byte {
 	value, err := dataStore.Get([]byte(key), nil)
 	if err != nil {
@@ -271,85 +201,17 @@ func sockServer(ws *websocket.Conn) {
 	log.Println("Client connected:", client)
 
 	for {
-		var msg string
-		err := websocket.Message.Receive(ws, &msg)
+		// var msg string
+		var any interface{}
+		err := websocket.JSON.Receive(ws, &any)
 		if err != nil {
 			log.Print(err)
 			break
 		}
-		jeebus.Publish("ws/"+client, []byte(msg))
+		fmt.Printf("ws got: %#v\n", any)
+		// jeebus.Publish("ws/"+client, []byte(msg))
 	}
 
 	log.Println("Client disconnected:", client)
 	delete(openWebSockets, client)
-}
-
-func test(L *lua.State) int {
-	fmt.Println("hello world! from go!")
-	return 0
-}
-
-func test2(L *lua.State) int {
-	arg := L.CheckInteger(-1)
-	argfrombottom := L.CheckInteger(1)
-	fmt.Print("test2 arg: ")
-	fmt.Println(arg)
-	fmt.Print("from bottom: ")
-	fmt.Println(argfrombottom)
-	return 0
-}
-
-func GoFun(args []int) (res map[string]int) {
-	res = make(map[string]int)
-	for i, val := range args {
-		res[strconv.Itoa(i)] = val * val
-	}
-	return
-}
-
-const code = `
-print 'here we go'
--- Lua tables auto-convert to slices
-local res = GoFun {10,20,30,40}
--- the result is a map-proxy
-print(res['1'],res['2'])
--- which we may explicitly convert to a table
-res = luar.map2table(res)
-for k,v in pairs(res) do
-      print(k,v)
-end
-`
-
-func setupLua() {
-	L := lua.NewState()
-	defer L.Close()
-	L.OpenLibs()
-
-	// L.Register("test2", test2)
-
-	L.GetField(lua.LUA_GLOBALSINDEX, "print")
-	L.PushString("Hello World!")
-	L.Call(1, 0)
-
-	L.PushGoFunction(test)
-	L.PushGoFunction(test)
-	L.PushGoFunction(test)
-	L.PushGoFunction(test)
-
-	L.PushGoFunction(test2)
-	L.PushInteger(42)
-	L.Call(1, 0)
-
-	L.Call(0, 0)
-	L.Call(0, 0)
-	L.Call(0, 0)
-
-	luar.Register(L, "", luar.Map{
-		"Print": fmt.Println,
-		"MSG":   "hello", // can also register constants
-		"GoFun": GoFun,
-	})
-
-	err := L.DoString(code)
-	fmt.Printf("error %v\n", err)
 }
