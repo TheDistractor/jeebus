@@ -18,6 +18,7 @@ import (
 	"github.com/jeffallen/mqtt"
 	"github.com/stevedonovan/luar"
 	"github.com/syndtr/goleveldb/leveldb"
+	// "github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 var (
@@ -82,6 +83,28 @@ func ListenToServer(topic string) chan Message {
 	return listenChan
 }
 
+func DumpDatabase(from, to string) {
+	// o := &opt.Options{ ErrorIfMissing: true }
+	db, err := leveldb.OpenFile("./storage", nil)
+	check(err)
+	dataStore = db
+
+  if to == "" {
+    to = from + "~" // FIXME this assumes all key chars are less than "~"
+  }
+
+	// get and print all the key/value pairs from the database
+	iter := dataStore.NewIterator(nil)
+  iter.Seek([]byte(from))
+	for iter.Valid() {
+		fmt.Printf("%s = %s\n", iter.Key(), iter.Value())
+    if !iter.Next() || string(iter.Key()) > to {
+      break
+    }
+	}
+	iter.Release()
+}
+
 func Server(port string) {
 	openWebSockets = make(map[string]*websocket.Conn)
 
@@ -89,13 +112,6 @@ func Server(port string) {
 	db, err := leveldb.OpenFile("./storage", nil)
 	check(err)
 	dataStore = db
-
-	// get and print all the key/value pairs from the database
-	iter := dataStore.NewIterator(nil)
-	for iter.Next() {
-		log.Printf("key: %s, value: %s\n", iter.Key(), iter.Value())
-	}
-	iter.Release()
 
 	log.Println("setting up Lua")
 	setupLua()

@@ -17,6 +17,7 @@ The Go tools must be installed and GOPATH has to be set, then:
     * `topics` defaults to '#' if not specified, i.e. all topics
 * connect a serial port using: `jb serial <dev> <baud> ?tag?`
     * use a `tag` if the serial device does not start by sending a `[...]` line
+* to dump all the key/value pairs in the database, run `jb dump`
 
 To make the demo work, the Arduino sketch in `./blinker` has to be uploaded  
 to a JeeNode, with a Blink Plug attached to port 1.

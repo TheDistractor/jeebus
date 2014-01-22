@@ -15,6 +15,17 @@ func main() {
 	}
 
 	switch os.Args[1] {
+
+	case "dump":
+		switch len(os.Args) {
+    case 2:
+      jeebus.DumpDatabase("", "")
+    case 3:
+      jeebus.DumpDatabase(os.Args[2], "")
+    case 4:
+      jeebus.DumpDatabase(os.Args[2], os.Args[3])
+    }
+
 	case "run":
 		port := ":3333"
 		if len(os.Args) > 2 {
