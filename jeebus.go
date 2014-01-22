@@ -6,8 +6,8 @@ import (
 	"net"
 	"os"
 
-	"github.com/jeffallen/mqtt"
 	proto "github.com/huin/mqtt"
+	"github.com/jeffallen/mqtt"
 )
 
 type Message struct {
@@ -17,8 +17,8 @@ type Message struct {
 }
 
 var (
-	mqttClient     *mqtt.ClientConn // TODO get rid of this
-	PubChan        chan *Message
+	mqttClient *mqtt.ClientConn // TODO get rid of this
+	PubChan    chan *Message
 )
 
 func check(err error) {

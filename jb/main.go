@@ -2,23 +2,23 @@ package main
 
 import (
 	"bufio"
-	"strconv"
-	"strings"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net"
-	"os"
-	"encoding/json"
-	"time"
-	"fmt"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
 
-	".." // the fully-specified path is "github.com/jcw/jeebus"
+	"github.com/jcw/jeebus"
 
-	"github.com/chimera/rs232"
-	"github.com/stevedonovan/luar"
 	"code.google.com/p/go.net/websocket"
 	"github.com/aarzilli/golua/lua"
+	"github.com/chimera/rs232"
 	"github.com/jeffallen/mqtt"
+	"github.com/stevedonovan/luar"
 	"github.com/syndtr/goleveldb/leveldb"
 	// "github.com/syndtr/goleveldb/leveldb/opt"
 )
