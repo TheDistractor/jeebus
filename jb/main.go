@@ -9,7 +9,7 @@ import (
 
 func main() {
 	switch jeebus.SubCommand("jb") {
-  // no extra sub-commands defined
+	// no extra sub-commands defined
 	default:
 		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
 	}

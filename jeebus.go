@@ -7,7 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
-  "os"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -131,22 +131,22 @@ func SubCommand(cmdName string) string {
 		}
 		nbaud, err := strconv.Atoi(baud)
 		check(err)
-  	feed := ListenToServer("if/serial")
+		feed := ListenToServer("if/serial")
 
-  	log.Println("opening serial port", dev)
-  	serial := serialConnect(dev, nbaud, tag)
+		log.Println("opening serial port", dev)
+		serial := serialConnect(dev, nbaud, tag)
 
-  	for m := range feed {
-  		log.Printf("Ser: %s", m.P.([]byte))
-  		serial.Write(m.P.([]byte))
-  	}
+		for m := range feed {
+			log.Printf("Ser: %s", m.P.([]byte))
+			serial.Write(m.P.([]byte))
+		}
 
 	default:
-    return os.Args[1]
-  }
-  
-  os.Exit(0)  // sub-command has been processed, normal exit
-  return ""   // never reached
+		return os.Args[1]
+	}
+
+	os.Exit(0) // sub-command has been processed, normal exit
+	return ""  // never reached
 }
 
 func dumpDatabase(from, to string) {
@@ -155,18 +155,18 @@ func dumpDatabase(from, to string) {
 	check(err)
 	dataStore = db
 
-  if to == "" {
-    to = from + "~" // FIXME this assumes all key chars are less than "~"
-  }
+	if to == "" {
+		to = from + "~" // FIXME this assumes all key chars are less than "~"
+	}
 
 	// get and print all the key/value pairs from the database
 	iter := dataStore.NewIterator(nil)
-  iter.Seek([]byte(from))
+	iter.Seek([]byte(from))
 	for iter.Valid() {
 		fmt.Printf("%s = %s\n", iter.Key(), iter.Value())
-    if !iter.Next() || string(iter.Key()) > to {
-      break
-    }
+		if !iter.Next() || string(iter.Key()) > to {
+			break
+		}
 	}
 	iter.Release()
 }
