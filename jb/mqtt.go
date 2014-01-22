@@ -7,9 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"code.google.com/p/go.net/websocket"
-	"github.com/jcw/jeebus"
+	"github.com/jcw/jeebus" // TODO remove dependency
 	"github.com/jeffallen/mqtt"
+)
+
+var (
+	mqttClient *mqtt.ClientConn // TODO get rid of this
 )
 
 func startMqttServer() {
@@ -59,10 +62,9 @@ func mqttDispatch(m *jeebus.Message) {
 	// TODO hardcoded serial port to websocket pass-through for now
 	case "if/":
 		if strings.HasPrefix(topic, "if/serial/") {
-			for _, ws := range openWebSockets {
-				websocket.Message.Send(ws, string(message))
-			}
+			sendToAllWebSockets(message)
 		}
+
 	// TODO hardcoded websocket to serial port pass-through for now
 	case "ws/":
 		// accept arrays of arbitrary data types

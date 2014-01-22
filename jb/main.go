@@ -12,14 +12,12 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"github.com/chimera/rs232"
 	"github.com/jcw/jeebus"
-	"github.com/jeffallen/mqtt"
 	"github.com/syndtr/goleveldb/leveldb"
 	// "github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 var (
 	openWebSockets map[string]*websocket.Conn
-	mqttClient     *mqtt.ClientConn // TODO get rid of this
 	dataStore      *leveldb.DB
 )
 
@@ -214,4 +212,10 @@ func sockServer(ws *websocket.Conn) {
 
 	log.Println("Client disconnected:", client)
 	delete(openWebSockets, client)
+}
+
+func sendToAllWebSockets(m []byte) {
+	for _, ws := range openWebSockets {
+		websocket.Message.Send(ws, string(m))
+	}
 }

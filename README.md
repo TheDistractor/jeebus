@@ -23,3 +23,5 @@ To make the demo work, the Arduino sketch in `./blinker` has to be uploaded
 to a JeeNode, with a Blink Plug attached to port 1.
 
 Then point the browser to http://localhost:3333/ (or whatever IP the BBB has).
+
+To tinker and try out code changes, use "go run jb/* ..." to compile-and-run.
