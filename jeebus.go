@@ -26,6 +26,43 @@ func check(err error) {
 	}
 }
 
+type Client struct {
+	Tag      string
+	Sub      chan *Message
+	Handlers map[string]ClientService
+}
+
+type ClientService interface {
+}
+
+func NewClient(tag string) *Client {
+	return &Client{
+		Tag:      tag,
+		Sub:      ListenToServer(">" + tag + "/#"),
+		Handlers: make(map[string]ClientService),
+	}
+}
+
+// func (c *Client) AddService(name string) {
+// 	c.handlers[name] = 1
+// }
+//
+// func (c *Client) RemoveService(name string) {
+// 	delete(handlers, name)
+// }
+
+func (c *Client) Publish(key string, value interface{}) {
+	topic := c.Tag + "/" + key
+	switch v := value.(type) {
+	case []byte:
+		Publish(topic, v)
+	default:
+		data, err := json.Marshal(value)
+		check(err)
+		Publish(topic, data)
+	}
+}
+
 // TODO get rid of this, use PubChan and add support for raw sending
 func Publish(key string, value []byte) {
 	// log.Printf("P %s => %s", key, value)
@@ -36,7 +73,7 @@ func Publish(key string, value []byte) {
 	})
 }
 
-func ListenToServer(topic string) chan Message {
+func ListenToServer(topic string) chan *Message {
 	conn, err := net.Dial("tcp", "localhost:1883")
 	check(err)
 
@@ -63,10 +100,10 @@ func ListenToServer(topic string) chan Message {
 		}
 	}()
 
-	listenChan := make(chan Message)
+	listenChan := make(chan *Message)
 	go func() {
 		for m := range mqttClient.Incoming {
-			listenChan <- Message{
+			listenChan <- &Message{
 				T: m.TopicName,
 				P: []byte(m.Payload.(proto.BytesPayload)),
 				R: m.Header.Retain,

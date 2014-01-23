@@ -28,7 +28,7 @@ func startMqttServer() {
 
 	go func() {
 		for m := range feed {
-			mqttDispatch(&m)
+			mqttDispatch(m)
 		}
 	}()
 }
