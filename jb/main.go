@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -196,7 +197,8 @@ func sockServer(ws *websocket.Conn) {
 	defer ws.Close()
 	client := ws.Request().RemoteAddr
 	openWebSockets[client] = ws
-	log.Println("Client connected:", client)
+	subProto := ws.Request().Header.Get("Sec-Websocket-Protocol")
+	log.Println("ws connect", subProto, client)
 
 	for {
 		// var msg string
@@ -207,10 +209,11 @@ func sockServer(ws *websocket.Conn) {
 			break
 		}
 		fmt.Printf("ws got: %#v\n", any)
-		// jeebus.Publish("ws/"+client, []byte(msg))
+		msg, _ := json.Marshal(any)
+		jeebus.Publish("ws/"+client, msg)
 	}
 
-	log.Println("Client disconnected:", client)
+	log.Println("ws disconnect", subProto, client)
 	delete(openWebSockets, client)
 }
 

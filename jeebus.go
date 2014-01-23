@@ -1,3 +1,5 @@
+// JeeBus is a messaging and data storage infrastructure for low-end hardware.
+
 package jeebus
 
 import (
@@ -53,9 +55,9 @@ func NewClient(tag string) *Client {
 
 func (c *Client) Publish(key string, value interface{}) {
 	topic := c.Tag + "/" + key
-	switch v := value.(type) {
+	switch value := value.(type) {
 	case []byte:
-		Publish(topic, v)
+		Publish(topic, value)
 	default:
 		data, err := json.Marshal(value)
 		check(err)
@@ -78,8 +80,8 @@ func ListenToServer(topic string) chan *Message {
 	check(err)
 
 	mqttClient = mqtt.NewClientConn(conn)
-	err2 := mqttClient.Connect("", "")
-	check(err2)
+	err = mqttClient.Connect("", "")
+	check(err)
 
 	mqttClient.Subscribe([]proto.TopicQos{
 		{Topic: topic, Qos: proto.QosAtMostOnce},

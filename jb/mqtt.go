@@ -67,12 +67,9 @@ func mqttDispatch(m *jeebus.Message) {
 
 	// TODO hardcoded websocket to serial port pass-through for now
 	case "ws/":
-		// accept arrays of arbitrary data types
-		var any []interface{}
+		var any []string
 		err := json.Unmarshal(message, &any)
 		check(err)
-		// send as L<n><m> to the serial port
-		cmd := fmt.Sprintf("L%.0f%.0f", any[0], any[1])
-		jeebus.Publish("if/serial", []byte(cmd))
+		jeebus.Publish(string(any[0]), []byte(any[1]))
 	}
 }

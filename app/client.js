@@ -7,21 +7,20 @@
   ws = null;
 
   ng.run(function($rootScope) {
-    var reconnect, setCount;
-    setCount = function(data) {
-      return $rootScope.$apply(function() {
-        return $rootScope.count = data;
-      });
-    };
+    var reconnect;
     reconnect = function(firstCall) {
-      ws = new WebSocket("ws://" + location.host + "/ws");
+      ws = new WebSocket("ws://" + location.host + "/ws", ['JeeBus']);
+      ws.binaryType = 'arraybuffer';
       ws.onopen = function() {
         if (!firstCall) {
           location.reload();
         }
-        return console.log('Open');
+        return console.log('Open', ws);
       };
       ws.onmessage = function(m) {
+        if (m.data instanceof ArrayBuffer) {
+          console.log('binary msg', m);
+        }
         return $rootScope.$apply(function() {
           var msg;
           msg = JSON.parse(m.data);
@@ -38,16 +37,16 @@
 
   ng.controller('MainCtrl', function($scope) {
     $scope.$on('R', function(e, v) {
-      return $scope.redLed = v !== 0;
+      return $scope.redLed = v === 1;
     });
     $scope.$on('G', function(e, v) {
-      return $scope.greenLed = v !== 0;
+      return $scope.greenLed = v === 1;
     });
     $scope.$on('C', function(e, v) {
       return $scope.count = v;
     });
     return $scope.button = function(b, v) {
-      return ws.send(JSON.stringify([b, v]));
+      return ws.send(JSON.stringify(['>if/serial/blinker', JSON.stringify("L" + b + v)]));
     };
   });
 

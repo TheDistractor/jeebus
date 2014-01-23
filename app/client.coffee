@@ -4,19 +4,18 @@ ws = null
 
 ng.run ($rootScope) ->
 
-  setCount = (data) ->
-    $rootScope.$apply ->
-      $rootScope.count = data
-
   reconnect = (firstCall) ->
     # the websocket is served from the same site as the web page
-    ws = new WebSocket "ws://#{location.host}/ws"
+    ws = new WebSocket "ws://#{location.host}/ws", ['JeeBus']
+    ws.binaryType = 'arraybuffer'
 
     ws.onopen = ->
       location.reload()  unless firstCall
-      console.log 'Open'
+      console.log 'Open', ws
 
     ws.onmessage = (m) ->
+      if m.data instanceof ArrayBuffer
+        console.log 'binary msg', m
       $rootScope.$apply ->
         msg = JSON.parse(m.data)
         $rootScope.$broadcast msg[0], msg.slice(1) | 0
@@ -33,4 +32,4 @@ ng.controller 'MainCtrl', ($scope) ->
   $scope.$on 'C', (e, v) -> $scope.count = v
 
   $scope.button = (b, v) ->
-    ws.send JSON.stringify [b, v]
+    ws.send JSON.stringify ['>if/serial/blinker', JSON.stringify "L#{b}#{v}"]
