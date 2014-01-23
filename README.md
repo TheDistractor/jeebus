@@ -25,3 +25,6 @@ to a JeeNode, with a Blink Plug attached to port 1.
 Then point the browser to http://localhost:3333/ (or whatever IP the BBB has).
 
 To tinker and try out code changes, use "go run jb/* ..." to compile-and-run.
+
+**Developer docs**  
+[![GoDoc](https://godoc.org/github.com/jcw/jeebus?status.png)](https://godoc.org/github.com/jcw/jeebus)
