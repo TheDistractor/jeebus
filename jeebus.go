@@ -1,5 +1,4 @@
 // JeeBus is a messaging and data storage infrastructure for low-end hardware.
-
 package jeebus
 
 import (
