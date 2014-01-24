@@ -3,6 +3,7 @@ package jeebus
 
 import (
 	"encoding/json"
+    "fmt"
 	"log"
 	"net"
 	"strings"
@@ -34,8 +35,15 @@ type Client struct {
 	Services map[string]Service
 }
 
-// Service gets called on the topic(s) it has been registered for
-type Service func(c *Client, subtopic string, value interface{})
+func (c *Client) String() string {
+    return fmt.Sprintf("«Cl:%s,%d»", c.Prefix, len(c.Services))
+}
+
+// Service represents the registration for a specific subtopic
+type Service interface {
+    // Handle gets called on the topic(s) it has been registered for
+    Handle(c *Client, subtopic string, value interface{})
+}
 
 // NewClient sets up a new MQTT connection for a specified client prefix.
 func NewClient(prefix string) *Client {
@@ -59,19 +67,19 @@ func NewClient(prefix string) *Client {
 			// first look for the special "*" wildcard
 			check(err)
 			if service, ok := client.Services["*"]; ok {
-				service(client, srvName, value)
+				service.Handle(client, srvName, value)
 			}
 
 			// then look for an exact service match
 			if service, ok := client.Services[srvName]; ok {
-				service(client, "", value)
+				service.Handle(client, "", value)
 			}
 
 			// finally look for all services which are a prefix of this topic
 			srvPrefix := srvName + "/"
 			for k, v := range client.Services {
 				if strings.HasPrefix(k, srvPrefix) {
-					v(client, k[len(srvPrefix):], value)
+					v.Handle(client, k[len(srvPrefix):], value)
 				}
 			}
 		}

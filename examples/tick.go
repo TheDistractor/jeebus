@@ -8,13 +8,16 @@ import (
 	"github.com/jcw/jeebus"
 )
 
-func TickService(c *jeebus.Client, tail string, value interface{}) {
+type TickService int
+
+func (s *TickService) Handle (c *jeebus.Client, tail string, value interface{}) {
 	log.Printf("Svc zz: '%s', value %#v (%T)", tail, value, value)
+    *s = TickService(value.(float64))
 }
 
 func main() {
 	client := jeebus.NewClient("zz")
-	client.Register("tick/foo", TickService)
+	client.Register("tick/foo", new(TickService))
 
 	go func() {
 		for {
