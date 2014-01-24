@@ -11,7 +11,7 @@ import (
 type TickService int
 
 func (s *TickService) Handle(tail string, value interface{}) {
-	log.Printf("tail '%s', value %#v (%T)", tail, value, value)
+	log.Printf("Svc zz: '%s', value %#v (%T)", tail, value, value)
 }
 
 func main() {

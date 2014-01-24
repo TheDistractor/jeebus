@@ -22,6 +22,10 @@ var (
 	openWebSockets map[string]*websocket.Conn
 	dataStore      *leveldb.DB
 	pubChan        chan *jeebus.Message
+	regClient      *jeebus.Client
+	dbClient       *jeebus.Client
+	ifClient       *jeebus.Client
+	wsClient       *jeebus.Client
 )
 
 func main() {
@@ -178,11 +182,47 @@ func startAllServers(port string) {
 	pubChan = startMqttServer()
 	log.Println("MQTT server is running")
 
+	regClient = jeebus.NewClient("@")
+	regClient.Register("*", new(RegistryService))
+
+	dbClient = jeebus.NewClient("")
+	dbClient.Register("*", new(DatabaseService))
+
+	ifClient = jeebus.NewClient("if")
+	ifClient.Register("*", new(InterfaceService))
+
+	wsClient = jeebus.NewClient("ws")
+	wsClient.Register("*", new(WebsocketService))
+
 	// set up a web server to handle static files and websockets
 	http.Handle("/", http.FileServer(http.Dir("./app")))
 	http.Handle("/ws", websocket.Handler(sockServer))
 	log.Println("web server started on ", port)
 	log.Fatal(http.ListenAndServe(port, nil))
+}
+
+type RegistryService int
+
+func (s *RegistryService) Handle(tail string, value interface{}) {
+	log.Printf(":@ '%s', value %#v (%T)", tail, value, value)
+}
+
+type DatabaseService int
+
+func (s *DatabaseService) Handle(tail string, value interface{}) {
+	log.Printf(": '%s', value %#v (%T)", tail, value, value)
+}
+
+type InterfaceService int
+
+func (s *InterfaceService) Handle(tail string, value interface{}) {
+	log.Printf(":if '%s', value %#v (%T)", tail, value, value)
+}
+
+type WebsocketService int
+
+func (s *WebsocketService) Handle(tail string, value interface{}) {
+	log.Printf(":ws '%s', value %#v (%T)", tail, value, value)
 }
 
 func fetch(key string) []byte {

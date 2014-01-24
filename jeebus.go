@@ -53,18 +53,28 @@ func NewClient(prefix string) *Client {
 
 		skip := len(prefix) + 2
 		for m := range sub {
-			// first look for an exact service match
 			srvName := m.T[skip:]
-            var value interface{}
-            err := json.Unmarshal(m.P, &value)
-            check(err)
+			var value interface{}
+			err := json.Unmarshal(m.P, &value)
+			check(err)
+
+			// first look for the special "*" wildcard
+			check(err)
+			if srv, ok := client.Services["*"]; ok {
+				srv.Handle(srvName, value)
+			}
+
+			// then look for an exact service match
 			if srv, ok := client.Services[srvName]; ok {
+				// log.Println("nc found:", m.T, prefix, srvName)
 				srv.Handle("", value)
 			}
-			// then look for all services which are a prefix of this topic
+
+			// finally look for all services which are a prefix of this topic
 			srvPrefix := srvName + "/"
 			for k, v := range client.Services {
 				if strings.HasPrefix(k, srvPrefix) {
+					// log.Println("nc match:", m.T, prefix, k, srvPrefix)
 					v.Handle(k[len(srvPrefix):], value)
 				}
 			}
@@ -79,12 +89,12 @@ func NewClient(prefix string) *Client {
 // Register a new service for a client, using a more specific prefix.
 func (c *Client) Register(name string, service ClientService) {
 	c.Services[name] = service
-	c.Publish(":@/register", []byte(name))
+	c.Publish(":@/register"+"/"+c.Prefix, name)
 }
 
 // Unregister a previously defined service.
 func (c *Client) Unregister(name string) {
-	c.Publish(":@/unregister", []byte(name))
+	c.Publish(":@/unregister"+"/"+c.Prefix, name)
 	delete(c.Services, name)
 }
 
