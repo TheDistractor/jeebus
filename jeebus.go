@@ -28,7 +28,7 @@ func check(err error) {
 
 type Client struct {
 	Tag      string
-	Sub, Pub chan *Message
+	Pub, Sub chan *Message
 	Handlers map[string]ClientService
 }
 
@@ -36,13 +36,8 @@ type ClientService interface {
 }
 
 func NewClient(tag string) *Client {
-	sub, pub := ConnectToServer(":" + tag + "/#")
-	return &Client{
-		Tag:      tag,
-		Sub:      sub,
-		Pub:      pub,
-		Handlers: make(map[string]ClientService),
-	}
+	pub, sub := ConnectToServer(":" + tag + "/#")
+	return &Client{tag, pub, sub, make(map[string]ClientService)}
 }
 
 // func (c *Client) AddService(name string) {
@@ -65,7 +60,7 @@ func (c *Client) Publish(key string, value interface{}) {
 	}
 }
 
-func ConnectToServer(topic string) (sub, pub chan *Message) {
+func ConnectToServer(topic string) (pub, sub chan *Message) {
 	conn, err := net.Dial("tcp", "localhost:1883")
 	check(err)
 

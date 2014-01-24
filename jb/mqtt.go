@@ -22,7 +22,7 @@ func startMqttServer() chan *jeebus.Message {
 	svr.Start()
 	// <-svr.Done
 
-	sub, pub := jeebus.ConnectToServer("#")
+	pub, sub := jeebus.ConnectToServer("#")
 
 	pub <- &jeebus.Message{
 		T: "st/admin/started",
@@ -76,6 +76,6 @@ func startMqttServer() chan *jeebus.Message {
 			}
 		}
 	}()
-    
-    return pub
+
+	return pub
 }
