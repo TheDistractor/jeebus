@@ -1,3 +1,4 @@
+// The JeeBus server, with messaging, data storage, and a web server.
 package main
 
 import (
@@ -167,6 +168,10 @@ func serialConnect(dev string, baudrate int, tag string) (done chan byte) {
 	return
 }
 
+func SerialHandler(c *jeebus.Client, subtopic string, value interface{}) {
+    // TODO
+}
+
 func startAllServers(port string) {
 	openWebSockets = make(map[string]*websocket.Conn)
 
@@ -183,16 +188,16 @@ func startAllServers(port string) {
 	log.Println("MQTT server is running")
 
 	regClient = jeebus.NewClient("@")
-	regClient.Register("*", new(RegistryService))
+	regClient.Register("*", RegistryService)
 
 	dbClient = jeebus.NewClient("")
-	dbClient.Register("*", new(DatabaseService))
+	dbClient.Register("*", DatabaseService)
 
 	ifClient = jeebus.NewClient("if")
-	ifClient.Register("*", new(InterfaceService))
+	ifClient.Register("*", InterfaceService)
 
 	wsClient = jeebus.NewClient("ws")
-	wsClient.Register("*", new(WebsocketService))
+	wsClient.Register("*", WebsocketService)
 
 	// set up a web server to handle static files and websockets
 	http.Handle("/", http.FileServer(http.Dir("./app")))
@@ -201,27 +206,19 @@ func startAllServers(port string) {
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
-type RegistryService int
-
-func (s *RegistryService) Handle(tail string, value interface{}) {
+func RegistryService(c *jeebus.Client, tail string, value interface{}) {
 	log.Printf(":@ '%s', value %#v (%T)", tail, value, value)
 }
 
-type DatabaseService int
-
-func (s *DatabaseService) Handle(tail string, value interface{}) {
+func DatabaseService(c *jeebus.Client, tail string, value interface{}) {
 	log.Printf(": '%s', value %#v (%T)", tail, value, value)
 }
 
-type InterfaceService int
-
-func (s *InterfaceService) Handle(tail string, value interface{}) {
+func InterfaceService(c *jeebus.Client, tail string, value interface{}) {
 	log.Printf(":if '%s', value %#v (%T)", tail, value, value)
 }
 
-type WebsocketService int
-
-func (s *WebsocketService) Handle(tail string, value interface{}) {
+func WebsocketService(c *jeebus.Client, tail string, value interface{}) {
 	log.Printf(":ws '%s', value %#v (%T)", tail, value, value)
 }
 

@@ -31,19 +31,17 @@ func check(err error) {
 type Client struct {
 	Prefix   string
 	Pub, Sub chan *Message
-	Services map[string]ClientService
+	Services map[string]Service
 }
 
-// ClientService listens to specific topics, and can emit its own messages.
-type ClientService interface {
-	Handle(topic string, value interface{})
-}
+// Service gets called on the topic(s) it has been registered for
+type Service func(c *Client, subtopic string, value interface{})
 
 // NewClient sets up a new MQTT connection for a specified client prefix.
 func NewClient(prefix string) *Client {
 	pub, sub := ConnectToServer(":" + prefix + "/#")
 
-	client := &Client{prefix, pub, sub, make(map[string]ClientService)}
+	client := &Client{prefix, pub, sub, make(map[string]Service)}
 	client.Publish(":@/connect", prefix)
 	log.Println("client connected:", prefix)
 
@@ -60,22 +58,20 @@ func NewClient(prefix string) *Client {
 
 			// first look for the special "*" wildcard
 			check(err)
-			if srv, ok := client.Services["*"]; ok {
-				srv.Handle(srvName, value)
+			if service, ok := client.Services["*"]; ok {
+				service(client, srvName, value)
 			}
 
 			// then look for an exact service match
-			if srv, ok := client.Services[srvName]; ok {
-				// log.Println("nc found:", m.T, prefix, srvName)
-				srv.Handle("", value)
+			if service, ok := client.Services[srvName]; ok {
+				service(client, "", value)
 			}
 
 			// finally look for all services which are a prefix of this topic
 			srvPrefix := srvName + "/"
 			for k, v := range client.Services {
 				if strings.HasPrefix(k, srvPrefix) {
-					// log.Println("nc match:", m.T, prefix, k, srvPrefix)
-					v.Handle(k[len(srvPrefix):], value)
+					v(client, k[len(srvPrefix):], value)
 				}
 			}
 		}
@@ -87,7 +83,7 @@ func NewClient(prefix string) *Client {
 }
 
 // Register a new service for a client, using a more specific prefix.
-func (c *Client) Register(name string, service ClientService) {
+func (c *Client) Register(name string, service Service) {
 	c.Services[name] = service
 	c.Publish(":@/register"+"/"+c.Prefix, name)
 }
