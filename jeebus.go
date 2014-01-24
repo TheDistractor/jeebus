@@ -11,9 +11,9 @@ import (
 )
 
 type Message struct {
-	T string      // topic
-	P interface{} // payload
-	R bool        // retain
+	T string          // topic
+	P json.RawMessage // payload
+	R bool            // retain
 }
 
 var (
@@ -90,13 +90,10 @@ func ListenToServer(topic string) chan *Message {
 	PubChan = make(chan *Message)
 	go func() {
 		for msg := range PubChan {
-			// log.Printf("C %s => %v", msg.T, msg.P)
-			value, err := json.Marshal(msg.P)
-			check(err)
 			mqttClient.Publish(&proto.Publish{
 				Header:    proto.Header{Retain: msg.R},
 				TopicName: msg.T,
-				Payload:   proto.BytesPayload(value),
+				Payload:   proto.BytesPayload(msg.P),
 			})
 		}
 	}()
@@ -106,7 +103,7 @@ func ListenToServer(topic string) chan *Message {
 		for m := range mqttClient.Incoming {
 			listenChan <- &Message{
 				T: m.TopicName,
-				P: []byte(m.Payload.(proto.BytesPayload)),
+				P: json.RawMessage(m.Payload.(proto.BytesPayload)),
 				R: m.Header.Retain,
 			}
 		}

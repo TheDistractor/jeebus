@@ -35,7 +35,7 @@ func startMqttServer() {
 
 func mqttDispatch(m *jeebus.Message) {
 	topic := m.T
-	message := m.P.([]byte)
+	message := []byte(m.P)
 
 	// FIXME can't work: retain flag is not published to subscribers!
 	//	solving this will require a modified mqtt package

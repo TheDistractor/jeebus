@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -52,7 +53,7 @@ func main() {
 			topics = os.Args[2]
 		}
 		for m := range jeebus.ListenToServer(topics) {
-			log.Println(m.T, string(m.P.([]byte)), m.R)
+			log.Println(m.T, string(m.P), m.R)
 		}
 
 	case "serial":
@@ -68,15 +69,8 @@ func main() {
 		}
 		nbaud, err := strconv.Atoi(baud)
 		check(err)
-		feed := jeebus.ListenToServer("if/serial")
-
 		log.Println("opening serial port", dev)
-		serial := serialConnect(dev, nbaud, tag)
-
-		for m := range feed {
-			log.Printf("Ser: %s", m.P.([]byte))
-			serial.Write(m.P.([]byte))
-		}
+		serialConnect(dev, nbaud, tag)
 
 	default:
 		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
@@ -111,27 +105,32 @@ func dumpDatabase(from, to string) {
 	iter.Release()
 }
 
-func serialConnect(dev string, baud int, tag string) *rs232.Port {
+func serialConnect(dev string, baud int, tag string) {
 	// open the serial port
 	options := rs232.Options{
 		BitRate:  uint32(baud),
 		DataBits: 8,
 		StopBits: 1,
 	}
-	ser, err := rs232.Open(dev, options)
+	serial, err := rs232.Open(dev, options)
 	check(err)
 
+    port := strings.TrimPrefix(dev, "/dev/")
+    port = strings.Replace(port, "tty.usbserial-", "usb-", 1)
+    
 	// turn incoming data into a channel of text lines
 	inputLines := make(chan string)
 
 	go func() {
-		scanner := bufio.NewScanner(ser)
+		scanner := bufio.NewScanner(serial)
 		for scanner.Scan() {
 			inputLines <- scanner.Text()
 		}
-		log.Printf("serial port disconnect: %s", dev)
+		log.Printf("serial port disconnect: %s", port)
 		close(inputLines)
 	}()
+
+	feed := jeebus.ListenToServer(">if/serial/#")
 
 	// publish incoming data
 	go func() {
@@ -147,15 +146,20 @@ func serialConnect(dev string, baud int, tag string) *rs232.Port {
 			log.Println("serial started:", tag)
 		}
 
-		serKey := "if/serial/" + tag + "/" + strings.TrimPrefix(dev, "/dev/")
+		serKey := "if/serial/" + tag + "/" + port
 		for line := range inputLines {
-			jeebus.PubChan <- &jeebus.Message{T: serKey, P: line}
+			msg, err := json.Marshal(line)
+			check(err)
+			jeebus.PubChan <- &jeebus.Message{T: serKey, P: msg}
 		}
 
-		log.Printf("no more data on: %s", dev)
+		log.Printf("no more data on: %s", port)
 	}()
 
-	return ser
+	for m := range feed {
+		log.Printf("Ser: %s", m.P)
+		serial.Write(m.P)
+	}
 }
 
 func startAllServers(port string) {
