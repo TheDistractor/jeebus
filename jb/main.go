@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -201,15 +201,13 @@ func sockServer(ws *websocket.Conn) {
 	log.Println("ws connect", subProto, client)
 
 	for {
-		// var msg string
-		var any interface{}
-		err := websocket.JSON.Receive(ws, &any)
-		if err != nil {
-			log.Print(err)
+		var msg []byte
+		err := websocket.Message.Receive(ws, &msg)
+		if err == io.EOF {
 			break
 		}
-		fmt.Printf("ws got: %#v\n", any)
-		msg, _ := json.Marshal(any)
+		check(err)
+		fmt.Printf("ws got: %s\n", msg)
 		jeebus.Publish("ws/"+client, msg)
 	}
 
@@ -219,6 +217,7 @@ func sockServer(ws *websocket.Conn) {
 
 func sendToAllWebSockets(m []byte) {
 	for _, ws := range openWebSockets {
-		websocket.Message.Send(ws, string(m))
+		err := websocket.Message.Send(ws, string(m))
+		check(err)
 	}
 }
