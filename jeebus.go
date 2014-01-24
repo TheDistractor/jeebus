@@ -27,19 +27,19 @@ func check(err error) {
 	}
 }
 
-// Client represents a group of MQTT topics used as services
+// Client represents a group of MQTT topics used as services.
 type Client struct {
 	Prefix   string
 	Pub, Sub chan *Message
 	Services map[string]ClientService
 }
 
-// ClientService listen to specific topics, and can emit its own messages
+// ClientService listens to specific topics, and can emit its own messages.
 type ClientService interface {
 	Handle(topic string, value interface{})
 }
 
-// NewClient sets up a new MQTT connection for a specified client prefix
+// NewClient sets up a new MQTT connection for a specified client prefix.
 func NewClient(prefix string) *Client {
 	pub, sub := ConnectToServer(":" + prefix + "/#")
 
@@ -55,14 +55,17 @@ func NewClient(prefix string) *Client {
 		for m := range sub {
 			// first look for an exact service match
 			srvName := m.T[skip:]
+            var value interface{}
+            err := json.Unmarshal(m.P, &value)
+            check(err)
 			if srv, ok := client.Services[srvName]; ok {
-				srv.Handle("", m.P)
+				srv.Handle("", value)
 			}
-			// then look for all services which have this topic as prefix
+			// then look for all services which are a prefix of this topic
 			srvPrefix := srvName + "/"
 			for k, v := range client.Services {
 				if strings.HasPrefix(k, srvPrefix) {
-					v.Handle(m.T[skip+1:], m.P)
+					v.Handle(k[len(srvPrefix):], value)
 				}
 			}
 		}
@@ -73,19 +76,19 @@ func NewClient(prefix string) *Client {
 	return client
 }
 
-// Register a new service for a client, using a more specific prefix
+// Register a new service for a client, using a more specific prefix.
 func (c *Client) Register(name string, service ClientService) {
 	c.Services[name] = service
 	c.Publish(":@/register", []byte(name))
 }
 
-// Unregister a previously defined service
+// Unregister a previously defined service.
 func (c *Client) Unregister(name string) {
 	c.Publish(":@/unregister", []byte(name))
 	delete(c.Services, name)
 }
 
-// Publish an arbitrary value to an arbitrary topic
+// Publish an arbitrary value to an arbitrary topic.
 func (c *Client) Publish(topic string, value interface{}) {
 	switch value := value.(type) {
 	case []byte:
@@ -97,7 +100,7 @@ func (c *Client) Publish(topic string, value interface{}) {
 	}
 }
 
-// Emit (i.e. publish) an arbitrary value to a topic with this client's prefix
+// Emit (i.e. publish) an arbitrary value to a topic with this client's prefix.
 func (c *Client) Emit(key string, value interface{}) {
 	c.Publish(c.Prefix+"/"+key, value)
 }
