@@ -18,7 +18,6 @@ type Message struct {
 
 var (
 	mqttClient *mqtt.ClientConn // TODO get rid of this
-	PubChan    chan *Message
 )
 
 func check(err error) {
@@ -29,7 +28,7 @@ func check(err error) {
 
 type Client struct {
 	Tag      string
-	Sub      chan *Message
+	Sub, Pub chan *Message
 	Handlers map[string]ClientService
 }
 
@@ -37,9 +36,11 @@ type ClientService interface {
 }
 
 func NewClient(tag string) *Client {
+	sub, pub := ConnectToServer(":" + tag + "/#")
 	return &Client{
 		Tag:      tag,
-		Sub:      ListenToServer(">" + tag + "/#"),
+		Sub:      sub,
+		Pub:      pub,
 		Handlers: make(map[string]ClientService),
 	}
 }
@@ -56,25 +57,15 @@ func (c *Client) Publish(key string, value interface{}) {
 	topic := c.Tag + "/" + key
 	switch value := value.(type) {
 	case []byte:
-		Publish(topic, value)
+		c.Pub <- &Message{T: topic, P: value}
 	default:
 		data, err := json.Marshal(value)
 		check(err)
-		Publish(topic, data)
+		c.Pub <- &Message{T: topic, P: data}
 	}
 }
 
-// TODO get rid of this, use PubChan and add support for raw sending
-func Publish(key string, value []byte) {
-	// log.Printf("P %s => %s", key, value)
-	mqttClient.Publish(&proto.Publish{
-		// Header:    proto.Header{Retain: true},
-		TopicName: key,
-		Payload:   proto.BytesPayload(value),
-	})
-}
-
-func ListenToServer(topic string) chan *Message {
+func ConnectToServer(topic string) (sub, pub chan *Message) {
 	conn, err := net.Dial("tcp", "localhost:1883")
 	check(err)
 
@@ -87,9 +78,9 @@ func ListenToServer(topic string) chan *Message {
 	})
 
 	// set up a channel to publish through
-	PubChan = make(chan *Message)
+	pub = make(chan *Message)
 	go func() {
-		for msg := range PubChan {
+		for msg := range pub {
 			mqttClient.Publish(&proto.Publish{
 				Header:    proto.Header{Retain: msg.R},
 				TopicName: msg.T,
@@ -98,18 +89,18 @@ func ListenToServer(topic string) chan *Message {
 		}
 	}()
 
-	listenChan := make(chan *Message)
+	sub = make(chan *Message)
 	go func() {
 		for m := range mqttClient.Incoming {
-			listenChan <- &Message{
+			sub <- &Message{
 				T: m.TopicName,
 				P: json.RawMessage(m.Payload.(proto.BytesPayload)),
 				R: m.Header.Retain,
 			}
 		}
 		log.Println("server connection lost")
-		close(listenChan)
+		close(sub)
 	}()
 
-	return listenChan
+	return
 }

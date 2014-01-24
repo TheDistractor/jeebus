@@ -46,7 +46,7 @@
       return $scope.count = v;
     });
     return $scope.button = function(b, v) {
-      return ws.send(JSON.stringify(['>if/serial/blinker', "L" + b + v]));
+      return ws.send(JSON.stringify([':if/serial/blinker', "L" + b + v]));
     };
   });
 

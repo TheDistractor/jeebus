@@ -21,6 +21,7 @@ import (
 var (
 	openWebSockets map[string]*websocket.Conn
 	dataStore      *leveldb.DB
+    pubChan        chan *jeebus.Message
 )
 
 func main() {
@@ -52,7 +53,8 @@ func main() {
 		if len(os.Args) > 2 {
 			topics = os.Args[2]
 		}
-		for m := range jeebus.ListenToServer(topics) {
+        sub, _ := jeebus.ConnectToServer(topics)
+		for m := range sub {
 			log.Println(m.T, string(m.P), m.R)
 		}
 
@@ -70,7 +72,7 @@ func main() {
 		nbaud, err := strconv.Atoi(baud)
 		check(err)
 		log.Println("opening serial port", dev)
-		serialConnect(dev, nbaud, tag)
+		<- serialConnect(dev, nbaud, tag)
 
 	default:
 		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
@@ -105,61 +107,60 @@ func dumpDatabase(from, to string) {
 	iter.Release()
 }
 
-func serialConnect(dev string, baud int, tag string) {
-	// open the serial port
-	options := rs232.Options{
-		BitRate:  uint32(baud),
-		DataBits: 8,
-		StopBits: 1,
-	}
-	serial, err := rs232.Open(dev, options)
+func serialConnect(dev string, baudrate int, tag string) (done chan byte) {
+	// open the serial port in 8N1 mode
+	serial, err := rs232.Open(dev, rs232.Options{
+		BitRate:  uint32(baudrate), DataBits: 8, StopBits: 1,
+	})
 	check(err)
 
     port := strings.TrimPrefix(dev, "/dev/")
     port = strings.Replace(port, "tty.usbserial-", "usb-", 1)
     
-	// turn incoming data into a channel of text lines
-	inputLines := make(chan string)
+    done = make(chan byte)
 
 	go func() {
 		scanner := bufio.NewScanner(serial)
-		for scanner.Scan() {
-			inputLines <- scanner.Text()
-		}
-		log.Printf("serial port disconnect: %s", port)
-		close(inputLines)
-	}()
 
-	feed := jeebus.ListenToServer(">if/serial/#")
-
-	// publish incoming data
-	go func() {
-		// flush all old data from the serial port
-		if tag == "" {
+		// flush all old data from the serial port while looking for a tag
+        if tag == "" {
 			log.Println("waiting for serial")
-			for line := range inputLines {
+    		for scanner.Scan() {
+    			line := scanner.Text()
 				if strings.HasPrefix(line, "[") && strings.Contains(line, "]") {
 					tag = line[1:strings.IndexAny(line, ".]")]
-					break
-				}
-			}
-			log.Println("serial started:", tag)
+        			log.Println("serial started:", tag)
+                    break
+    			}
+    		}
 		}
 
 		serKey := "if/serial/" + tag + "/" + port
-		for line := range inputLines {
-			msg, err := json.Marshal(line)
+        // TODO listen to all for now, until server can broadcast
+        // sub, pub := jeebus.ConnectToServer(":" + serKey)
+    	sub, pub := jeebus.ConnectToServer(":if/serial/" + tag + "/#")
+
+        // send out published commands
+        go func() {
+            defer serial.Close()
+        	for m := range sub {
+        		log.Printf("Ser: %s", m.P)
+        		serial.Write(m.P)
+        	}
+        }()
+
+    	// publish incoming data as a JSON string
+		for scanner.Scan() {
+			msg, err := json.Marshal(scanner.Text())
 			check(err)
-			jeebus.PubChan <- &jeebus.Message{T: serKey, P: msg}
+			pub <- &jeebus.Message{T: serKey, P: msg}
 		}
 
 		log.Printf("no more data on: %s", port)
+        done <- 1
 	}()
-
-	for m := range feed {
-		log.Printf("Ser: %s", m.P)
-		serial.Write(m.P)
-	}
+    
+    return
 }
 
 func startAllServers(port string) {
@@ -174,7 +175,7 @@ func startAllServers(port string) {
 	setupLua()
 
 	log.Println("starting MQTT server")
-	startMqttServer()
+	pubChan = startMqttServer()
 	log.Println("MQTT server is running")
 
 	// set up a web server to handle static files and websockets
@@ -212,7 +213,7 @@ func sockServer(ws *websocket.Conn) {
 		}
 		check(err)
 		fmt.Printf("ws got: %s\n", msg)
-		jeebus.Publish("ws/"+client, msg)
+		pubChan <- &jeebus.Message{T:"ws/"+client, P: msg}
 	}
 
 	log.Println("ws disconnect", subProto, client)

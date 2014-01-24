@@ -32,4 +32,4 @@ ng.controller 'MainCtrl', ($scope) ->
   $scope.$on 'C', (e, v) -> $scope.count = v
 
   $scope.button = (b, v) ->
-    ws.send JSON.stringify ['>if/serial/blinker', "L#{b}#{v}"]
+    ws.send JSON.stringify [':if/serial/blinker', "L#{b}#{v}"]
