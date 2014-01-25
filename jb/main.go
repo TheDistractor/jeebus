@@ -185,12 +185,9 @@ type DatabaseService struct {
 }
 
 func (s *DatabaseService) Handle(tail string, value json.RawMessage) {
-	message, err := json.Marshal(value)
-	check(err)
-
-	s.db.Put([]byte(tail), message, nil)
+	s.db.Put([]byte(tail), value, nil)
 	millis := time.Now().UnixNano() / 1000000
-	s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", tail, millis)), message, nil)
+	s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", tail, millis)), value, nil)
 }
 
 type SerialInterfaceService struct {
