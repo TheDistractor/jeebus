@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -11,10 +10,6 @@ import (
 	"github.com/jeffallen/mqtt"
 )
 
-var (
-	mqttClient *mqtt.ClientConn // TODO get rid of this
-)
-
 func startMqttServer() chan *jeebus.Message {
 	port, err := net.Listen("tcp", ":1883")
 	check(err)
@@ -22,13 +17,9 @@ func startMqttServer() chan *jeebus.Message {
 	svr.Start()
 	// <-svr.Done
 
-	pub, sub := jeebus.ConnectToServer("#")
+	// TODO everything below can be dropped once all routing works properly
 
-	// TODO remove this, should use new "/..." style, and store it via a client
-	pub <- &jeebus.Message{
-		T: "st/admin/started",
-		P: []byte(time.Now().Format(time.RFC822Z)),
-	}
+	pub, sub := jeebus.ConnectToServer("#")
 
 	go func() {
 		for m := range sub {
@@ -57,14 +48,6 @@ func startMqttServer() chan *jeebus.Message {
 						T: string(message),
 						P: fetch(topic[7:]),
 					}
-				}
-
-			// TODO hardcoded serial port to websocket pass-through for now
-			case "if/":
-				split := strings.SplitN(topic, "/", 3)
-				pub <- &jeebus.Message{
-					T: "ws/" + split[1],
-					P: message,
 				}
 			}
 		}

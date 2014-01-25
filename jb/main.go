@@ -3,7 +3,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -11,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/chimera/rs232"
@@ -20,13 +20,12 @@ import (
 )
 
 var (
-	openWebSockets map[string]*websocket.Conn
-	dataStore      *leveldb.DB
-	pubChan        chan *jeebus.Message
-	regClient      jeebus.Client
-	dbClient       jeebus.Client
-	ifClient       jeebus.Client
-	wsClient       jeebus.Client
+	dataStore *leveldb.DB
+	regClient jeebus.Client
+	dbClient  jeebus.Client
+	ifClient  jeebus.Client
+	wsClient  jeebus.Client
+	svClient  jeebus.Client
 )
 
 func main() {
@@ -77,7 +76,8 @@ func main() {
 		nbaud, err := strconv.Atoi(baud)
 		check(err)
 		log.Println("opening serial port", dev)
-		<-serialConnect(dev, nbaud, tag)
+		ifClient.Connect("if")
+		serialConnect(dev, nbaud, tag)
 
 	default:
 		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
@@ -112,70 +112,7 @@ func dumpDatabase(from, to string) {
 	iter.Release()
 }
 
-func serialConnect(dev string, baudrate int, tag string) (done chan byte) {
-	// open the serial port in 8N1 mode
-	serial, err := rs232.Open(dev, rs232.Options{
-		BitRate: uint32(baudrate), DataBits: 8, StopBits: 1,
-	})
-	check(err)
-
-	port := strings.TrimPrefix(dev, "/dev/")
-	port = strings.Replace(port, "tty.usbserial-", "usb-", 1)
-
-	done = make(chan byte)
-
-	go func() {
-		scanner := bufio.NewScanner(serial)
-
-		// flush all old data from the serial port while looking for a tag
-		if tag == "" {
-			log.Println("waiting for serial")
-			for scanner.Scan() {
-				line := scanner.Text()
-				if strings.HasPrefix(line, "[") && strings.Contains(line, "]") {
-					tag = line[1:strings.IndexAny(line, ".]")]
-					log.Println("serial started:", tag)
-					break
-				}
-			}
-		}
-
-		serKey := "if/" + tag + "/" + port
-		// TODO listen to all for now, until server can broadcast
-		// pub, sub := jeebus.ConnectToServer(serKey)
-		pub, sub := jeebus.ConnectToServer("if/serial/" + tag + "/#")
-
-		// FIXME: ifClient is wrong, should be registration of new serial obj
-		// ifClient.Publish("if/serial/" + tag, port)
-		// msg, _ := json.Marshal(port)
-		// pub <- &jeebus.Message{T: "if/" + tag, P: msg}
-
-		// send out published commands
-		go func() {
-			defer serial.Close()
-			for m := range sub {
-				log.Printf("Ser: %s", m.P)
-				serial.Write(m.P)
-			}
-		}()
-
-		// publish incoming data as a JSON string
-		for scanner.Scan() {
-			msg, err := json.Marshal(scanner.Text())
-			check(err)
-			pub <- &jeebus.Message{T: serKey, P: msg}
-		}
-
-		log.Printf("no more data on: %s", port)
-		done <- 1
-	}()
-
-	return
-}
-
 func startAllServers(port string) {
-	openWebSockets = make(map[string]*websocket.Conn)
-
 	log.Println("opening database")
 	db, err := leveldb.OpenFile("./storage", nil)
 	check(err)
@@ -185,7 +122,7 @@ func startAllServers(port string) {
 	setupLua()
 
 	log.Println("starting MQTT server")
-	pubChan = startMqttServer()
+	startMqttServer()
 	log.Println("MQTT server is running")
 
 	regClient.Connect("@")
@@ -195,21 +132,23 @@ func startAllServers(port string) {
 	dbClient.Register("#", new(DatabaseService))
 
 	ifClient.Connect("if")
-	ifClient.Register("#", new(InterfaceService))
-
 	wsClient.Connect("ws")
-	// wsClient.Register("#", new(WebsocketService))
 
-	// set up a web server to handle static files and websockets
+	svClient.Connect("sv")
+	svClient.Register("blinker", new(BlinkerService))
+
+	// TODO should use new "/..." style
+	regClient.Publish("st/admin/started", time.Now().Format(time.RFC822Z))
+
+	log.Println("starting web server on ", port)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
 	http.Handle("/ws", websocket.Handler(sockServer))
-	log.Println("web server started on ", port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
 type RegistryService map[string]map[string]byte
 
-func (s *RegistryService) Handle(c *jeebus.Client, tail string, value interface{}) {
+func (s *RegistryService) Handle(tail string, value interface{}) {
 	log.Printf("@ '%s', value %#v (%T)", tail, value, value)
 	split := strings.SplitN(tail, "/", 2)
 	arg := value.(string)
@@ -230,33 +169,8 @@ func (s *RegistryService) Handle(c *jeebus.Client, tail string, value interface{
 
 type DatabaseService int
 
-func (s *DatabaseService) Handle(c *jeebus.Client, tail string, value interface{}) {
+func (s *DatabaseService) Handle(tail string, value interface{}) {
 	log.Printf("DB '%s', value %#v (%T)", tail, value, value)
-}
-
-type InterfaceService int
-
-func (s *InterfaceService) Handle(c *jeebus.Client, tail string, value interface{}) {
-	log.Printf("IF '%s', value %#v (%T)", tail, value, value)
-}
-
-type WebsocketService struct {
-	ws *websocket.Conn // TODO can't this struct nesting be avoided, somehow?
-}
-
-func (s *WebsocketService) String() string {
-	appName := s.ws.Request().Header.Get("Sec-Websocket-Protocol")
-	client := s.ws.Request().RemoteAddr
-	return fmt.Sprintf("«WsSv:%s,%s", appName, client)
-}
-
-func (s *WebsocketService) Handle(c *jeebus.Client, tail string, value interface{}) {
-	log.Printf("WS '%s', value %#v (%T)", tail, value, value)
-	// TODO messy, re-encoded as JSON, and then it has to be cast to a string
-	msg, err := json.Marshal(value)
-	check(err)
-	err = websocket.Message.Send(s.ws, string(msg))
-	check(err)
 }
 
 func fetch(key string) []byte {
@@ -272,14 +186,64 @@ func store(key string, value []byte) {
 	dataStore.Put([]byte(key), value, nil)
 }
 
+type SerialInterfaceService struct {
+	serial *rs232.Port // TODO can't this struct nesting be avoided, somehow?
+}
+
+func (s *SerialInterfaceService) Handle(tail string, value interface{}) {
+	s.serial.Write([]byte(value.(string))) // TODO yuck, messy cast
+}
+
+func serialConnect(dev string, baudrate int, tag string) {
+	// open the serial port in 8N1 mode
+	serial, err := rs232.Open(dev, rs232.Options{
+		BitRate: uint32(baudrate), DataBits: 8, StopBits: 1,
+	})
+	check(err)
+
+	scanner := bufio.NewScanner(serial)
+
+	// flush all old data from the serial port while looking for a tag
+	if tag == "" {
+		log.Println("waiting for serial")
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.HasPrefix(line, "[") && strings.Contains(line, "]") {
+				tag = line[1:strings.IndexAny(line, ".]")]
+				break
+			}
+		}
+	}
+
+	port := strings.TrimPrefix(dev, "/dev/")
+	name := tag + "/" + strings.Replace(port, "tty.usbserial-", "usb-", 1)
+
+	ifClient.Register(name, &SerialInterfaceService{serial})
+
+	for scanner.Scan() {
+		// FIXME confused about broadcasts, probably need a "#" in register?
+		// ifClient.Publish("sv/" + name, scanner.Text())
+		ifClient.Publish("sv/"+tag, scanner.Text())
+	}
+
+	ifClient.Unregister(name)
+}
+
+type WebsocketService struct {
+	ws *websocket.Conn // TODO can't this struct nesting be avoided, somehow?
+}
+
+func (s *WebsocketService) Handle(tail string, value interface{}) {
+	err := websocket.JSON.Send(s.ws, value)
+	check(err)
+}
+
 func sockServer(ws *websocket.Conn) {
 	defer ws.Close()
-	appName := ws.Request().Header.Get("Sec-Websocket-Protocol")
-	client := ws.Request().RemoteAddr
-	openWebSockets[client] = ws
-	log.Println("ws connect", appName, client)
-	wsClient.Register(appName, &WebsocketService{ws})
-	log.Printf("wsClient %v", wsClient.Services)
+
+	name := ws.Request().Header.Get("Sec-Websocket-Protocol")
+	name += "/" + ws.Request().RemoteAddr
+	wsClient.Register(name, &WebsocketService{ws})
 
 	for {
 		var any []string
@@ -288,11 +252,15 @@ func sockServer(ws *websocket.Conn) {
 			break
 		}
 		check(err)
-		fmt.Printf("ws got: %v\n", any)
-		// FIXME need to JSON encode, again: switch to jeebus.Client.Publish()
-		pubChan <- &jeebus.Message{T: any[0], P: []byte("\"" + any[1] + "\"")}
+		wsClient.Publish(any[0], any[1])
 	}
 
-	log.Println("ws disconnect", appName, client)
-	delete(openWebSockets, client)
+	wsClient.Unregister(name)
+}
+
+type BlinkerService int
+
+func (s *BlinkerService) Handle(tail string, value interface{}) {
+	// TODO this is hard-coded, should probably be a lookup table set via pub's
+	svClient.Publish("ws/blinker", value)
 }

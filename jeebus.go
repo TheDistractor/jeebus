@@ -42,7 +42,7 @@ func (c *Client) String() string {
 // Service represents the registration for a specific subtopic
 type Service interface {
 	// Handle gets called on the topic(s) it has been registered for
-	Handle(c *Client, subtopic string, value interface{})
+	Handle(subtopic string, value interface{})
 }
 
 // Connect sets up a new MQTT connection for a specified client prefix.
@@ -69,19 +69,19 @@ func (c *Client) Connect(prefix string) {
 			// first look for the special "#" wildcard
 			check(err)
 			if service, ok := c.Services["#"]; ok {
-				service.Handle(c, srvName, value)
+				service.Handle(srvName, value)
 			}
 
 			// then look for an exact service match
 			if service, ok := c.Services[srvName]; ok {
-				service.Handle(c, "", value)
+				service.Handle("", value)
 			}
 
 			// finally look for all services which are a prefix of this topic
 			srvPrefix := srvName + "/"
 			for k, v := range c.Services {
 				if strings.HasPrefix(k, srvPrefix) {
-					v.Handle(c, k[len(srvPrefix):], value)
+					v.Handle(k[len(srvPrefix):], value)
 				}
 			}
 		}
