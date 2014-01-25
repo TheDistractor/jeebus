@@ -258,16 +258,13 @@ func sockServer(ws *websocket.Conn) {
 	wsClient.Register(name, &WebsocketService{ws})
 
 	for {
-		var any []json.RawMessage
-		err := websocket.JSON.Receive(ws, &any)
+		var msg jeebus.Message
+		err := websocket.JSON.Receive(ws, &msg)
 		if err == io.EOF {
 			break
 		}
 		check(err)
-		var topic string
-		err = json.Unmarshal(any[0], &topic)
-		check(err)
-		jeebus.Publish(topic, any[1])
+		jeebus.Publish(msg.T, msg.P)
 	}
 
 	wsClient.Unregister(name)

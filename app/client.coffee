@@ -1,12 +1,17 @@
 ng = angular.module 'myApp', ['ui.router']
 
-ws = null
+ng.constant 'jbName', 'blinker'
 
-ng.run ($rootScope) ->
+ng.run ($rootScope, jbName) ->
+  ws = null
 
+  # general utility, available anywhere, to send an object to the JeeBus server
+  $rootScope.jbSend = (payload) ->
+    ws.send JSON.stringify { T: "sv/#{ws.protocol}", P: payload }
+  
   reconnect = (firstCall) ->
     # the websocket is served from the same site as the web page
-    ws = new WebSocket "ws://#{location.host}/ws", ['blinker']
+    ws = new WebSocket "ws://#{location.host}/ws", [jbName]
     ws.binaryType = 'arraybuffer'
 
     ws.onopen = ->
@@ -32,5 +37,4 @@ ng.run ($rootScope) ->
 ng.controller 'MainCtrl', ($scope) ->
 
   $scope.button = (button, value) ->
-    # ws.send angular.toJson {dest: 'sv/blinker', button, value}
-    ws.send JSON.stringify ['sv/blinker', {button,value}]
+    $scope.jbSend {button,value}
