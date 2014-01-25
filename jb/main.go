@@ -3,9 +3,11 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,6 +17,7 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"github.com/chimera/rs232"
 	"github.com/jcw/jeebus"
+	"github.com/jeffallen/mqtt"
 	"github.com/syndtr/goleveldb/leveldb"
 	// "github.com/syndtr/goleveldb/leveldb/opt"
 )
@@ -122,14 +125,18 @@ func startAllServers(port string) {
 	setupLua()
 
 	log.Println("starting MQTT server")
-	startMqttServer()
+	sock, err := net.Listen("tcp", ":1883")
+	check(err)
+	svr := mqtt.NewServer(sock)
+	svr.Start()
+	// <-svr.Done
 	log.Println("MQTT server is running")
 
 	regClient.Connect("@")
 	regClient.Register("#", &RegistryService{})
 
 	dbClient.Connect("")
-	dbClient.Register("#", new(DatabaseService))
+	dbClient.Register("#", &DatabaseService{db})
 
 	ifClient.Connect("if")
 	wsClient.Connect("ws")
@@ -138,7 +145,7 @@ func startAllServers(port string) {
 	svClient.Register("blinker", new(BlinkerService))
 
 	// TODO should use new "/..." style
-	regClient.Publish("st/admin/started", time.Now().Format(time.RFC822Z))
+	regClient.Publish("/admin/started", time.Now().Format(time.RFC822Z))
 
 	log.Println("starting web server on ", port)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
@@ -167,18 +174,18 @@ func (s *RegistryService) Handle(tail string, value interface{}) {
 	log.Printf("registry %v", *s)
 }
 
-type DatabaseService int
+type DatabaseService struct {
+	db *leveldb.DB // TODO can't this struct nesting be avoided, somehow?
+}
 
 func (s *DatabaseService) Handle(tail string, value interface{}) {
 	log.Printf("DB '%s', value %#v (%T)", tail, value, value)
-}
+	message, err := json.Marshal(value)
+	check(err)
 
-func fetch(key string) []byte {
-	value, err := dataStore.Get([]byte(key), nil)
-	if err != nil {
-		log.Println(err)
-	}
-	return value
+	store(tail, message)
+	millis := time.Now().UnixNano() / 1000000
+	store(fmt.Sprintf("hist/%s/%d", tail, millis), message)
 }
 
 func store(key string, value []byte) {
