@@ -42,7 +42,7 @@ func (c *Client) String() string {
 // Service represents the registration for a specific subtopic
 type Service interface {
 	// Handle gets called on the topic(s) it has been registered for
-	Handle(subtopic string, value interface{})
+	Handle(subtopic string, value json.RawMessage)
 }
 
 // Connect sets up a new MQTT connection for a specified client prefix.
@@ -62,26 +62,22 @@ func (c *Client) Connect(prefix string) {
 		skip := len(prefix) + 1
 		for m := range c.Sub {
 			srvName := m.T[skip:]
-			var value interface{}
-			err := json.Unmarshal(m.P, &value)
-			check(err)
 
 			// first look for the special "#" wildcard
-			check(err)
 			if service, ok := c.Services["#"]; ok {
-				service.Handle(srvName, value)
+				service.Handle(srvName, m.P)
 			}
 
 			// then look for an exact service match
 			if service, ok := c.Services[srvName]; ok {
-				service.Handle("", value)
+				service.Handle("", m.P)
 			}
 
 			// finally look for all services which are a prefix of this topic
 			srvPrefix := srvName + "/"
 			for k, v := range c.Services {
 				if strings.HasPrefix(k, srvPrefix) {
-					v.Handle(k[len(srvPrefix):], value)
+					v.Handle(k[len(srvPrefix):], m.P)
 				}
 			}
 		}
@@ -104,13 +100,16 @@ func (c *Client) Unregister(name string) {
 
 // Publish an arbitrary value to an arbitrary topic.
 func Publish(topic string, value interface{}) {
-    retain := topic[0] == '/'
-	switch value := value.(type) {
+	retain := topic[0] == '/'
+	switch v := value.(type) {
 	case []byte:
-		pubChan <- &Message{topic, value, retain}
+		pubChan <- &Message{topic, v, retain}
+	case json.RawMessage:
+		pubChan <- &Message{topic, v, retain}
 	default:
 		data, err := json.Marshal(value)
 		check(err)
+		// log.Println("PUB", topic, string(data))
 		pubChan <- &Message{topic, data, retain}
 	}
 }
@@ -151,7 +150,7 @@ func ConnectToServer(topic string) chan *Message {
 			}
 		}
 		log.Println("server connection lost")
-        close(sub)
+		close(sub)
 	}()
 
 	return sub

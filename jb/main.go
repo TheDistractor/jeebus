@@ -27,8 +27,13 @@ var (
 	dbClient  jeebus.Client
 	ifClient  jeebus.Client
 	wsClient  jeebus.Client
+	rdClient  jeebus.Client
 	svClient  jeebus.Client
 )
+
+type TextMessage struct {
+	Text string `json:"text"`
+}
 
 func main() {
 	if len(os.Args) <= 1 {
@@ -60,7 +65,11 @@ func main() {
 			topics = os.Args[2]
 		}
 		for m := range jeebus.ConnectToServer(topics) {
-			log.Println(m.T, string(m.P), m.R)
+			retain := ""
+			if m.R {
+				retain = "(retain)"
+			}
+			log.Println(m.T, string(m.P), retain)
 		}
 
 	case "serial":
@@ -137,8 +146,11 @@ func startAllServers(port string) {
 	ifClient.Connect("if")
 	wsClient.Connect("ws")
 
+	rdClient.Connect("rd")
+	rdClient.Register("blinker", new(BlinkerDecodeService))
+
 	svClient.Connect("sv")
-	svClient.Register("blinker", new(BlinkerService))
+	svClient.Register("blinker", new(BlinkerEncodeService))
 
 	jeebus.Publish("/admin/started", time.Now().Format(time.RFC822Z))
 
@@ -150,9 +162,11 @@ func startAllServers(port string) {
 
 type RegistryService map[string]map[string]byte
 
-func (s *RegistryService) Handle(tail string, value interface{}) {
+func (s *RegistryService) Handle(tail string, value json.RawMessage) {
 	split := strings.SplitN(tail, "/", 2)
-	arg := value.(string)
+	var arg string
+	err := json.Unmarshal(value, &arg)
+	check(err)
 
 	switch split[0] {
 	case "connect":
@@ -170,7 +184,7 @@ type DatabaseService struct {
 	db *leveldb.DB // TODO can't this struct nesting be avoided, somehow?
 }
 
-func (s *DatabaseService) Handle(tail string, value interface{}) {
+func (s *DatabaseService) Handle(tail string, value json.RawMessage) {
 	message, err := json.Marshal(value)
 	check(err)
 
@@ -183,8 +197,12 @@ type SerialInterfaceService struct {
 	serial *rs232.Port // TODO can't this struct nesting be avoided, somehow?
 }
 
-func (s *SerialInterfaceService) Handle(tail string, value interface{}) {
-	s.serial.Write([]byte(value.(string))) // TODO yuck, messy cast
+func (s *SerialInterfaceService) Handle(tail string, value json.RawMessage) {
+	// FIXME var arg struct { Text string `json:"text"` }
+	var arg struct{ Text string }
+	err := json.Unmarshal(value, &arg)
+	check(err)
+	s.serial.Write([]byte(arg.Text))
 }
 
 func serialConnect(dev string, baudrate int, tag string) {
@@ -216,8 +234,8 @@ func serialConnect(dev string, baudrate int, tag string) {
 
 	for scanner.Scan() {
 		// FIXME confused about broadcasts, probably need a "#" in register?
-		// jeebus.Publish("sv/" + name, scanner.Text())
-		jeebus.Publish("sv/"+tag, scanner.Text())
+		// jeebus.Publish("sv/" + name, &TextMessage{scanner.Text()})
+		jeebus.Publish("rd/"+tag, &TextMessage{scanner.Text()})
 	}
 
 	ifClient.Unregister(name)
@@ -227,8 +245,8 @@ type WebsocketService struct {
 	ws *websocket.Conn // TODO can't this struct nesting be avoided, somehow?
 }
 
-func (s *WebsocketService) Handle(tail string, value interface{}) {
-	err := websocket.JSON.Send(s.ws, value)
+func (s *WebsocketService) Handle(tail string, value json.RawMessage) {
+	err := websocket.Message.Send(s.ws, string(value))
 	check(err)
 }
 
@@ -240,21 +258,50 @@ func sockServer(ws *websocket.Conn) {
 	wsClient.Register(name, &WebsocketService{ws})
 
 	for {
-		var any []string
+		var any []json.RawMessage
 		err := websocket.JSON.Receive(ws, &any)
 		if err == io.EOF {
 			break
 		}
 		check(err)
-		jeebus.Publish(any[0], any[1])
+		var topic string
+		err = json.Unmarshal(any[0], &topic)
+		check(err)
+		jeebus.Publish(topic, any[1])
 	}
 
 	wsClient.Unregister(name)
 }
 
-type BlinkerService int
+type BlinkerDecodeService int
 
-func (s *BlinkerService) Handle(tail string, value interface{}) {
+func (s *BlinkerDecodeService) Handle(tail string, value json.RawMessage) {
+	var cmd struct{ Text string }
+	err := json.Unmarshal(value, &cmd)
+	check(err)
+	num, err := strconv.Atoi(cmd.Text[1:])
+	check(err)
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
-	jeebus.Publish("ws/blinker", value)
+	// TODO yuck, would be a lot cleaner in dynamically-typed Lua, etc
+	var x interface{}
+	switch cmd.Text[0] {
+	case 'C':
+		x = map[string]int{"count": num}
+	case 'G':
+		x = map[string]bool{"green": num != 0}
+	case 'R':
+		x = map[string]bool{"red": num != 0}
+	}
+	jeebus.Publish("ws/blinker", x)
+}
+
+type BlinkerEncodeService int
+
+func (s *BlinkerEncodeService) Handle(tail string, value json.RawMessage) {
+	var arg struct{ Button, Value int }
+	err := json.Unmarshal(value, &arg)
+	check(err)
+	// TODO this is hard-coded, should probably be a lookup table set via pub's
+	msg := fmt.Sprintf("L%d%d", arg.Button, arg.Value)
+	jeebus.Publish("if/blinker", &TextMessage{msg})
 }

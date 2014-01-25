@@ -1,7 +1,8 @@
-// Example of a ticking service for JeeBus, triggering itself
+// Example of a ticking service for JeeBus, triggering itself.
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"time"
 
@@ -14,9 +15,14 @@ var (
 
 type TickService int
 
-func (s *TickService) Handle(tail string, value interface{}) {
-	log.Printf("ZZZ '%s', value %#v (%T)", tail, value, value)
-	*s = TickService(value.(float64))
+func (s *TickService) Handle(tail string, value json.RawMessage) {
+	log.Printf("ZZZ '%s', value %s", tail, value)
+	var num float64
+	err := json.Unmarshal(value, &num)
+	if err != nil {
+		log.Fatal(err)
+	}
+	*s = TickService(num)
 }
 
 func main() {

@@ -22,9 +22,14 @@
           console.log('binary msg', m);
         }
         return $rootScope.$apply(function() {
-          var msg;
-          msg = JSON.parse(m.data);
-          return $rootScope.$broadcast(msg[0], msg.slice(1) | 0);
+          var k, v, _ref, _results;
+          _ref = JSON.parse(m.data);
+          _results = [];
+          for (k in _ref) {
+            v = _ref[k];
+            _results.push($rootScope[k] = v);
+          }
+          return _results;
         });
       };
       return ws.onclose = function() {
@@ -36,17 +41,13 @@
   });
 
   ng.controller('MainCtrl', function($scope) {
-    $scope.$on('R', function(e, v) {
-      return $scope.redLed = v === 1;
-    });
-    $scope.$on('G', function(e, v) {
-      return $scope.greenLed = v === 1;
-    });
-    $scope.$on('C', function(e, v) {
-      return $scope.count = v;
-    });
-    return $scope.button = function(b, v) {
-      return ws.send(JSON.stringify(['if/blinker', "L" + b + v]));
+    return $scope.button = function(button, value) {
+      return ws.send(JSON.stringify([
+        'sv/blinker', {
+          button: button,
+          value: value
+        }
+      ]));
     };
   });
 
