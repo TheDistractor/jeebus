@@ -10,10 +10,7 @@
     var reconnect, ws;
     ws = null;
     $rootScope.jbSend = function(payload) {
-      return ws.send(JSON.stringify({
-        T: "sv/" + ws.protocol,
-        P: payload
-      }));
+      return ws.send(JSON.stringify(payload));
     };
     reconnect = function(firstCall) {
       ws = new WebSocket("ws://" + location.host + "/ws", [jbName]);
@@ -49,7 +46,7 @@
 
   ng.controller('MainCtrl', function($scope) {
     return $scope.button = function(button, value) {
-      return $scope.jbSend({
+      return this.jbSend({
         button: button,
         value: value
       });

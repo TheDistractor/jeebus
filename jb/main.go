@@ -167,6 +167,7 @@ func (s *RegistryService) Handle(tail string, value json.RawMessage) {
 	var arg string
 	err := json.Unmarshal(value, &arg)
 	check(err)
+	log.Printf("REG %s = %s", tail, arg)
 
 	switch split[0] {
 	case "connect":
@@ -178,6 +179,8 @@ func (s *RegistryService) Handle(tail string, value json.RawMessage) {
 	case "unregister":
 		delete((*s)[split[1]], arg)
 	}
+	
+	log.Printf("  %+v", *s)
 }
 
 type DatabaseService struct {
@@ -250,18 +253,19 @@ func (s *WebsocketService) Handle(tail string, value json.RawMessage) {
 func sockServer(ws *websocket.Conn) {
 	defer ws.Close()
 
-	name := ws.Request().Header.Get("Sec-Websocket-Protocol")
-	name += "/" + ws.Request().RemoteAddr
+	tag := ws.Request().Header.Get("Sec-Websocket-Protocol")
+	name := tag + "/" + ws.Request().RemoteAddr
 	wsClient.Register(name, &WebsocketService{ws})
 
 	for {
-		var msg jeebus.Message
+		var msg json.RawMessage
 		err := websocket.JSON.Receive(ws, &msg)
 		if err == io.EOF {
 			break
 		}
 		check(err)
-		jeebus.Publish(msg.T, msg.P)
+		// TODO jeebus.Publish("sv/" + name, msg)
+		jeebus.Publish("sv/" + tag, msg)
 	}
 
 	wsClient.Unregister(name)

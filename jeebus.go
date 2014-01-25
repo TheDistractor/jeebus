@@ -51,7 +51,6 @@ func (c *Client) Connect(prefix string) {
 	c.Sub = ConnectToServer(prefix + "/#")
 	c.Services = make(map[string]Service)
 
-	// client := &Client{prefix, pub, sub, make(map[string]Service)}
 	Publish("@/connect", prefix)
 	log.Println("client connected:", prefix)
 

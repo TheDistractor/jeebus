@@ -5,9 +5,9 @@ ng.constant 'jbName', 'blinker'
 ng.run ($rootScope, jbName) ->
   ws = null
 
-  # general utility, available anywhere, to send an object to the JeeBus server
+  # global function to send an object to the JeeBus server
   $rootScope.jbSend = (payload) ->
-    ws.send JSON.stringify { T: "sv/#{ws.protocol}", P: payload }
+    ws.send JSON.stringify payload
   
   reconnect = (firstCall) ->
     # the websocket is served from the same site as the web page
@@ -37,4 +37,4 @@ ng.run ($rootScope, jbName) ->
 ng.controller 'MainCtrl', ($scope) ->
 
   $scope.button = (button, value) ->
-    $scope.jbSend {button,value}
+    @jbSend {button,value}
