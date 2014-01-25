@@ -25,18 +25,18 @@ func main() {
 
 	go func() {
 		for {
-			zzzBus.Publish("zzz/tick", 1.1)         // accepted, via broadcast
-			zzzBus.Publish("zzz/tick/foo", 2.2)     // accepted, exact match
-			zzzBus.Publish("zzz/tick/foo/bar", 3.3) // ignored
-			zzzBus.Publish("zzz/tick/bar", 4.4)     // ignored
-			zzzBus.Publish("zzz/bar", 5.5)          // ignored
+			jeebus.Publish("zzz/tick", 1.1)         // accepted, via broadcast
+			jeebus.Publish("zzz/tick/foo", 2.2)     // accepted, exact match
+			jeebus.Publish("zzz/tick/foo/bar", 3.3) // ignored
+			jeebus.Publish("zzz/tick/bar", 4.4)     // ignored
+			jeebus.Publish("zzz/bar", 5.5)          // ignored
 
 			time.Sleep(3 * time.Second)
 		}
 	}()
 
 	for {
-		zzzBus.Publish("zzz/clock", time.Now()) // not picked up, just demo
+		jeebus.Publish("zzz/clock", time.Now()) // not picked up, just demo
 		time.Sleep(time.Second)
 	}
 }

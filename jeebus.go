@@ -19,7 +19,7 @@ type Message struct {
 }
 
 var (
-	mqttClient *mqtt.ClientConn // TODO get rid of this
+	pubChan chan *Message
 )
 
 func check(err error) {
@@ -31,7 +31,7 @@ func check(err error) {
 // Client represents a group of MQTT topics used as services.
 type Client struct {
 	Prefix   string
-	Pub, Sub chan *Message
+	Sub      chan *Message
 	Services map[string]Service
 }
 
@@ -48,16 +48,16 @@ type Service interface {
 // Connect sets up a new MQTT connection for a specified client prefix.
 func (c *Client) Connect(prefix string) {
 	c.Prefix = prefix
-	c.Pub, c.Sub = ConnectToServer(prefix + "/#")
+	c.Sub = ConnectToServer(prefix + "/#")
 	c.Services = make(map[string]Service)
 
 	// client := &Client{prefix, pub, sub, make(map[string]Service)}
-	c.Publish("@/connect", prefix)
+	Publish("@/connect", prefix)
 	log.Println("client connected:", prefix)
 
 	go func() {
 		// can't do this, since the connection has already been lost
-		// defer client.Publish("@/disconnect", prefix)
+		// defer Publish("@/disconnect", prefix)
 
 		skip := len(prefix) + 1
 		for m := range c.Sub {
@@ -93,31 +93,33 @@ func (c *Client) Connect(prefix string) {
 // Register a new service for a client, using a more specific prefix.
 func (c *Client) Register(name string, service Service) {
 	c.Services[name] = service
-	c.Publish("@/register"+"/"+c.Prefix, name)
+	Publish("@/register"+"/"+c.Prefix, name)
 }
 
 // Unregister a previously defined service.
 func (c *Client) Unregister(name string) {
-	c.Publish("@/unregister"+"/"+c.Prefix, name)
+	Publish("@/unregister"+"/"+c.Prefix, name)
 	delete(c.Services, name)
 }
 
 // Publish an arbitrary value to an arbitrary topic.
-func (c *Client) Publish(topic string, value interface{}) {
+func Publish(topic string, value interface{}) {
+    retain := topic[0] == '/'
 	switch value := value.(type) {
 	case []byte:
-		c.Pub <- &Message{T: topic, P: value}
+		pubChan <- &Message{topic, value, retain}
 	default:
 		data, err := json.Marshal(value)
 		check(err)
-		c.Pub <- &Message{T: topic, P: data}
+		pubChan <- &Message{topic, data, retain}
 	}
 }
 
-func ConnectToServer(topic string) (pub, sub chan *Message) {
+// ConnectToServer sets up an MQTT client and subscribes to the given topic(s).
+func ConnectToServer(topic string) chan *Message {
 	session, err := net.Dial("tcp", "localhost:1883")
 
-	mqttClient = mqtt.NewClientConn(session)
+	mqttClient := mqtt.NewClientConn(session)
 	err = mqttClient.Connect("", "")
 	check(err)
 
@@ -125,20 +127,21 @@ func ConnectToServer(topic string) (pub, sub chan *Message) {
 		{Topic: topic, Qos: proto.QosAtMostOnce},
 	})
 
-	// TODO don't need one for each client, just one per connection
-	// set up a channel to publish through
-	pub = make(chan *Message)
-	go func() {
-		for msg := range pub {
-			mqttClient.Publish(&proto.Publish{
-				Header:    proto.Header{Retain: msg.R},
-				TopicName: msg.T,
-				Payload:   proto.BytesPayload(msg.P),
-			})
-		}
-	}()
+	// set up a channel to publish through, but only once
+	if pubChan == nil {
+		pubChan = make(chan *Message)
+		go func() {
+			for msg := range pubChan {
+				mqttClient.Publish(&proto.Publish{
+					Header:    proto.Header{Retain: msg.R},
+					TopicName: msg.T,
+					Payload:   proto.BytesPayload(msg.P),
+				})
+			}
+		}()
+	}
 
-	sub = make(chan *Message)
+	sub := make(chan *Message)
 	go func() {
 		for m := range mqttClient.Incoming {
 			sub <- &Message{
@@ -148,8 +151,8 @@ func ConnectToServer(topic string) (pub, sub chan *Message) {
 			}
 		}
 		log.Println("server connection lost")
-		// close(sub)
+        close(sub)
 	}()
 
-	return
+	return sub
 }

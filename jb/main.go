@@ -23,7 +23,6 @@ import (
 )
 
 var (
-	dataStore *leveldb.DB
 	regClient jeebus.Client
 	dbClient  jeebus.Client
 	ifClient  jeebus.Client
@@ -60,8 +59,7 @@ func main() {
 		if len(os.Args) > 2 {
 			topics = os.Args[2]
 		}
-		_, sub := jeebus.ConnectToServer(topics)
-		for m := range sub {
+		for m := range jeebus.ConnectToServer(topics) {
 			log.Println(m.T, string(m.P), m.R)
 		}
 
@@ -97,14 +95,13 @@ func dumpDatabase(from, to string) {
 	// o := &opt.Options{ ErrorIfMissing: true }
 	db, err := leveldb.OpenFile("./storage", nil)
 	check(err)
-	dataStore = db
 
 	if to == "" {
 		to = from + "~" // FIXME this assumes all key chars are less than "~"
 	}
 
 	// get and print all the key/value pairs from the database
-	iter := dataStore.NewIterator(nil)
+	iter := db.NewIterator(nil)
 	iter.Seek([]byte(from))
 	for iter.Valid() {
 		fmt.Printf("%s = %s\n", iter.Key(), iter.Value())
@@ -119,7 +116,6 @@ func startAllServers(port string) {
 	log.Println("opening database")
 	db, err := leveldb.OpenFile("./storage", nil)
 	check(err)
-	dataStore = db
 
 	log.Println("setting up Lua")
 	setupLua()
@@ -144,8 +140,7 @@ func startAllServers(port string) {
 	svClient.Connect("sv")
 	svClient.Register("blinker", new(BlinkerService))
 
-	// TODO should use new "/..." style
-	regClient.Publish("/admin/started", time.Now().Format(time.RFC822Z))
+	jeebus.Publish("/admin/started", time.Now().Format(time.RFC822Z))
 
 	log.Println("starting web server on ", port)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
@@ -156,7 +151,6 @@ func startAllServers(port string) {
 type RegistryService map[string]map[string]byte
 
 func (s *RegistryService) Handle(tail string, value interface{}) {
-	log.Printf("@ '%s', value %#v (%T)", tail, value, value)
 	split := strings.SplitN(tail, "/", 2)
 	arg := value.(string)
 
@@ -170,8 +164,6 @@ func (s *RegistryService) Handle(tail string, value interface{}) {
 	case "unregister":
 		delete((*s)[split[1]], arg)
 	}
-
-	log.Printf("registry %v", *s)
 }
 
 type DatabaseService struct {
@@ -179,18 +171,12 @@ type DatabaseService struct {
 }
 
 func (s *DatabaseService) Handle(tail string, value interface{}) {
-	log.Printf("DB '%s', value %#v (%T)", tail, value, value)
 	message, err := json.Marshal(value)
 	check(err)
 
-	store(tail, message)
+	s.db.Put([]byte(tail), message, nil)
 	millis := time.Now().UnixNano() / 1000000
-	store(fmt.Sprintf("hist/%s/%d", tail, millis), message)
-}
-
-func store(key string, value []byte) {
-	log.Printf("S %s => %s", key, value)
-	dataStore.Put([]byte(key), value, nil)
+	s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", tail, millis)), message, nil)
 }
 
 type SerialInterfaceService struct {
@@ -224,13 +210,14 @@ func serialConnect(dev string, baudrate int, tag string) {
 
 	port := strings.TrimPrefix(dev, "/dev/")
 	name := tag + "/" + strings.Replace(port, "tty.usbserial-", "usb-", 1)
+	log.Println("serial ready:", name)
 
 	ifClient.Register(name, &SerialInterfaceService{serial})
 
 	for scanner.Scan() {
 		// FIXME confused about broadcasts, probably need a "#" in register?
-		// ifClient.Publish("sv/" + name, scanner.Text())
-		ifClient.Publish("sv/"+tag, scanner.Text())
+		// jeebus.Publish("sv/" + name, scanner.Text())
+		jeebus.Publish("sv/"+tag, scanner.Text())
 	}
 
 	ifClient.Unregister(name)
@@ -259,7 +246,7 @@ func sockServer(ws *websocket.Conn) {
 			break
 		}
 		check(err)
-		wsClient.Publish(any[0], any[1])
+		jeebus.Publish(any[0], any[1])
 	}
 
 	wsClient.Unregister(name)
@@ -269,5 +256,5 @@ type BlinkerService int
 
 func (s *BlinkerService) Handle(tail string, value interface{}) {
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
-	svClient.Publish("ws/blinker", value)
+	jeebus.Publish("ws/blinker", value)
 }
