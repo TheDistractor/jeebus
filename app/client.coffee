@@ -6,7 +6,7 @@ ng.run ($rootScope) ->
 
   reconnect = (firstCall) ->
     # the websocket is served from the same site as the web page
-    ws = new WebSocket "ws://#{location.host}/ws", ['JeeBus']
+    ws = new WebSocket "ws://#{location.host}/ws", ['blinker']
     ws.binaryType = 'arraybuffer'
 
     ws.onopen = ->
@@ -32,4 +32,4 @@ ng.controller 'MainCtrl', ($scope) ->
   $scope.$on 'C', (e, v) -> $scope.count = v
 
   $scope.button = (b, v) ->
-    ws.send JSON.stringify [':if/serial/blinker', "L#{b}#{v}"]
+    ws.send JSON.stringify ['if/blinker', "L#{b}#{v}"]

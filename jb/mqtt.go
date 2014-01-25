@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -24,7 +24,7 @@ func startMqttServer() chan *jeebus.Message {
 
 	pub, sub := jeebus.ConnectToServer("#")
 
-    // TODO remove this, should use new "/..." style, and store it via a client
+	// TODO remove this, should use new "/..." style, and store it via a client
 	pub <- &jeebus.Message{
 		T: "st/admin/started",
 		P: []byte(time.Now().Format(time.RFC822Z)),
@@ -61,18 +61,10 @@ func startMqttServer() chan *jeebus.Message {
 
 			// TODO hardcoded serial port to websocket pass-through for now
 			case "if/":
-				if strings.HasPrefix(topic, "if/serial/") {
-					sendToAllWebSockets(message)
-				}
-
-			// TODO type sent is wrong and it shouldn't be limited to strings
-			case "ws/":
-				var any []string
-				err := json.Unmarshal(message, &any)
-				check(err)
+				split := strings.SplitN(topic, "/", 3)
 				pub <- &jeebus.Message{
-					T: any[0],
-					P: []byte(any[1]),
+					T: "ws/" + split[1],
+					P: message,
 				}
 			}
 		}

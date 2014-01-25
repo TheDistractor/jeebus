@@ -23,10 +23,10 @@ var (
 	openWebSockets map[string]*websocket.Conn
 	dataStore      *leveldb.DB
 	pubChan        chan *jeebus.Message
-	regClient      RegistryClient
-	dbClient       DatabaseClient
-	ifClient       InterfaceClient
-	wsClient       WebsocketClient
+	regClient      jeebus.Client
+	dbClient       jeebus.Client
+	ifClient       jeebus.Client
+	wsClient       jeebus.Client
 )
 
 func main() {
@@ -140,15 +140,15 @@ func serialConnect(dev string, baudrate int, tag string) (done chan byte) {
 			}
 		}
 
-		serKey := "if/serial/" + tag + "/" + port
+		serKey := "if/" + tag + "/" + port
 		// TODO listen to all for now, until server can broadcast
 		// pub, sub := jeebus.ConnectToServer(serKey)
 		pub, sub := jeebus.ConnectToServer("if/serial/" + tag + "/#")
 
-        // FIXME: ifClient is wrong and
-        // ifClient.Publish("if/serial/" + tag, port)
-        msg, _ := json.Marshal(port)
-        pub <- &jeebus.Message{T: "if/serial/" + tag, P: msg}
+		// FIXME: ifClient is wrong, should be registration of new serial obj
+		// ifClient.Publish("if/serial/" + tag, port)
+		// msg, _ := json.Marshal(port)
+		// pub <- &jeebus.Message{T: "if/" + tag, P: msg}
 
 		// send out published commands
 		go func() {
@@ -173,10 +173,6 @@ func serialConnect(dev string, baudrate int, tag string) (done chan byte) {
 	return
 }
 
-func SerialHandler(c *jeebus.Client, subtopic string, value interface{}) {
-    // TODO
-}
-
 func startAllServers(port string) {
 	openWebSockets = make(map[string]*websocket.Conn)
 
@@ -192,19 +188,17 @@ func startAllServers(port string) {
 	pubChan = startMqttServer()
 	log.Println("MQTT server is running")
 
-    regClient.clients = make(map[string]string)
-    regClient.Connect("@")
+	regClient.Connect("@")
 	regClient.Register("#", &RegistryService{})
 
-    dbClient.db = db
-    dbClient.Connect("")
+	dbClient.Connect("")
 	dbClient.Register("#", new(DatabaseService))
 
-    ifClient.Connect("if")
-    ifClient.Register("#", new(InterfaceService))
+	ifClient.Connect("if")
+	ifClient.Register("#", new(InterfaceService))
 
-    wsClient.Connect("ws")
-    wsClient.Register("#", new(WebsocketService))
+	wsClient.Connect("ws")
+	// wsClient.Register("#", new(WebsocketService))
 
 	// set up a web server to handle static files and websockets
 	http.Handle("/", http.FileServer(http.Dir("./app")))
@@ -213,61 +207,56 @@ func startAllServers(port string) {
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
-type RegistryClient struct {
-    jeebus.Client
-    clients map[string]string
-}
-
-type RegistryService map[string]*jeebus.Service
+type RegistryService map[string]map[string]byte
 
 func (s *RegistryService) Handle(c *jeebus.Client, tail string, value interface{}) {
-	log.Printf(":@ '%s', value %#v (%T)", tail, value, value)
-	log.Printf("regClient %v", regClient)
-    split := strings.SplitN(tail, "/", 2)
-    arg := value.(string)
-    
-    switch split[0] {
-    case "connect":
-        regClient.clients[arg] = "?"
-    case "disconnect":
-        delete(regClient.clients, arg)
-    // case "register":
-    //     (*s)[split[1]][arg] = nil
-    // case "unregister":
-    //     delete((*s)[split[1]], arg)
-    } 
-}
+	log.Printf("@ '%s', value %#v (%T)", tail, value, value)
+	split := strings.SplitN(tail, "/", 2)
+	arg := value.(string)
 
-type DatabaseClient struct {
-    jeebus.Client
-    db *leveldb.DB
+	switch split[0] {
+	case "connect":
+		(*s)[arg] = make(map[string]byte)
+	case "disconnect":
+		delete(*s, arg)
+	case "register":
+		(*s)[split[1]][arg] = 1
+	case "unregister":
+		delete((*s)[split[1]], arg)
+	}
+
+	log.Printf("registry %v", *s)
 }
 
 type DatabaseService int
 
 func (s *DatabaseService) Handle(c *jeebus.Client, tail string, value interface{}) {
-	log.Printf(": '%s', value %#v (%T)", tail, value, value)
-}
-
-type InterfaceClient struct {
-    jeebus.Client
+	log.Printf("DB '%s', value %#v (%T)", tail, value, value)
 }
 
 type InterfaceService int
 
 func (s *InterfaceService) Handle(c *jeebus.Client, tail string, value interface{}) {
-	log.Printf(":if '%s', value %#v (%T)", tail, value, value)
+	log.Printf("IF '%s', value %#v (%T)", tail, value, value)
 }
 
-type WebsocketClient struct {
-    jeebus.Client
-    openSockets map[string]string
+type WebsocketService struct {
+	ws *websocket.Conn // TODO can't this struct nesting be avoided, somehow?
 }
 
-type WebsocketService map[string]string
+func (s *WebsocketService) String() string {
+	appName := s.ws.Request().Header.Get("Sec-Websocket-Protocol")
+	client := s.ws.Request().RemoteAddr
+	return fmt.Sprintf("«WsSv:%s,%s", appName, client)
+}
 
 func (s *WebsocketService) Handle(c *jeebus.Client, tail string, value interface{}) {
-	log.Printf(":ws '%s', value %#v (%T)", tail, value, value)
+	log.Printf("WS '%s', value %#v (%T)", tail, value, value)
+	// TODO messy, re-encoded as JSON, and then it has to be cast to a string
+	msg, err := json.Marshal(value)
+	check(err)
+	err = websocket.Message.Send(s.ws, string(msg))
+	check(err)
 }
 
 func fetch(key string) []byte {
@@ -285,30 +274,25 @@ func store(key string, value []byte) {
 
 func sockServer(ws *websocket.Conn) {
 	defer ws.Close()
+	appName := ws.Request().Header.Get("Sec-Websocket-Protocol")
 	client := ws.Request().RemoteAddr
 	openWebSockets[client] = ws
-	subProto := ws.Request().Header.Get("Sec-Websocket-Protocol")
-	log.Println("ws connect", subProto, client)
-    wsClient.Publish("ws/register/" + subProto, client)
+	log.Println("ws connect", appName, client)
+	wsClient.Register(appName, &WebsocketService{ws})
+	log.Printf("wsClient %v", wsClient.Services)
 
 	for {
-		var msg []byte
-		err := websocket.Message.Receive(ws, &msg)
+		var any []string
+		err := websocket.JSON.Receive(ws, &any)
 		if err == io.EOF {
 			break
 		}
 		check(err)
-		fmt.Printf("ws got: %s\n", msg)
-		pubChan <- &jeebus.Message{T: "ws/" + client, P: msg}
+		fmt.Printf("ws got: %v\n", any)
+		// FIXME need to JSON encode, again: switch to jeebus.Client.Publish()
+		pubChan <- &jeebus.Message{T: any[0], P: []byte("\"" + any[1] + "\"")}
 	}
 
-	log.Println("ws disconnect", subProto, client)
+	log.Println("ws disconnect", appName, client)
 	delete(openWebSockets, client)
-}
-
-func sendToAllWebSockets(m []byte) {
-	for _, ws := range openWebSockets {
-		err := websocket.Message.Send(ws, string(m))
-		check(err)
-	}
 }

@@ -3,7 +3,7 @@ package jeebus
 
 import (
 	"encoding/json"
-    "fmt"
+	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -36,22 +36,22 @@ type Client struct {
 }
 
 func (c *Client) String() string {
-    return fmt.Sprintf("«Cl:%s,%d»", c.Prefix, len(c.Services))
+	return fmt.Sprintf("«Cl:%s,%d»", c.Prefix, len(c.Services))
 }
 
 // Service represents the registration for a specific subtopic
 type Service interface {
-    // Handle gets called on the topic(s) it has been registered for
-    Handle(c *Client, subtopic string, value interface{})
+	// Handle gets called on the topic(s) it has been registered for
+	Handle(c *Client, subtopic string, value interface{})
 }
 
 // Connect sets up a new MQTT connection for a specified client prefix.
 func (c *Client) Connect(prefix string) {
-    c.Prefix = prefix
+	c.Prefix = prefix
 	c.Pub, c.Sub = ConnectToServer(prefix + "/#")
-    c.Services = make(map[string]Service)
+	c.Services = make(map[string]Service)
 
-    // client := &Client{prefix, pub, sub, make(map[string]Service)}
+	// client := &Client{prefix, pub, sub, make(map[string]Service)}
 	c.Publish("@/connect", prefix)
 	log.Println("client connected:", prefix)
 
@@ -115,7 +115,7 @@ func (c *Client) Publish(topic string, value interface{}) {
 }
 
 func ConnectToServer(topic string) (pub, sub chan *Message) {
-    session, err := net.Dial("tcp", "localhost:1883")
+	session, err := net.Dial("tcp", "localhost:1883")
 
 	mqttClient = mqtt.NewClientConn(session)
 	err = mqttClient.Connect("", "")
@@ -125,7 +125,7 @@ func ConnectToServer(topic string) (pub, sub chan *Message) {
 		{Topic: topic, Qos: proto.QosAtMostOnce},
 	})
 
-    // TODO don't need one for each client, just one per connection
+	// TODO don't need one for each client, just one per connection
 	// set up a channel to publish through
 	pub = make(chan *Message)
 	go func() {
@@ -148,7 +148,7 @@ func ConnectToServer(topic string) (pub, sub chan *Message) {
 			}
 		}
 		log.Println("server connection lost")
-        // close(sub)
+		// close(sub)
 	}()
 
 	return
