@@ -24,6 +24,7 @@ func startMqttServer() chan *jeebus.Message {
 
 	pub, sub := jeebus.ConnectToServer("#")
 
+    // TODO remove this, should use new "/..." style, and store it via a client
 	pub <- &jeebus.Message{
 		T: "st/admin/started",
 		P: []byte(time.Now().Format(time.RFC822Z)),

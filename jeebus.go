@@ -45,60 +45,60 @@ type Service interface {
     Handle(c *Client, subtopic string, value interface{})
 }
 
-// NewClient sets up a new MQTT connection for a specified client prefix.
-func NewClient(prefix string) *Client {
-	pub, sub := ConnectToServer(":" + prefix + "/#")
+// Connect sets up a new MQTT connection for a specified client prefix.
+func (c *Client) Connect(prefix string) {
+    c.Prefix = prefix
+	c.Pub, c.Sub = ConnectToServer(prefix + "/#")
+    c.Services = make(map[string]Service)
 
-	client := &Client{prefix, pub, sub, make(map[string]Service)}
-	client.Publish(":@/connect", prefix)
+    // client := &Client{prefix, pub, sub, make(map[string]Service)}
+	c.Publish("@/connect", prefix)
 	log.Println("client connected:", prefix)
 
 	go func() {
 		// can't do this, since the connection has already been lost
-		// defer client.Publish(":@/disconnect", prefix)
+		// defer client.Publish("@/disconnect", prefix)
 
-		skip := len(prefix) + 2
-		for m := range sub {
+		skip := len(prefix) + 1
+		for m := range c.Sub {
 			srvName := m.T[skip:]
 			var value interface{}
 			err := json.Unmarshal(m.P, &value)
 			check(err)
 
-			// first look for the special "*" wildcard
+			// first look for the special "#" wildcard
 			check(err)
-			if service, ok := client.Services["*"]; ok {
-				service.Handle(client, srvName, value)
+			if service, ok := c.Services["#"]; ok {
+				service.Handle(c, srvName, value)
 			}
 
 			// then look for an exact service match
-			if service, ok := client.Services[srvName]; ok {
-				service.Handle(client, "", value)
+			if service, ok := c.Services[srvName]; ok {
+				service.Handle(c, "", value)
 			}
 
 			// finally look for all services which are a prefix of this topic
 			srvPrefix := srvName + "/"
-			for k, v := range client.Services {
+			for k, v := range c.Services {
 				if strings.HasPrefix(k, srvPrefix) {
-					v.Handle(client, k[len(srvPrefix):], value)
+					v.Handle(c, k[len(srvPrefix):], value)
 				}
 			}
 		}
 
 		log.Println("client disconnected:", prefix)
 	}()
-
-	return client
 }
 
 // Register a new service for a client, using a more specific prefix.
 func (c *Client) Register(name string, service Service) {
 	c.Services[name] = service
-	c.Publish(":@/register"+"/"+c.Prefix, name)
+	c.Publish("@/register"+"/"+c.Prefix, name)
 }
 
 // Unregister a previously defined service.
 func (c *Client) Unregister(name string) {
-	c.Publish(":@/unregister"+"/"+c.Prefix, name)
+	c.Publish("@/unregister"+"/"+c.Prefix, name)
 	delete(c.Services, name)
 }
 
@@ -114,16 +114,10 @@ func (c *Client) Publish(topic string, value interface{}) {
 	}
 }
 
-// Emit (i.e. publish) an arbitrary value to a topic with this client's prefix.
-func (c *Client) Emit(key string, value interface{}) {
-	c.Publish(c.Prefix+"/"+key, value)
-}
-
 func ConnectToServer(topic string) (pub, sub chan *Message) {
-	conn, err := net.Dial("tcp", "localhost:1883")
-	check(err)
+    session, err := net.Dial("tcp", "localhost:1883")
 
-	mqttClient = mqtt.NewClientConn(conn)
+	mqttClient = mqtt.NewClientConn(session)
 	err = mqttClient.Connect("", "")
 	check(err)
 
@@ -131,6 +125,7 @@ func ConnectToServer(topic string) (pub, sub chan *Message) {
 		{Topic: topic, Qos: proto.QosAtMostOnce},
 	})
 
+    // TODO don't need one for each client, just one per connection
 	// set up a channel to publish through
 	pub = make(chan *Message)
 	go func() {
@@ -153,7 +148,7 @@ func ConnectToServer(topic string) (pub, sub chan *Message) {
 			}
 		}
 		log.Println("server connection lost")
-		close(sub)
+        // close(sub)
 	}()
 
 	return

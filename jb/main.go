@@ -23,10 +23,10 @@ var (
 	openWebSockets map[string]*websocket.Conn
 	dataStore      *leveldb.DB
 	pubChan        chan *jeebus.Message
-	regClient      *jeebus.Client
-	dbClient       *jeebus.Client
-	ifClient       *jeebus.Client
-	wsClient       *jeebus.Client
+	regClient      RegistryClient
+	dbClient       DatabaseClient
+	ifClient       InterfaceClient
+	wsClient       WebsocketClient
 )
 
 func main() {
@@ -142,13 +142,13 @@ func serialConnect(dev string, baudrate int, tag string) (done chan byte) {
 
 		serKey := "if/serial/" + tag + "/" + port
 		// TODO listen to all for now, until server can broadcast
-		// pub, sub := jeebus.ConnectToServer(":" + serKey)
-		pub, sub := jeebus.ConnectToServer(":if/serial/" + tag + "/#")
+		// pub, sub := jeebus.ConnectToServer(serKey)
+		pub, sub := jeebus.ConnectToServer("if/serial/" + tag + "/#")
 
         // FIXME: ifClient is wrong and
-        // ifClient.Publish(":if/serial/" + tag, port)
+        // ifClient.Publish("if/serial/" + tag, port)
         msg, _ := json.Marshal(port)
-        pub <- &jeebus.Message{T: ":if/serial/" + tag, P: msg}
+        pub <- &jeebus.Message{T: "if/serial/" + tag, P: msg}
 
 		// send out published commands
 		go func() {
@@ -192,17 +192,19 @@ func startAllServers(port string) {
 	pubChan = startMqttServer()
 	log.Println("MQTT server is running")
 
-	regClient = jeebus.NewClient("@")
-	regClient.Register("*", &RegistryService{})
+    regClient.clients = make(map[string]string)
+    regClient.Connect("@")
+	regClient.Register("#", &RegistryService{})
 
-	dbClient = jeebus.NewClient("")
-	dbClient.Register("*", new(DatabaseService))
+    dbClient.db = db
+    dbClient.Connect("")
+	dbClient.Register("#", new(DatabaseService))
 
-	ifClient = jeebus.NewClient("if")
-	ifClient.Register("*", new(InterfaceService))
+    ifClient.Connect("if")
+    ifClient.Register("#", new(InterfaceService))
 
-	wsClient = jeebus.NewClient("ws")
-	wsClient.Register("*", new(WebsocketService))
+    wsClient.Connect("ws")
+    wsClient.Register("#", new(WebsocketService))
 
 	// set up a web server to handle static files and websockets
 	http.Handle("/", http.FileServer(http.Dir("./app")))
@@ -211,24 +213,34 @@ func startAllServers(port string) {
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
-type RegistryService map[string]map[string]*jeebus.Service
+type RegistryClient struct {
+    jeebus.Client
+    clients map[string]string
+}
+
+type RegistryService map[string]*jeebus.Service
 
 func (s *RegistryService) Handle(c *jeebus.Client, tail string, value interface{}) {
 	log.Printf(":@ '%s', value %#v (%T)", tail, value, value)
-	log.Printf("registry %v", *s)
+	log.Printf("regClient %v", regClient)
     split := strings.SplitN(tail, "/", 2)
     arg := value.(string)
     
     switch split[0] {
     case "connect":
-        (*s)[arg] = make(map[string]*jeebus.Service)
+        regClient.clients[arg] = "?"
     case "disconnect":
-        delete(*s, arg)
-    case "register":
-        (*s)[split[1]][arg] = nil
-    case "unregister":
-        delete((*s)[split[1]], arg)
+        delete(regClient.clients, arg)
+    // case "register":
+    //     (*s)[split[1]][arg] = nil
+    // case "unregister":
+    //     delete((*s)[split[1]], arg)
+    } 
 }
+
+type DatabaseClient struct {
+    jeebus.Client
+    db *leveldb.DB
 }
 
 type DatabaseService int
@@ -237,10 +249,19 @@ func (s *DatabaseService) Handle(c *jeebus.Client, tail string, value interface{
 	log.Printf(": '%s', value %#v (%T)", tail, value, value)
 }
 
+type InterfaceClient struct {
+    jeebus.Client
+}
+
 type InterfaceService int
 
 func (s *InterfaceService) Handle(c *jeebus.Client, tail string, value interface{}) {
 	log.Printf(":if '%s', value %#v (%T)", tail, value, value)
+}
+
+type WebsocketClient struct {
+    jeebus.Client
+    openSockets map[string]string
 }
 
 type WebsocketService map[string]string
@@ -268,7 +289,7 @@ func sockServer(ws *websocket.Conn) {
 	openWebSockets[client] = ws
 	subProto := ws.Request().Header.Get("Sec-Websocket-Protocol")
 	log.Println("ws connect", subProto, client)
-    wsClient.Publish(":ws/register/" + subProto, client)
+    wsClient.Publish("ws/register/" + subProto, client)
 
 	for {
 		var msg []byte
