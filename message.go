@@ -8,9 +8,9 @@ import (
 
 // Message represent a payload over MQTT for a specified topic.
 type Message struct {
-	T   string                     // topic
-	P   json.RawMessage            // payload
-	R   bool                       // retain
+	T   string                      // topic
+	P   json.RawMessage             // payload
+	R   bool                        // retain
 	obj map[string]*json.RawMessage // decoded payload object fields
 }
 
@@ -91,7 +91,7 @@ func (m *Message) GetFloat64(key string) (v float64) {
 	return
 }
 
-// Set allows setting keys with arbitrary values, for publishing later
+// Set allows setting keys with arbitrary values, for publishing later.
 func (m *Message) Set(key string, value interface{}) {
 	newVal, err := json.Marshal(value)
 	check(err)
@@ -101,7 +101,7 @@ func (m *Message) Set(key string, value interface{}) {
 	m.obj[key] = &x
 }
 
-// Publish the current message to the given topic
+// Publish the current message payload to the given topic.
 func (m *Message) Publish(topic string) {
 	if m.obj != nil {
 		msg, err := json.Marshal(m.obj)

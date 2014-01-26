@@ -32,7 +32,7 @@ type Service interface {
 	Handle(m *Message)
 }
 
-// Connect sets up a new MQTT connection for a specified client prefix.
+// NewClient sets up a new MQTT connection for a specified client prefix.
 func NewClient(prefix string) *Client {
 	sub := ConnectToServer(prefix + "/#")
 	c := &Client{prefix, sub, make(map[string]Service)}
