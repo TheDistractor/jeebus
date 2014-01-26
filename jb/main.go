@@ -155,12 +155,12 @@ func startAllServers(port string) {
 
 type RegistryService map[string]map[string]byte
 
-func (s *RegistryService) Handle(tail string, value json.RawMessage) {
-	split := strings.SplitN(tail, "/", 2)
+func (s *RegistryService) Handle(topic string, value json.RawMessage) {
+	split := strings.SplitN(topic, "/", 2)
 	var arg string
 	err := json.Unmarshal(value, &arg)
 	check(err)
-	log.Printf("REG %s = %s", tail, arg)
+	log.Printf("REG %s = %s", topic, arg)
 
 	switch split[0] {
 	case "connect":
@@ -180,17 +180,17 @@ type DatabaseService struct {
 	db *leveldb.DB // TODO can't this struct nesting be avoided, somehow?
 }
 
-func (s *DatabaseService) Handle(tail string, value json.RawMessage) {
-	s.db.Put([]byte(tail), value, nil)
+func (s *DatabaseService) Handle(topic string, value json.RawMessage) {
+	s.db.Put([]byte(topic), value, nil)
 	millis := time.Now().UnixNano() / 1000000
-	s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", tail, millis)), value, nil)
+	s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", topic, millis)), value, nil)
 }
 
 type SerialInterfaceService struct {
 	serial *rs232.Port // TODO can't this struct nesting be avoided, somehow?
 }
 
-func (s *SerialInterfaceService) Handle(tail string, value json.RawMessage) {
+func (s *SerialInterfaceService) Handle(topic string, value json.RawMessage) {
 	var arg struct{ Text string }
 	err := json.Unmarshal(value, &arg)
 	check(err)
@@ -235,7 +235,7 @@ type WebsocketService struct {
 	ws *websocket.Conn // TODO can't this struct nesting be avoided, somehow?
 }
 
-func (s *WebsocketService) Handle(tail string, value json.RawMessage) {
+func (s *WebsocketService) Handle(topic string, value json.RawMessage) {
 	err := websocket.Message.Send(s.ws, string(value))
 	check(err)
 }
@@ -262,7 +262,7 @@ func sockServer(ws *websocket.Conn) {
 
 type BlinkerDecodeService int
 
-func (s *BlinkerDecodeService) Handle(tail string, value json.RawMessage) {
+func (s *BlinkerDecodeService) Handle(topic string, value json.RawMessage) {
 	var cmd struct{ Text string }
 	err := json.Unmarshal(value, &cmd)
 	check(err)
@@ -284,7 +284,7 @@ func (s *BlinkerDecodeService) Handle(tail string, value json.RawMessage) {
 
 type BlinkerEncodeService int
 
-func (s *BlinkerEncodeService) Handle(tail string, value json.RawMessage) {
+func (s *BlinkerEncodeService) Handle(topic string, value json.RawMessage) {
 	var arg struct{ Button, Value int }
 	err := json.Unmarshal(value, &arg)
 	check(err)

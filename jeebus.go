@@ -64,22 +64,19 @@ func (c *Client) Connect(prefix string) {
 
 			// look for an exact service match
 			if service, ok := c.Services[srvName]; ok {
-				service.Handle("", m.P)
+				service.Handle(srvName, m.P)
 			} else {
 				// look for prefixes and wildcards
 				srvPrefix := srvName + "/"
 				for k, v := range c.Services {
-					// if strings.HasPrefix(k, srvPrefix) {
-					// 	v.Handle(k[len(srvPrefix):], m.P)
-					// }
 					n := len(k) - 1
 					switch {
-					//  pub "foo/bar" => sub "foo/bar/bleep"
+					//  pub "foo/bar" matches sub "foo/bar/bleep"
 					case strings.HasPrefix(k, srvPrefix):
-						v.Handle(k[len(srvPrefix):], m.P)
-					//  pub "foo/bar/bleep" => sub "foo/bar/#"
+						v.Handle(srvName, m.P)
+					//  pub "foo/bar/bleep" matches sub "foo/bar/#"
 					case n >= 0 && k[n] == '#' && k[:n] == srvPrefix[:n]:
-						v.Handle(srvName[n:], m.P)
+						v.Handle(srvName, m.P)
 					}
 				}
 			}
