@@ -22,14 +22,7 @@ import (
 	// "github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-var (
-	regClient jeebus.Client
-	dbClient  jeebus.Client
-	ifClient  jeebus.Client
-	wsClient  jeebus.Client
-	rdClient  jeebus.Client
-	svClient  jeebus.Client
-)
+var regClient, dbClient, ifClient, wsClient, rdClient, svClient jeebus.Client
 
 type TextMessage struct {
 	Text string `json:"text"`
@@ -147,10 +140,10 @@ func startAllServers(port string) {
 	wsClient.Connect("ws")
 
 	rdClient.Connect("rd")
-	rdClient.Register("blinker", new(BlinkerDecodeService))
+	rdClient.Register("blinker/#", new(BlinkerDecodeService))
 
 	svClient.Connect("sv")
-	svClient.Register("blinker", new(BlinkerEncodeService))
+	svClient.Register("blinker/#", new(BlinkerEncodeService))
 
 	jeebus.Publish("/admin/started", time.Now().Format(time.RFC822Z))
 
@@ -179,7 +172,7 @@ func (s *RegistryService) Handle(tail string, value json.RawMessage) {
 	case "unregister":
 		delete((*s)[split[1]], arg)
 	}
-	
+
 	log.Printf("  %+v", *s)
 }
 
@@ -233,9 +226,7 @@ func serialConnect(dev string, baudrate int, tag string) {
 	ifClient.Register(name, &SerialInterfaceService{serial})
 
 	for scanner.Scan() {
-		// FIXME confused about broadcasts, probably need a "#" in register?
-		// jeebus.Publish("sv/" + name, &TextMessage{scanner.Text()})
-		jeebus.Publish("rd/"+tag, &TextMessage{scanner.Text()})
+		jeebus.Publish("rd/"+name, &TextMessage{scanner.Text()})
 	}
 
 	ifClient.Unregister(name)
@@ -254,7 +245,7 @@ func sockServer(ws *websocket.Conn) {
 	defer ws.Close()
 
 	tag := ws.Request().Header.Get("Sec-Websocket-Protocol")
-	name := tag + "/" + ws.Request().RemoteAddr
+	name := tag + "/ip-" + ws.Request().RemoteAddr
 	wsClient.Register(name, &WebsocketService{ws})
 
 	for {
@@ -264,8 +255,7 @@ func sockServer(ws *websocket.Conn) {
 			break
 		}
 		check(err)
-		// TODO jeebus.Publish("sv/" + name, msg)
-		jeebus.Publish("sv/" + tag, msg)
+		jeebus.Publish("sv/"+name, msg)
 	}
 
 	wsClient.Unregister(name)

@@ -62,21 +62,25 @@ func (c *Client) Connect(prefix string) {
 		for m := range c.Sub {
 			srvName := m.T[skip:]
 
-			// first look for the special "#" wildcard
-			if service, ok := c.Services["#"]; ok {
-				service.Handle(srvName, m.P)
-			}
-
-			// then look for an exact service match
+			// look for an exact service match
 			if service, ok := c.Services[srvName]; ok {
 				service.Handle("", m.P)
-			}
-
-			// finally look for all services which are a prefix of this topic
-			srvPrefix := srvName + "/"
-			for k, v := range c.Services {
-				if strings.HasPrefix(k, srvPrefix) {
-					v.Handle(k[len(srvPrefix):], m.P)
+			} else {
+				// look for prefixes and wildcards
+				srvPrefix := srvName + "/"
+				for k, v := range c.Services {
+					// if strings.HasPrefix(k, srvPrefix) {
+					// 	v.Handle(k[len(srvPrefix):], m.P)
+					// }
+					n := len(k) - 1
+					switch {
+					//  pub "foo/bar" => sub "foo/bar/bleep"
+					case strings.HasPrefix(k, srvPrefix):
+						v.Handle(k[len(srvPrefix):], m.P)
+					//  pub "foo/bar/bleep" => sub "foo/bar/#"
+					case n >= 0 && k[n] == '#' && k[:n] == srvPrefix[:n]:
+						v.Handle(srvName[n:], m.P)
+					}
 				}
 			}
 		}
@@ -85,7 +89,7 @@ func (c *Client) Connect(prefix string) {
 	}()
 }
 
-// Register a new service for a client, using a more specific prefix.
+// Register a new service for a client with a specific prefix (can end in "#")
 func (c *Client) Register(name string, service Service) {
 	c.Services[name] = service
 	Publish("@/register"+"/"+c.Prefix, name)
