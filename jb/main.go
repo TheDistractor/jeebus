@@ -182,7 +182,7 @@ type DatabaseService struct {
 }
 
 func (s *DatabaseService) Handle(m *jeebus.Message) {
-	s.db.Put([]byte(m.T), m.P, nil)
+	s.db.Put([]byte("/"+m.T), m.P, nil)
 	millis := time.Now().UnixNano() / 1000000
 	s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", m.T, millis)), m.P, nil)
 }
