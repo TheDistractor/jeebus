@@ -205,12 +205,13 @@ func serialConnect(dev string, baudrate int, tag string) {
 	check(err)
 
 	scanner := bufio.NewScanner(serial)
+	var line string
 
 	// flush all old data from the serial port while looking for a tag
 	if tag == "" {
 		log.Println("waiting for serial")
 		for scanner.Scan() {
-			line := scanner.Text()
+			line = scanner.Text()
 			if strings.HasPrefix(line, "[") && strings.Contains(line, "]") {
 				tag = line[1:strings.IndexAny(line, ".]")]
 				break
@@ -223,6 +224,11 @@ func serialConnect(dev string, baudrate int, tag string) {
 	log.Println("serial ready:", name)
 
 	ifClient.Register(name, &SerialInterfaceService{serial})
+
+	// send out the matching tag line if we found one
+	if line != "" {
+		jeebus.Publish("rd/"+name, &TextMessage{line})
+	}
 
 	for scanner.Scan() {
 		jeebus.Publish("rd/"+name, &TextMessage{scanner.Text()})
@@ -266,8 +272,7 @@ func (s *BlinkerDecodeService) Handle(m *jeebus.Message) {
 	var cmd struct{ Text string }
 	err := json.Unmarshal(m.P, &cmd)
 	check(err)
-	num, err := strconv.Atoi(cmd.Text[1:])
-	check(err)
+	num, _ := strconv.Atoi(cmd.Text[1:])
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
 	// TODO yuck, would be a lot cleaner in dynamically-typed Lua, etc
 	var x interface{}
