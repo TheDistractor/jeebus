@@ -229,8 +229,9 @@ func serialConnect(dev string, baudrate int, tag string) {
 
 	ifClient.Register(name, &SerialInterfaceService{serial})
 
-	// send out the matching tag line if we found one
+	// store and send out the matching tag line if we found one
 	if input.Text != "" {
+		jeebus.Publish("/attach/"+name, input.Text)
 		jeebus.Publish("rd/"+name, &input)
 	}
 
