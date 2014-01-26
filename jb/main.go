@@ -203,15 +203,21 @@ func serialConnect(dev string, baudrate int, tag string) {
 	check(err)
 
 	scanner := bufio.NewScanner(serial)
-	var line string
+
+	var input struct {
+		Text string `json:"text"`
+		Time int64  `json:"time"`
+	}
 
 	// flush all old data from the serial port while looking for a tag
 	if tag == "" {
 		log.Println("waiting for serial")
 		for scanner.Scan() {
-			line = scanner.Text()
-			if strings.HasPrefix(line, "[") && strings.Contains(line, "]") {
-				tag = line[1:strings.IndexAny(line, ".]")]
+			input.Time = time.Now().UTC().UnixNano() / 1000000
+			input.Text = scanner.Text()
+			if strings.HasPrefix(input.Text, "[") &&
+				strings.Contains(input.Text, "]") {
+				tag = input.Text[1:strings.IndexAny(input.Text, ".]")]
 				break
 			}
 		}
@@ -224,12 +230,14 @@ func serialConnect(dev string, baudrate int, tag string) {
 	ifClient.Register(name, &SerialInterfaceService{serial})
 
 	// send out the matching tag line if we found one
-	if line != "" {
-		jeebus.Publish("rd/"+name, &TextMessage{line})
+	if input.Text != "" {
+		jeebus.Publish("rd/"+name, &input)
 	}
 
 	for scanner.Scan() {
-		jeebus.Publish("rd/"+name, &TextMessage{scanner.Text()})
+		input.Time = time.Now().UTC().UnixNano() / 1000000
+		input.Text = scanner.Text()
+		jeebus.Publish("rd/"+name, &input)
 	}
 
 	ifClient.Unregister(name)

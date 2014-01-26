@@ -60,17 +60,32 @@ func (m *Message) unpack(key string) json.RawMessage {
 	return m.obj[key]
 }
 
-// Get extracts the string of a given object attribute, or "" if absent.
+// Get extracts a given object attribute as string, or "" if absent.
 func (m *Message) Get(key string) (v string) {
 	json.Unmarshal(m.unpack(key), &v)
 	return
 }
 
-// Get extracts the int value of a given object attribute, or 0 if absent.
+// GetBool extracts a given object attribute as bool, or false if absent.
+func (m *Message) GetBool(key string) (v bool) {
+	json.Unmarshal(m.unpack(key), &v)
+	return
+}
+
+// GetInt extracts a given object attribute as int, or 0 if absent.
 func (m *Message) GetInt(key string) int {
-	var f float64
-	json.Unmarshal(m.unpack(key), &f)
-	return int(f)
+	return int(m.GetFloat64(key))
+}
+
+// GetInt64 extracts a given object attribute as 64-bit int, or 0 if absent.
+func (m *Message) GetInt64(key string) int64 {
+	return int64(m.GetFloat64(key))
+}
+
+// GetFloat64 extracts a given object attribute as float, or 0 if absent.
+func (m *Message) GetFloat64(key string) (v float64) {
+	json.Unmarshal(m.unpack(key), &v)
+	return
 }
 
 var (
