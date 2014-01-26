@@ -12,6 +12,7 @@ import (
 	"github.com/jeffallen/mqtt"
 )
 
+// Message represent a payload over MQTT for a specified topic.
 type Message struct {
 	T   string                     // topic
 	P   json.RawMessage            // payload
@@ -19,6 +20,38 @@ type Message struct {
 	obj map[string]json.RawMessage // decoded payload object fields
 }
 
+// String returns a short string representation of a Message.
+func (m *Message) String() string {
+	// display the retain flag only if set
+	retain := ""
+	if m.R {
+		retain = ",R"
+	}
+	// insert an ellipsis if the payload data is too long
+	// note that all numbers, booleans, and nulls will pass through as is
+	msg := string(m.P)
+	if len(msg) > 20 {
+		msg = msg[:18] + "…"
+		switch msg[0] {
+		case '{':
+			msg += "}"
+		case '[':
+			msg += "]"
+		default:
+			msg += msg[:1] // only double quotes, really
+		}
+	}
+	// replace the most common non-printable characters by a dot
+	f := func(r rune) rune {
+		if r < ' ' {
+			r = '.'
+		}
+		return r
+	}
+	return fmt.Sprintf("«M:%s,%s%s»", m.T, strings.Map(f, msg), retain)
+}
+
+// unpack the JSON payload into a map, this fails if payload is not an object.
 func (m *Message) unpack(key string) json.RawMessage {
 	if len(m.obj) == 0 && len(m.P) > 0 {
 		err := json.Unmarshal(m.P, &m.obj)
@@ -27,11 +60,13 @@ func (m *Message) unpack(key string) json.RawMessage {
 	return m.obj[key]
 }
 
+// Get extracts the string of a given object attribute, or "" if absent.
 func (m *Message) Get(key string) (v string) {
 	json.Unmarshal(m.unpack(key), &v)
 	return
 }
 
+// Get extracts the int value of a given object attribute, or 0 if absent.
 func (m *Message) GetInt(key string) int {
 	var f float64
 	json.Unmarshal(m.unpack(key), &f)
@@ -49,8 +84,9 @@ type Client struct {
 	Services map[string]Service
 }
 
+// String returns a short string representation of a Client.
 func (c *Client) String() string {
-	return fmt.Sprintf("«Cl:%s,%d»", c.Prefix, len(c.Services))
+	return fmt.Sprintf("«C:%s,%d»", c.Prefix, len(c.Services))
 }
 
 // Service represents the registration for a specific subtopic
