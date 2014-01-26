@@ -155,12 +155,12 @@ func startAllServers(port string) {
 
 type RegistryService map[string]map[string]byte
 
-func (s *RegistryService) Handle(topic string, value json.RawMessage) {
-	split := strings.SplitN(topic, "/", 2)
+func (s *RegistryService) Handle(m *jeebus.Message) {
+	split := strings.SplitN(m.T, "/", 2)
 	var arg string
-	err := json.Unmarshal(value, &arg)
+	err := json.Unmarshal(m.P, &arg)
 	check(err)
-	log.Printf("REG %s = %s", topic, arg)
+	log.Printf("REG %s = %s", m.T, arg)
 
 	switch split[0] {
 	case "connect":
@@ -180,19 +180,19 @@ type DatabaseService struct {
 	db *leveldb.DB // TODO can't this struct nesting be avoided, somehow?
 }
 
-func (s *DatabaseService) Handle(topic string, value json.RawMessage) {
-	s.db.Put([]byte(topic), value, nil)
+func (s *DatabaseService) Handle(m *jeebus.Message) {
+	s.db.Put([]byte(m.T), m.P, nil)
 	millis := time.Now().UnixNano() / 1000000
-	s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", topic, millis)), value, nil)
+	s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", m.T, millis)), m.P, nil)
 }
 
 type SerialInterfaceService struct {
 	serial *rs232.Port // TODO can't this struct nesting be avoided, somehow?
 }
 
-func (s *SerialInterfaceService) Handle(topic string, value json.RawMessage) {
+func (s *SerialInterfaceService) Handle(m *jeebus.Message) {
 	var arg struct{ Text string }
-	err := json.Unmarshal(value, &arg)
+	err := json.Unmarshal(m.P, &arg)
 	check(err)
 	s.serial.Write([]byte(arg.Text))
 }
@@ -235,8 +235,8 @@ type WebsocketService struct {
 	ws *websocket.Conn // TODO can't this struct nesting be avoided, somehow?
 }
 
-func (s *WebsocketService) Handle(topic string, value json.RawMessage) {
-	err := websocket.Message.Send(s.ws, string(value))
+func (s *WebsocketService) Handle(m *jeebus.Message) {
+	err := websocket.Message.Send(s.ws, string(m.P))
 	check(err)
 }
 
@@ -262,9 +262,9 @@ func sockServer(ws *websocket.Conn) {
 
 type BlinkerDecodeService int
 
-func (s *BlinkerDecodeService) Handle(topic string, value json.RawMessage) {
+func (s *BlinkerDecodeService) Handle(m *jeebus.Message) {
 	var cmd struct{ Text string }
-	err := json.Unmarshal(value, &cmd)
+	err := json.Unmarshal(m.P, &cmd)
 	check(err)
 	num, err := strconv.Atoi(cmd.Text[1:])
 	check(err)
@@ -284,9 +284,9 @@ func (s *BlinkerDecodeService) Handle(topic string, value json.RawMessage) {
 
 type BlinkerEncodeService int
 
-func (s *BlinkerEncodeService) Handle(topic string, value json.RawMessage) {
+func (s *BlinkerEncodeService) Handle(m *jeebus.Message) {
 	var arg struct{ Button, Value int }
-	err := json.Unmarshal(value, &arg)
+	err := json.Unmarshal(m.P, &arg)
 	check(err)
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
 	msg := fmt.Sprintf("L%d%d", arg.Button, arg.Value)

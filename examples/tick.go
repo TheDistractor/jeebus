@@ -15,10 +15,10 @@ var (
 
 type TickService int
 
-func (s *TickService) Handle(tail string, value json.RawMessage) {
-	log.Printf("ZZZ '%s', value %s", tail, value)
+func (s *TickService) Handle(m *jeebus.Message) {
+	log.Printf("ZZZ subtopic '%s', payload %s", m.T, m.P)
 	var num float64
-	err := json.Unmarshal(value, &num)
+	err := json.Unmarshal(m.P, &num)
 	if err != nil {
 		log.Fatal(err)
 	}

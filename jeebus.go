@@ -42,7 +42,7 @@ func (c *Client) String() string {
 // Service represents the registration for a specific subtopic
 type Service interface {
 	// Handle gets called on the topic(s) it has been registered for.
-	Handle(subtopic string, value json.RawMessage)
+	Handle(m *Message)
 }
 
 // Connect sets up a new MQTT connection for a specified client prefix.
@@ -60,23 +60,25 @@ func (c *Client) Connect(prefix string) {
 
 		skip := len(prefix) + 1
 		for m := range c.Sub {
-			srvName := m.T[skip:]
+			subTopic := m.T[skip:]
+			message := &Message{T: subTopic, P: m.P}
 
+			// TODO full MQTT wildcard match logic, i.e. also +'s
 			// look for an exact service match
-			if service, ok := c.Services[srvName]; ok {
-				service.Handle(srvName, m.P)
+			if service, ok := c.Services[subTopic]; ok {
+				service.Handle(message)
 			} else {
 				// look for prefixes and wildcards
-				srvPrefix := srvName + "/"
+				subPrefix := subTopic + "/"
 				for k, v := range c.Services {
 					n := len(k) - 1
 					switch {
 					//  pub "foo/bar" matches sub "foo/bar/bleep"
-					case strings.HasPrefix(k, srvPrefix):
-						v.Handle(srvName, m.P)
+					case strings.HasPrefix(k, subPrefix):
+						v.Handle(message)
 					//  pub "foo/bar/bleep" matches sub "foo/bar/#"
-					case n >= 0 && k[n] == '#' && k[:n] == srvPrefix[:n]:
-						v.Handle(srvName, m.P)
+					case n >= 0 && k[n] == '#' && k[:n] == subPrefix[:n]:
+						v.Handle(message)
 					}
 				}
 			}
