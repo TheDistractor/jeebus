@@ -41,7 +41,7 @@ func (c *Client) String() string {
 
 // Service represents the registration for a specific subtopic
 type Service interface {
-	// Handle gets called on the topic(s) it has been registered for
+	// Handle gets called on the topic(s) it has been registered for.
 	Handle(subtopic string, value json.RawMessage)
 }
 

@@ -191,7 +191,6 @@ type SerialInterfaceService struct {
 }
 
 func (s *SerialInterfaceService) Handle(tail string, value json.RawMessage) {
-	// FIXME var arg struct { Text string `json:"text"` }
 	var arg struct{ Text string }
 	err := json.Unmarshal(value, &arg)
 	check(err)
