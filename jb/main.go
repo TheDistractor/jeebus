@@ -141,6 +141,7 @@ func startAllServers(port string) {
 
 	rdClient.Connect("rd")
 	rdClient.Register("blinker/#", new(BlinkerDecodeService))
+	rdClient.Register("#", new(LoggerService))
 
 	svClient.Connect("sv")
 	svClient.Register("blinker/#", new(BlinkerEncodeService))
@@ -288,4 +289,58 @@ func (s *BlinkerEncodeService) Handle(m *jeebus.Message) {
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
 	msg := fmt.Sprintf("L%d%d", m.GetInt("button"), m.GetInt("value"))
 	jeebus.Publish("if/blinker", &TextMessage{msg})
+}
+
+type LoggerService struct {
+	fd *os.File // TODO can't this struct nesting be avoided, somehow?
+}
+
+// LOGGER_PREFIX is where log files get created. While this directory exists,
+// the logger will store new files in it and append log items. Note that it is
+// perfectly ok to create or remove this directory while the logger is running.
+const LOGGER_PREFIX = "./logger/"
+
+func (s *LoggerService) Handle(msg *jeebus.Message) {
+	// automatic enabling/disabling of the logger, based on presence of dir
+	_, err := os.Stat(LOGGER_PREFIX)
+	if err != nil {
+		if s.fd != nil {
+			log.Println("logger stopped")
+			s.fd.Close()
+			s.fd = nil
+		}
+		return
+	}
+	if s.fd == nil {
+		log.Println("logger started")
+	}
+	// figure out name of logfile based on UTC date, with daily rotation
+	now := time.Now().UTC()
+	datePath := dateFilename(now)
+	if s.fd == nil || datePath != s.fd.Name() {
+		if s.fd != nil {
+			s.fd.Close()
+		}
+		mode := os.O_WRONLY | os.O_APPEND | os.O_CREATE
+		fd, err := os.OpenFile(datePath, mode, os.ModePerm)
+		if err != nil {
+			log.Fatal(err)
+		}
+		s.fd = fd
+	}
+	// append a new log entry, here is an example of the format used:
+	// 	L 01:02:03.537 usb-A40117UK OK 9 25 54 66 235 61 210 226 33 19
+	hour, min, sec := now.Clock()
+	port := strings.SplitN(msg.T, "/", 2)[1] // skip the service name
+	line := fmt.Sprintf("L %02d:%02d:%02d.%03d %s %s\n",
+		hour, min, sec, now.Nanosecond()/1000000, port, msg.Get("text"))
+	s.fd.WriteString(line)
+}
+
+func dateFilename(now time.Time) string {
+	year, month, day := now.Date()
+	path := fmt.Sprintf("%s%d", LOGGER_PREFIX, year)
+	os.MkdirAll(path, os.ModePerm)
+	// e.g. "./logger/2014/20140122.txt"
+	return fmt.Sprintf("%s/%d.txt", path, (year*100+int(month))*100+day)
 }
