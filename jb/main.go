@@ -22,7 +22,7 @@ import (
 	// "github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-var regClient, dbClient, ifClient, wsClient, rdClient, svClient jeebus.Client
+var regClient, dbClient, ifClient, wsClient, rdClient, svClient *jeebus.Client
 
 func main() {
 	if len(os.Args) <= 1 {
@@ -75,7 +75,7 @@ func main() {
 		nbaud, err := strconv.Atoi(baud)
 		check(err)
 		log.Println("opening serial port", dev)
-		ifClient.Connect("if")
+		ifClient = jeebus.NewClient("if")
 		serialConnect(dev, nbaud, tag)
 
 	default:
@@ -126,20 +126,20 @@ func startAllServers(port string) {
 	// <-svr.Done
 	log.Println("MQTT server is running")
 
-	regClient.Connect("@")
+	regClient = jeebus.NewClient("@")
 	regClient.Register("#", &RegistryService{})
 
-	dbClient.Connect("")
+	dbClient = jeebus.NewClient("")
 	dbClient.Register("#", &DatabaseService{db})
 
-	ifClient.Connect("if")
-	wsClient.Connect("ws")
+	ifClient = jeebus.NewClient("if")
+	wsClient = jeebus.NewClient("ws")
 
-	rdClient.Connect("rd")
+	rdClient = jeebus.NewClient("rd")
 	rdClient.Register("blinker/#", new(BlinkerDecodeService))
 	rdClient.Register("#", new(LoggerService))
 
-	svClient.Connect("sv")
+	svClient = jeebus.NewClient("sv")
 	svClient.Register("blinker/#", new(BlinkerEncodeService))
 
 	jeebus.Publish("/admin/started", time.Now().Format(time.RFC822Z))

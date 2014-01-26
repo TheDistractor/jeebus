@@ -97,6 +97,7 @@ func (m *Message) GetFloat64(key string) (v float64) {
 	return
 }
 
+// Set allows setting keys with arbitrary values, for publishing later
 func (m *Message) Set(key string, value interface{}) {
 	newVal, err := json.Marshal(value)
 	check(err)
@@ -106,6 +107,7 @@ func (m *Message) Set(key string, value interface{}) {
 	m.obj[key] = &x
 }
 
+// Publish the current message to the given topic
 func (m *Message) Publish(topic string) {
 	if m.obj != nil {
 		msg, err := json.Marshal(m.obj)
@@ -116,9 +118,7 @@ func (m *Message) Publish(topic string) {
 	}
 }
 
-var (
-	pubChan chan *Message
-)
+var pubChan chan *Message
 
 // Client represents a group of MQTT topics used as services.
 type Client struct {
@@ -139,10 +139,9 @@ type Service interface {
 }
 
 // Connect sets up a new MQTT connection for a specified client prefix.
-func (c *Client) Connect(prefix string) {
-	c.Prefix = prefix
-	c.Sub = ConnectToServer(prefix + "/#")
-	c.Services = make(map[string]Service)
+func NewClient(prefix string) *Client {
+	sub := ConnectToServer(prefix + "/#")
+	c := &Client{prefix, sub, make(map[string]Service)}
 
 	Publish("@/connect", prefix)
 	log.Println("client connected:", prefix)
@@ -152,7 +151,7 @@ func (c *Client) Connect(prefix string) {
 		// defer Publish("@/disconnect", prefix)
 
 		skip := len(prefix) + 1
-		for m := range c.Sub {
+		for m := range sub {
 			subTopic := m.T[skip:]
 			message := &Message{T: subTopic, P: m.P}
 
@@ -179,6 +178,8 @@ func (c *Client) Connect(prefix string) {
 
 		log.Println("client disconnected:", prefix)
 	}()
+
+	return c
 }
 
 // Register a new service for a client with a specific prefix (can end in "#")
