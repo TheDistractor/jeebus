@@ -24,10 +24,6 @@ import (
 
 var regClient, dbClient, ifClient, wsClient, rdClient, svClient jeebus.Client
 
-type TextMessage struct {
-	Text string `json:"text"`
-}
-
 func main() {
 	if len(os.Args) <= 1 {
 		log.Fatalf("usage: jb <cmd> ... (try 'jb run')")
@@ -279,25 +275,25 @@ func (s *BlinkerDecodeService) Handle(m *jeebus.Message) {
 	text := m.Get("text")
 	num, _ := strconv.Atoi(text[1:])
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
-	// TODO yuck, would be a lot cleaner in dynamically-typed Lua, etc
-	var x interface{}
+	var msg jeebus.Message
 	switch text[0] {
 	case 'C':
-		x = map[string]int{"count": num}
+		msg.Set("count", num)
 	case 'G':
-		x = map[string]bool{"green": num != 0}
+		msg.Set("green", num != 0)
 	case 'R':
-		x = map[string]bool{"red": num != 0}
+		msg.Set("red", num != 0)
 	}
-	jeebus.Publish("ws/blinker", x)
+	msg.Publish("ws/blinker")
 }
 
 type BlinkerEncodeService int
 
 func (s *BlinkerEncodeService) Handle(m *jeebus.Message) {
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
-	msg := fmt.Sprintf("L%d%d", m.GetInt("button"), m.GetInt("value"))
-	jeebus.Publish("if/blinker", &TextMessage{msg})
+	var msg jeebus.Message
+	msg.Set("text", fmt.Sprintf("L%d%d", m.GetInt("button"), m.GetInt("value")))
+	msg.Publish("if/blinker")
 }
 
 type LoggerService struct {
