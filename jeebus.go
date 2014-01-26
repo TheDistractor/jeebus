@@ -13,20 +13,34 @@ import (
 )
 
 type Message struct {
-	T string          // topic
-	P json.RawMessage // payload
-	R bool            // retain
+	T   string                     // topic
+	P   json.RawMessage            // payload
+	R   bool                       // retain
+	obj map[string]json.RawMessage // decoded payload object fields
+}
+
+func (m *Message) unpack(key string) json.RawMessage {
+	if len(m.obj) == 0 && len(m.P) > 0 {
+		err := json.Unmarshal(m.P, &m.obj)
+		check(err)
+	}
+	return m.obj[key]
+}
+
+func (m *Message) Get(key string) (v string) {
+	json.Unmarshal(m.unpack(key), &v)
+	return
+}
+
+func (m *Message) GetInt(key string) int {
+	var f float64
+	json.Unmarshal(m.unpack(key), &f)
+	return int(f)
 }
 
 var (
 	pubChan chan *Message
 )
-
-func check(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
 
 // Client represents a group of MQTT topics used as services.
 type Client struct {
@@ -105,14 +119,14 @@ func Publish(topic string, value interface{}) {
 	retain := topic[0] == '/'
 	switch v := value.(type) {
 	case []byte:
-		pubChan <- &Message{topic, v, retain}
+		pubChan <- &Message{T: topic, P: v, R: retain}
 	case json.RawMessage:
-		pubChan <- &Message{topic, v, retain}
+		pubChan <- &Message{T: topic, P: v, R: retain}
 	default:
 		data, err := json.Marshal(value)
 		check(err)
 		// log.Println("PUB", topic, string(data))
-		pubChan <- &Message{topic, data, retain}
+		pubChan <- &Message{T: topic, P: data, R: retain}
 	}
 }
 
@@ -156,4 +170,10 @@ func ConnectToServer(topic string) chan *Message {
 	}()
 
 	return sub
+}
+
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }

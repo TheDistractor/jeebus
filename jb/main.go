@@ -191,10 +191,7 @@ type SerialInterfaceService struct {
 }
 
 func (s *SerialInterfaceService) Handle(m *jeebus.Message) {
-	var arg struct{ Text string }
-	err := json.Unmarshal(m.P, &arg)
-	check(err)
-	s.serial.Write([]byte(arg.Text))
+	s.serial.Write([]byte(m.Get("text")))
 }
 
 func serialConnect(dev string, baudrate int, tag string) {
@@ -269,14 +266,12 @@ func sockServer(ws *websocket.Conn) {
 type BlinkerDecodeService int
 
 func (s *BlinkerDecodeService) Handle(m *jeebus.Message) {
-	var cmd struct{ Text string }
-	err := json.Unmarshal(m.P, &cmd)
-	check(err)
-	num, _ := strconv.Atoi(cmd.Text[1:])
+	text := m.Get("text")
+	num, _ := strconv.Atoi(text[1:])
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
 	// TODO yuck, would be a lot cleaner in dynamically-typed Lua, etc
 	var x interface{}
-	switch cmd.Text[0] {
+	switch text[0] {
 	case 'C':
 		x = map[string]int{"count": num}
 	case 'G':
@@ -290,10 +285,7 @@ func (s *BlinkerDecodeService) Handle(m *jeebus.Message) {
 type BlinkerEncodeService int
 
 func (s *BlinkerEncodeService) Handle(m *jeebus.Message) {
-	var arg struct{ Button, Value int }
-	err := json.Unmarshal(m.P, &arg)
-	check(err)
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
-	msg := fmt.Sprintf("L%d%d", arg.Button, arg.Value)
+	msg := fmt.Sprintf("L%d%d", m.GetInt("button"), m.GetInt("value"))
 	jeebus.Publish("if/blinker", &TextMessage{msg})
 }
