@@ -8,10 +8,10 @@ import (
 
 // Message represent a payload over MQTT for a specified topic.
 type Message struct {
-	T   string                      // topic
-	P   json.RawMessage             // payload
-	R   bool                        // retain
-	obj map[string]*json.RawMessage // decoded payload object fields
+	T   string                     // topic
+	P   json.RawMessage            // payload
+	R   bool                       // retain
+	obj map[string]json.RawMessage // decoded payload object fields
 }
 
 // String returns a short string representation of a Message.
@@ -45,22 +45,13 @@ func (m *Message) String() string {
 	return fmt.Sprintf("«M:%s,%s%s»", m.T, strings.Map(f, msg), retain)
 }
 
-func (m *Message) useMap() {
-	if m.obj == nil {
-		m.obj = make(map[string]*json.RawMessage)
-		if len(m.P) > 0 {
-			err := json.Unmarshal(m.P, &m.obj)
-			check(err)
-		}
-	}
-}
-
 // unpack the JSON payload into a map, this fails if payload is not an object.
 func (m *Message) unpack(key string, v interface{}) {
-	m.useMap()
-	if p, ok := m.obj[key]; ok {
-		json.Unmarshal(*p, &v)
+	if m.obj == nil && len(m.P) > 0 {
+		err := json.Unmarshal(m.P, &m.obj)
+		check(err)
 	}
+	json.Unmarshal(m.obj[key], &v)
 }
 
 // Get extracts a given object attribute as string, or "" if absent.
@@ -89,25 +80,4 @@ func (m *Message) GetInt64(key string) int64 {
 func (m *Message) GetFloat64(key string) (v float64) {
 	m.unpack(key, &v)
 	return
-}
-
-// Set allows setting keys with arbitrary values, for publishing later.
-func (m *Message) Set(key string, value interface{}) {
-	newVal, err := json.Marshal(value)
-	check(err)
-	m.useMap()
-	// FIXME yuck!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	var x json.RawMessage = newVal // TODO still struggling with casts in Go ...
-	m.obj[key] = &x
-}
-
-// Publish the current message payload to the given topic.
-func (m *Message) Publish(topic string) {
-	if m.obj != nil {
-		msg, err := json.Marshal(m.obj)
-		check(err)
-		Publish(topic, msg)
-	} else {
-		Publish(topic, m.P)
-	}
 }

@@ -275,25 +275,26 @@ func (s *BlinkerDecodeService) Handle(m *jeebus.Message) {
 	text := m.Get("text")
 	num, _ := strconv.Atoi(text[1:])
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
-	var msg jeebus.Message
+	msg := make(map[string]interface{})
 	switch text[0] {
 	case 'C':
-		msg.Set("count", num)
+		msg["count"] = num
 	case 'G':
-		msg.Set("green", num != 0)
+		msg["green"] = num != 0
 	case 'R':
-		msg.Set("red", num != 0)
+		msg["red"] = num != 0
 	}
-	msg.Publish("ws/blinker")
+	jeebus.Publish("ws/blinker", msg)
 }
 
 type BlinkerEncodeService int
 
 func (s *BlinkerEncodeService) Handle(m *jeebus.Message) {
 	// TODO this is hard-coded, should probably be a lookup table set via pub's
-	var msg jeebus.Message
-	msg.Set("text", fmt.Sprintf("L%d%d", m.GetInt("button"), m.GetInt("value")))
-	msg.Publish("if/blinker")
+	msg := map[string]interface{}{
+		"text": fmt.Sprintf("L%d%d", m.GetInt("button"), m.GetInt("value")),
+	}
+	jeebus.Publish("if/blinker", msg)
 }
 
 type LoggerService struct {
