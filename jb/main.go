@@ -191,9 +191,9 @@ func (s *SerialInterfaceService) Handle(m *jeebus.Message) {
 	s.serial.Write([]byte(m.Get("text")))
 }
 
-func serialConnect(dev string, baudrate int, tag string) {
+func serialConnect(port string, baudrate int, tag string) {
 	// open the serial port in 8N1 mode
-	serial, err := rs232.Open(dev, rs232.Options{
+	serial, err := rs232.Open(port, rs232.Options{
 		BitRate: uint32(baudrate), DataBits: 8, StopBits: 1,
 	})
 	check(err)
@@ -219,18 +219,21 @@ func serialConnect(dev string, baudrate int, tag string) {
 		}
 	}
 
-	port := strings.TrimPrefix(dev, "/dev/")
-	name := tag + "/" + strings.Replace(port, "tty.usbserial-", "usb-", 1)
+	dev := strings.TrimPrefix(port, "/dev/")
+	dev = strings.Replace(dev, "tty.usbserial-", "usb-", 1)
+	name := tag + "/" + dev
 	log.Println("serial ready:", name)
 
 	ifClient.Register(name, &SerialInterfaceService{serial})
 
-	// store and send out the matching tag line if we found one
+	// store the matching tag line and send out if we found one
+	attachMsg := map[string]string{"text": input.Text, "tag": tag}
+	jeebus.Publish("/attach/"+dev, attachMsg)
+
+	// send the tag line (if present), then send out whatever comes in
 	if input.Text != "" {
-		jeebus.Publish("/attach/"+name, input.Text)
 		jeebus.Publish("rd/"+name, &input)
 	}
-
 	for scanner.Scan() {
 		input.Time = time.Now().UTC().UnixNano() / 1000000
 		input.Text = scanner.Text()
