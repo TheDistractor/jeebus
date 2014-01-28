@@ -295,13 +295,17 @@ func sockServer(ws *websocket.Conn) {
 				var any []interface{}
 				err := json.Unmarshal(msg, &any)
 				check(err)
-				log.Println("RPC", any)
+				log.Printf("RPC %.100v (%s)", any, name)
+				// ptocess the RPC request, returns either a value or an error
 				result, err := processRpcRequest(any[1].(string), any[2:])
+				// convert errors to strings to send them through JSON
 				var emsg interface{}
 				if err != nil {
 					emsg = err.Error()
 				}
-				msg, err := json.Marshal([]interface{}{ any[0], result, emsg })
+				reply := []interface{}{ any[0], result, emsg }
+				log.Printf(" -> %.100v (%s)", reply, name)
+				msg, err := json.Marshal(reply)
 				check(err)
 				err = websocket.Message.Send(ws, string(msg))
 				check(err)
@@ -314,7 +318,14 @@ func sockServer(ws *websocket.Conn) {
 }
 
 func processRpcRequest(cmd string, args interface{}) (r interface{}, e error) {
-	e = errors.New("RPC not found: " + cmd)
+	switch cmd {
+	case "echo":
+		r = args
+	case "db-get":
+		r = dbClient
+	default:
+		e = errors.New("RPC not found: " + cmd)
+	}
 	return
 }
 

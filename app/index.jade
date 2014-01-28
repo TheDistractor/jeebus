@@ -3,19 +3,13 @@ html(ng-app='myApp')
   head
     title Blink demo
     style body { margin: 30px; }
-    script(src='//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.7/angular.js')
+    script(src='//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.9/angular.js')
+    script(src='//cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.2.0/angular-ui-router.js')
 
   body(ng-controller='MainCtrl')
     h1 Blink
 
-    table(cellpadding=10)
-      tr
-        td
-          input(type='checkbox',ng-model='green',id='gl',disabled)
-          Label(for='gl') Green LED
-        td
-          input(type='checkbox',ng-model='red',id='rl',disabled)
-          Label(for='rl') Red LED
+    table(cellpadding=5)
       tr
         td
           button(ng-mouseDown='button(1,1)',ng-mouseup='button(1,0)')
@@ -23,8 +17,22 @@ html(ng-app='myApp')
         td
           button(ng-mouseDown='button(2,1)',ng-mouseup='button(2,0)')
             | Button 2
+        td
+          button(ng-click='echoTest()')
+            | RPC Echo
+      tr
+        td
+          label(for='gl')
+            input(type='checkbox',ng-model='green',id='gl',disabled)
+            | Green LED
+        td
+          label(for='rl')
+            input(type='checkbox',ng-model='red',id='rl',disabled)
+            | Red LED
+        td
+          | {{ message }}
 
     p Count = {{ count }}
 
-    script(src='//cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.2.0/angular-ui-router.js')
     script(src='client.js')
+    script(src='jeebus.js')

@@ -1,40 +1,14 @@
 ng = angular.module 'myApp', ['ui.router']
 
-ng.constant 'jbName', 'blinker'
+ng.run (jeebus) ->
+  jeebus.connect 'blinker'
 
-ng.run ($rootScope, jbName) ->
-  ws = null
-
-  # global function to send an object to the JeeBus server
-  $rootScope.jbSend = (payload) ->
-    ws.send JSON.stringify payload
-  
-  reconnect = (firstCall) ->
-    # the websocket is served from the same site as the web page
-    ws = new WebSocket "ws://#{location.host}/ws", [jbName]
-    ws.binaryType = 'arraybuffer'
-
-    ws.onopen = ->
-      location.reload()  unless firstCall
-      console.log 'Open', ws
-
-    ws.onmessage = (m) ->
-      if m.data instanceof ArrayBuffer
-        console.log 'binary msg', m
-      $rootScope.$apply ->
-        for k, v of JSON.parse(m.data)
-          $rootScope[k] = v
-
-    # ws.onerror = (e) ->
-    #   console.log 'Error', e
-
-    ws.onclose = ->
-      console.log 'Closed'
-      setTimeout reconnect, 1000
-    
-  reconnect true
-
-ng.controller 'MainCtrl', ($scope) ->
+ng.controller 'MainCtrl', ($scope, jeebus) ->
 
   $scope.button = (button, value) ->
-    @jbSend {button,value}
+    jeebus.send {button,value}
+
+  $scope.echoTest = ->
+    jeebus.send "echoTest!" # send a test message to JB server's stdout
+    jeebus.rpc('echo', 'Echo', 'me!').then (r) ->
+      $scope.message = r

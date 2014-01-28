@@ -4,51 +4,21 @@
 
   ng = angular.module('myApp', ['ui.router']);
 
-  ng.constant('jbName', 'blinker');
-
-  ng.run(function($rootScope, jbName) {
-    var reconnect, ws;
-    ws = null;
-    $rootScope.jbSend = function(payload) {
-      return ws.send(JSON.stringify(payload));
-    };
-    reconnect = function(firstCall) {
-      ws = new WebSocket("ws://" + location.host + "/ws", [jbName]);
-      ws.binaryType = 'arraybuffer';
-      ws.onopen = function() {
-        if (!firstCall) {
-          location.reload();
-        }
-        return console.log('Open', ws);
-      };
-      ws.onmessage = function(m) {
-        if (m.data instanceof ArrayBuffer) {
-          console.log('binary msg', m);
-        }
-        return $rootScope.$apply(function() {
-          var k, v, _ref, _results;
-          _ref = JSON.parse(m.data);
-          _results = [];
-          for (k in _ref) {
-            v = _ref[k];
-            _results.push($rootScope[k] = v);
-          }
-          return _results;
-        });
-      };
-      return ws.onclose = function() {
-        console.log('Closed');
-        return setTimeout(reconnect, 1000);
-      };
-    };
-    return reconnect(true);
+  ng.run(function(jeebus) {
+    return jeebus.connect('blinker');
   });
 
-  ng.controller('MainCtrl', function($scope) {
-    return $scope.button = function(button, value) {
-      return this.jbSend({
+  ng.controller('MainCtrl', function($scope, jeebus) {
+    $scope.button = function(button, value) {
+      return jeebus.send({
         button: button,
         value: value
+      });
+    };
+    return $scope.echoTest = function() {
+      jeebus.send("echoTest!");
+      return jeebus.rpc('echo', 'Echo', 'me!').then(function(r) {
+        return $scope.message = r;
       });
     };
   });
