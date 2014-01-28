@@ -10,12 +10,9 @@
 
   ng.controller('MainCtrl', function($scope, jeebus) {
     $scope.button = function(button, value) {
-      jeebus.send({
+      return jeebus.send({
         button: button,
         value: value
-      });
-      return jeebus.rpc('db-get', '/admin/started').then(function(r) {
-        return console.log('rpc', r);
       });
     };
     $scope.echoTest = function() {
