@@ -4,6 +4,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -226,7 +227,7 @@ func serialConnect(port string, baudrate int, tag string) {
 
 	ifClient.Register(name, &SerialInterfaceService{serial})
 
-	// store the matching tag line and send out if we found one
+	// store the tag line for this device
 	attachMsg := map[string]string{"text": input.Text, "tag": tag}
 	jeebus.Publish("/attach/"+dev, attachMsg)
 
@@ -257,7 +258,9 @@ func sockServer(ws *websocket.Conn) {
 
 	tag := ws.Request().Header.Get("Sec-Websocket-Protocol")
 	name := tag + "/ip-" + ws.Request().RemoteAddr
+
 	wsClient.Register(name, &WebsocketService{ws})
+	defer wsClient.Unregister(name)
 
 	for {
 		var msg json.RawMessage
@@ -266,10 +269,53 @@ func sockServer(ws *websocket.Conn) {
 			break
 		}
 		check(err)
-		jeebus.Publish("sv/"+name, msg)
+		// figure out the structure of incoming JSON data to decide what to do
+		switch msg[0] {
+		// case 'n': // null
+		// 	log.Println("shutdown requested from", name)
+		// 	os.Exit(0)
+		case '"':
+			// show incoming JSON strings on JB's stdout for debugging purposes
+			var text string
+			err := json.Unmarshal(msg, &text)
+			check(err)
+			log.Printf("%s (%s)", text, name) // send to JB server's stdout
+		case '[':
+			// JSON array: either an MQTT publish request, or an RPC request
+			var args []json.RawMessage
+			err := json.Unmarshal(msg, &args)
+			check(err)
+			var topic string
+			if json.Unmarshal(args[0], &topic) == nil {
+				// it's an MQTT publish request
+				log.Println("TOPIC", topic, args)
+				jeebus.Publish(topic, args[1])
+			} else {
+				// it's an RPC request of the form (rpcId, req string, args...]
+				var any []interface{}
+				err := json.Unmarshal(msg, &any)
+				check(err)
+				log.Println("RPC", any)
+				result, err := processRpcRequest(any[1].(string), any[2:])
+				var emsg interface{}
+				if err != nil {
+					emsg = err.Error()
+				}
+				msg, err := json.Marshal([]interface{}{ any[0], result, emsg })
+				check(err)
+				err = websocket.Message.Send(ws, string(msg))
+				check(err)
+			}
+		default:
+			// everything else (i.e. a JSON object) becomes an MQTT service req
+			jeebus.Publish("sv/"+name, msg)
+		}
 	}
+}
 
-	wsClient.Unregister(name)
+func processRpcRequest(cmd string, args interface{}) (r interface{}, e error) {
+	e = errors.New("RPC not found: " + cmd)
+	return
 }
 
 type BlinkerDecodeService int
