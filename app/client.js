@@ -10,14 +10,27 @@
 
   ng.controller('MainCtrl', function($scope, jeebus) {
     $scope.button = function(button, value) {
-      return jeebus.send({
+      jeebus.send({
         button: button,
         value: value
       });
+      return jeebus.rpc('db-get', '/admin/started').then(function(r) {
+        return console.log('rpc', r);
+      });
     };
-    return $scope.echoTest = function() {
+    $scope.echoTest = function() {
       jeebus.send("echoTest!");
       return jeebus.rpc('echo', 'Echo', 'me!').then(function(r) {
+        return $scope.message = r;
+      });
+    };
+    $scope.dbGetTest = function() {
+      return jeebus.rpc('db-get', '/admin/started').then(function(r) {
+        return $scope.message = r;
+      });
+    };
+    return $scope.dbKeysTest = function() {
+      return jeebus.rpc('db-keys', '/').then(function(r) {
         return $scope.message = r;
       });
     };

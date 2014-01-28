@@ -25,6 +25,8 @@ import (
 
 var regClient, dbClient, ifClient, wsClient, rdClient, svClient *jeebus.Client
 
+var db *leveldb.DB
+
 func main() {
 	if len(os.Args) <= 1 {
 		log.Fatalf("usage: jb <cmd> ... (try 'jb run')")
@@ -112,8 +114,10 @@ func dumpDatabase(from, to string) {
 }
 
 func startAllServers(port string) {
+	var err error
+
 	log.Println("opening database")
-	db, err := leveldb.OpenFile("./storage", nil)
+	db, err = leveldb.OpenFile("./storage", nil)
 	check(err)
 
 	log.Println("setting up Lua")
@@ -317,16 +321,21 @@ func sockServer(ws *websocket.Conn) {
 	}
 }
 
-func processRpcRequest(cmd string, args interface{}) (r interface{}, e error) {
+func processRpcRequest(cmd string, args []interface{}) (r interface{}, e error) {
 	switch cmd {
 	case "echo":
-		r = args
+		return args, nil
 	case "db-get":
-		r = dbClient
-	default:
-		e = errors.New("RPC not found: " + cmd)
+		v, e := db.Get([]byte(args[0].(string)), nil) // TODO yuck...
+		return string(v), e
+	case "db-keys":
+		return dbKeys(args[0].(string))
 	}
-	return
+	return nil, errors.New("RPC not found: " + cmd)
+}
+
+func dbKeys(prefix string) ([]string, error) {
+	return []string{prefix}, nil
 }
 
 type BlinkerDecodeService int

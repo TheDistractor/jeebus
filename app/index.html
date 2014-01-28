@@ -8,7 +8,7 @@
   </head>
   <body ng-controller="MainCtrl">
     <h1>Blink</h1>
-    <table cellpadding="5">
+    <table cellpadding="10">
       <tr>
         <td>
           <button ng-mouseDown="button(1,1)" ng-mouseup="button(1,0)">Button 1</button>
@@ -19,19 +19,21 @@
         <td>
           <button ng-click="echoTest()">RPC Echo</button>
         </td>
+        <td>
+          <button ng-click="dbGetTest()">RPC DB Get</button>
+        </td>
+        <td>
+          <button ng-click="dbKeysTest()">RPC DB Keys</button>
+        </td>
       </tr>
       <tr>
         <td>
-          <label for="gl">
-            <input type="checkbox" ng-model="green" id="gl" disabled>Green LED
-          </label>
+          <input type="checkbox" ng-model="green" disabled>Green LED
         </td>
         <td>
-          <label for="rl">
-            <input type="checkbox" ng-model="red" id="rl" disabled>Red LED
-          </label>
+          <input type="checkbox" ng-model="red" disabled>Red LED
         </td>
-        <td>{{ message }}</td>
+        <td colspan="3">{{ message }}</td>
       </tr>
     </table>
     <p>Count = {{ count }}</p>
