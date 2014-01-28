@@ -3,6 +3,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -307,7 +308,7 @@ func sockServer(ws *websocket.Conn) {
 				if err != nil {
 					emsg = err.Error()
 				}
-				reply := []interface{}{ any[0], result, emsg }
+				reply := []interface{}{any[0], result, emsg}
 				log.Printf(" -> %.100v (%s)", reply, name)
 				msg, err := json.Marshal(reply)
 				check(err)
@@ -325,17 +326,47 @@ func processRpcRequest(cmd string, args []interface{}) (r interface{}, e error) 
 	switch cmd {
 	case "echo":
 		return args, nil
+	case "db-keys":
+		return dbKeys(args[0].(string)), nil
 	case "db-get":
 		v, e := db.Get([]byte(args[0].(string)), nil) // TODO yuck...
 		return string(v), e
-	case "db-keys":
-		return dbKeys(args[0].(string))
 	}
 	return nil, errors.New("RPC not found: " + cmd)
 }
 
-func dbKeys(prefix string) ([]string, error) {
-	return []string{prefix}, nil
+func dbKeys(prefix string) []string {
+	// TODO decide whether this key logic is the most useful & least confusing
+	// TODO should use skips and reverse iterators once the db gets larger!
+	from, to, skip := []byte(prefix), []byte(prefix+"~"), len(prefix)
+	// from, to, skip := []byte(prefix+"/"), []byte(prefix+"/~"), len(prefix)+1
+	result := []string{}
+	prev := []byte("/") // impossible value, this never matches actual results
+
+	iter := db.NewIterator(nil)
+	defer iter.Release()
+
+	iter.Seek(from)
+	for iter.Valid() {
+		k := iter.Key()
+		// fmt.Printf(" -> %s = %s\n", k, iter.Value())
+		if !iter.Next() || bytes.Compare(k, to) > 0 {
+			break
+		}
+		i := bytes.IndexRune(k[skip:], '/') + skip
+		if i < skip {
+			i = len(k)
+		}
+		// fmt.Printf(" DK %d %d %d %s %s\n", skip, len(prev), i, prev, k)
+		if !bytes.Equal(prev, k[skip:i]) {
+			// TODO need to make a copy of the key, since it's owned by iter
+			prev = make([]byte, i-skip)
+			copy(prev, k[skip:i])
+			// fmt.Printf("ADD %s\n", prev)
+			result = append(result, string(prev))
+		}
+	}
+	return result
 }
 
 type BlinkerDecodeService int
