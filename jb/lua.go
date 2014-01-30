@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -35,18 +36,18 @@ func GoFun(args []int) (res map[string]int) {
 }
 
 const code = `
-print 'here we go'
--- Lua tables auto-convert to slices
-local res = GoFun {10,20,30,40}
--- the result is a map-proxy
-print(111)
-print(res['1'],res['2'])
-print(222)
--- which we may explicitly convert to a table
-res = luar.map2table(res)
-for k,v in pairs(res) do
-      print(k,v)
-end
+	print 'here we go'
+	-- Lua tables auto-convert to slices
+	local res = GoFun {10,20,30,40}
+	-- the result is a map-proxy
+	print(111)
+	print(res['1'],res['2'])
+	print(222)
+	-- which we may explicitly convert to a table
+	res = luar.map2table(res)
+	for k,v in pairs(res) do
+		print(k,v)
+	end
 `
 
 func setupLua() {
@@ -82,34 +83,36 @@ type LuaDispatchService int
 
 func (s *LuaDispatchService) Handle(m *jeebus.Message) {
 	log.Printf("LUA %s %s", m.T, string(m.P))
-	split := strings.SplitN(m.T, "/", 4)
-	if len(split) != 4 {
-		log.Fatal("LuaService?", split)
-	}
+	split := strings.SplitN(m.T, "/", 2)
 	switch split[1] {
 	case "register":
-		if split[2] == "sv" {
-			L := lua.NewState()
-			L.OpenLibs()
-			svClient.Register(split[3], &LuaRegisteredService{L})
-		} else {
-			log.Fatal("not SV!", split)
-		}
+		L := lua.NewState()
+		L.OpenLibs()
+		err := L.DoFile("lua/" + string(m.P) + ".lua")
+		check(err)
+		f := luar.NewLuaObjectFromName(L, "service")
+		// FIXME assumes path is "sv/..."
+		svClient.Register(string(m.P)[3:], &LuaRegisteredService{L, f})
 	}
 }
 
 type LuaRegisteredService struct {
-	L *lua.State // TODO can't this struct nesting be avoided, somehow?
+	L *lua.State
+	f *luar.LuaObject
 }
 
 func (s *LuaRegisteredService) Handle(m *jeebus.Message) {
 	log.Printf("LUA-RS %s %s %+v", m.T, string(m.P), s.L)
-	s.L.PushGoFunction(printer)
-	s.L.PushString(string(m.P))
-	s.L.Call(1, 0)
+	var any interface{}
+	err := json.Unmarshal(m.P, &any)
+	check(err)
+	obj := luar.NewLuaObjectFromValue(s.L, any)
+	res, err := s.f.Call(obj)
+	check(err)
+	log.Printf("RESULT %#v", res)
 }
 
-func printer(L *lua.State) int {
-	fmt.Println("printer:", L.CheckString(1))
-	return 0
-}
+// func printer(L *lua.State) int {
+// 	fmt.Println("printer:", L.CheckString(1))
+// 	return 0
+// }

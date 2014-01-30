@@ -58,12 +58,14 @@ func NewClient(prefix string) *Client {
 				subPrefix := subTopic + "/"
 				for k, v := range c.Services {
 					n := len(k) - 1
+					// log.Printf("SLICE n %d k %s sp %s", n, k, subPrefix)
 					switch {
 					//  pub "foo/bar" matches sub "foo/bar/bleep"
 					case strings.HasPrefix(k, subPrefix):
 						v.Handle(message)
 					//  pub "foo/bar/bleep" matches sub "foo/bar/#"
-					case n >= 0 && k[n] == '#' && k[:n] == subPrefix[:n]:
+					case n >= 0 && n <= len(subPrefix) &&
+						k[n] == '#' && k[:n] == subPrefix[:n]:
 						v.Handle(message)
 					}
 				}

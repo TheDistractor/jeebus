@@ -82,12 +82,16 @@ func main() {
 		ifClient = jeebus.NewClient("if")
 		serialConnect(dev, nbaud, tag)
 
-	case "publish":
-		if len(os.Args) <= 3 {
-			log.Fatalf("usage: jb publish <key> <value>")
+	case "pub":
+		if len(os.Args) < 3 {
+			log.Fatalf("usage: jb pub <key> ?<jsonval>?")
 		}
-		jeebus.ConnectToServer("blah") // FIXME empty string panics?
-		jeebus.Publish(os.Args[2], []byte(os.Args[3]))
+		var value string
+		if len(os.Args) > 3 {
+			value = os.Args[3]
+		}
+		jeebus.ConnectToServer("?") // TODO nonsense topic
+		jeebus.Publish(os.Args[2], []byte(value))
 		<-make(chan bool) // TODO need to close gracefully, and not too soon!
 		// close(sub)
 
