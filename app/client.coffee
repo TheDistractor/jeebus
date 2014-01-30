@@ -20,3 +20,7 @@ ng.controller 'MainCtrl', ($scope, jeebus) ->
   $scope.dbKeysTest = ->
     jeebus.rpc('db-keys', '/').then (r) ->
       $scope.message = r
+
+  $scope.luaTest = ->
+    jeebus.rpc('lua', 'demo', 'twice', 111).then (r) ->
+      $scope.message = r

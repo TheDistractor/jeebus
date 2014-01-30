@@ -86,18 +86,9 @@ func (s *LuaDispatchService) Handle(m *jeebus.Message) {
 	split := strings.SplitN(m.T, "/", 2)
 	switch split[1] {
 	case "register":
-		L := lua.NewState()
-		L.OpenLibs()
-		err := L.DoFile("scripts/" + string(m.P) + ".lua")
-		check(err)
-		f := luar.NewLuaObjectFromName(L, "service")
-		luar.Register(L, "", luar.Map{
-			"publish": jeebus.Publish,
-			"dbKeys":  luaDbKeys,
-			"dbGet":   luaDbGet,
-			"dbSet":   luaDbSet,
-		})
+		L := newLuaInstance(string(m.P))
 		state = L // TODO get rid of this hack
+		f := luar.NewLuaObjectFromName(L, "service")
 		// FIXME assumes path is "rd/..." or "sv/..."
 		topic := string(m.P)[3:] + "/#"
 		service := &LuaRegisteredService{L, f}
@@ -108,6 +99,20 @@ func (s *LuaDispatchService) Handle(m *jeebus.Message) {
 			svClient.Register(topic, service)
 		}
 	}
+}
+
+func newLuaInstance(path string) *lua.State {
+	L := lua.NewState()
+	L.OpenLibs()
+	err := L.DoFile("scripts/" + path + ".lua")
+	check(err)
+	luar.Register(L, "", luar.Map{
+		"publish": jeebus.Publish,
+		"dbKeys":  luaDbKeys,
+		"dbGet":   luaDbGet,
+		"dbSet":   luaDbSet,
+	})
+	return L
 }
 
 type LuaRegisteredService struct {
@@ -127,6 +132,19 @@ func (s *LuaRegisteredService) Handle(m *jeebus.Message) {
 	res, err := s.f.Call(obj)
 	check(err)
 	log.Printf("RESULT %+v", res)
+}
+
+func luaRunWithArgs(args []interface{}) (interface{}, error) {
+	if len(args) < 2 {
+		log.Fatal("lua needs two or more args:", args)
+	}
+	path := args[0].(string)
+	fname := args[1].(string)
+	L := newLuaInstance(path)
+	f := luar.NewLuaObjectFromName(L, fname)
+	r, e := f.Call(args[2:]...)
+	L.Close()
+	return r, e
 }
 
 func luaDbKeys(prefix string) *luar.LuaObject {

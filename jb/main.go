@@ -310,7 +310,11 @@ func sockServer(ws *websocket.Conn) {
 			if json.Unmarshal(args[0], &topic) == nil {
 				// it's an MQTT publish request
 				log.Println("TOPIC", topic, args)
-				jeebus.Publish(topic, args[1])
+				if strings.HasPrefix(topic, "/") {
+					jeebus.Publish(topic, args[1])
+				} else {
+					log.Fatal("ws: topic must start with '/': ", topic)
+				}
 			} else {
 				// it's an RPC request of the form (rpcId, req string, args...]
 				var any []interface{}
@@ -338,7 +342,7 @@ func sockServer(ws *websocket.Conn) {
 	}
 }
 
-func processRpcRequest(cmd string, args []interface{}) (r interface{}, e error) {
+func processRpcRequest(cmd string, args []interface{}) (interface{}, error) {
 	switch cmd {
 	case "echo":
 		return args, nil
@@ -347,6 +351,8 @@ func processRpcRequest(cmd string, args []interface{}) (r interface{}, e error) 
 	case "db-get":
 		v, e := db.Get([]byte(args[0].(string)), nil) // TODO yuck...
 		return string(v), e
+	case "lua":
+		return luaRunWithArgs(args)
 	}
 	return nil, errors.New("RPC not found: " + cmd)
 }

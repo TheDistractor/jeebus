@@ -21,6 +21,8 @@ html(ng-app='myApp')
           button(ng-click='dbGetTest()') RPC DB Get
         td
           button(ng-click='dbKeysTest()') RPC DB Keys
+        td
+          button(ng-click='luaTest()') RPC Lua
       tr
         td
           input(type='checkbox',ng-model='green',disabled)
@@ -28,7 +30,7 @@ html(ng-app='myApp')
         td
           input(type='checkbox',ng-model='red',disabled)
           | Red LED
-        td(colspan=3)
+        td(colspan=4)
           | {{ message }}
 
     p Count = {{ count }}
