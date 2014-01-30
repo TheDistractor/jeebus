@@ -82,6 +82,15 @@ func main() {
 		ifClient = jeebus.NewClient("if")
 		serialConnect(dev, nbaud, tag)
 
+	case "publish":
+		if len(os.Args) <= 3 {
+			log.Fatalf("usage: jb publish <key> <value>")
+		}
+		jeebus.ConnectToServer("blah") // FIXME empty string panics?
+		jeebus.Publish(os.Args[2], []byte(os.Args[3]))
+		<-make(chan bool) // TODO need to close gracefully, and not too soon!
+		// close(sub)
+
 	default:
 		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
 	}
@@ -147,6 +156,7 @@ func startAllServers(port string) {
 
 	svClient = jeebus.NewClient("sv")
 	svClient.Register("blinker/#", new(BlinkerEncodeService))
+	svClient.Register("lua/#", new(LuaDispatchService))
 
 	jeebus.Publish("/admin/started", time.Now().Format(time.RFC822Z))
 
@@ -184,9 +194,15 @@ type DatabaseService struct {
 }
 
 func (s *DatabaseService) Handle(m *jeebus.Message) {
-	s.db.Put([]byte("/"+m.T), m.P, nil)
-	millis := time.Now().UnixNano() / 1000000
-	s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", m.T, millis)), m.P, nil)
+	if len(m.P) > 0 {
+		s.db.Put([]byte("/"+m.T), m.P, nil)
+		millis := time.Now().UnixNano() / 1000000
+		s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", m.T, millis)), m.P, nil)
+	} else {
+		s.db.Delete([]byte("/"+m.T), nil)
+		// TODO decide what to do with deletions w.r.t. the historical data
+		//  record the deletion? delete it as well? sweep and clean up later?
+	}
 }
 
 type SerialInterfaceService struct {

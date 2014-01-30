@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
+	"strings"
 
 	"github.com/aarzilli/golua/lua"
+	"github.com/jcw/jeebus"
 	"github.com/stevedonovan/luar"
 )
 
@@ -36,7 +39,9 @@ print 'here we go'
 -- Lua tables auto-convert to slices
 local res = GoFun {10,20,30,40}
 -- the result is a map-proxy
+print(111)
 print(res['1'],res['2'])
+print(222)
 -- which we may explicitly convert to a table
 res = luar.map2table(res)
 for k,v in pairs(res) do
@@ -56,17 +61,12 @@ func setupLua() {
 	L.Call(1, 0)
 
 	L.PushGoFunction(test)
-	L.PushGoFunction(test)
-	L.PushGoFunction(test)
-	L.PushGoFunction(test)
 
 	L.PushGoFunction(test2)
 	L.PushInteger(42)
 	L.Call(1, 0)
 
-	L.Call(0, 0)
-	L.Call(0, 0)
-	L.Call(0, 0)
+	L.Call(0, 0) // hello world! from go!
 
 	luar.Register(L, "", luar.Map{
 		"Print": fmt.Println,
@@ -76,4 +76,40 @@ func setupLua() {
 
 	err := L.DoString(code)
 	fmt.Printf("error %v\n", err)
+}
+
+type LuaDispatchService int
+
+func (s *LuaDispatchService) Handle(m *jeebus.Message) {
+	log.Printf("LUA %s %s", m.T, string(m.P))
+	split := strings.SplitN(m.T, "/", 4)
+	if len(split) != 4 {
+		log.Fatal("LuaService?", split)
+	}
+	switch split[1] {
+	case "register":
+		if split[2] == "sv" {
+			L := lua.NewState()
+			L.OpenLibs()
+			svClient.Register(split[3], &LuaRegisteredService{L})
+		} else {
+			log.Fatal("not SV!", split)
+		}
+	}
+}
+
+type LuaRegisteredService struct {
+	L *lua.State // TODO can't this struct nesting be avoided, somehow?
+}
+
+func (s *LuaRegisteredService) Handle(m *jeebus.Message) {
+	log.Printf("LUA-RS %s %s %+v", m.T, string(m.P), s.L)
+	s.L.PushGoFunction(printer)
+	s.L.PushString(string(m.P))
+	s.L.Call(1, 0)
+}
+
+func printer(L *lua.State) int {
+	fmt.Println("printer:", L.CheckString(1))
+	return 0
 }
