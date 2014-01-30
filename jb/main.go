@@ -90,10 +90,11 @@ func main() {
 		if len(os.Args) > 3 {
 			value = os.Args[3]
 		}
-		jeebus.ConnectToServer("?") // TODO nonsense topic
+		sub := jeebus.ConnectToServer("?") // TODO nonsense topic
 		jeebus.Publish(os.Args[2], []byte(value))
-		<-make(chan bool) // TODO need to close gracefully, and not too soon!
-		// close(sub)
+		// TODO need to close gracefully, and not too soon!
+		time.Sleep(10 * time.Millisecond)
+		close(sub)
 
 	default:
 		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
@@ -189,8 +190,6 @@ func (s *RegistryService) Handle(m *jeebus.Message) {
 	case "unregister":
 		delete((*s)[split[1]], arg)
 	}
-
-	log.Printf("  %+v", *s)
 }
 
 type DatabaseService struct {

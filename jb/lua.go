@@ -41,7 +41,7 @@ const code = `
 	local res = GoFun {10,20,30,40}
 	-- the result is a map-proxy
 	print(111)
-	print(res['1'],res['2'])
+	--print(res['1'],res['2'])
 	print(222)
 	-- which we may explicitly convert to a table
 	res = luar.map2table(res)
@@ -88,9 +88,12 @@ func (s *LuaDispatchService) Handle(m *jeebus.Message) {
 	case "register":
 		L := lua.NewState()
 		L.OpenLibs()
-		err := L.DoFile("lua/" + string(m.P) + ".lua")
+		err := L.DoFile("scripts/" + string(m.P) + ".lua")
 		check(err)
 		f := luar.NewLuaObjectFromName(L, "service")
+		luar.Register(L, "", luar.Map{
+			"publish": jeebus.Publish,
+		})
 		// FIXME assumes path is "sv/..."
 		svClient.Register(string(m.P)[3:], &LuaRegisteredService{L, f})
 	}
@@ -103,7 +106,7 @@ type LuaRegisteredService struct {
 
 func (s *LuaRegisteredService) Handle(m *jeebus.Message) {
 	// TODO should auto-reload the Lua script if it has changed on disk
-	log.Printf("LUA-RS %s %s %+v", m.T, string(m.P), s.L)
+	log.Printf("LUA-RS %s %s", m.T, string(m.P))
 	var any interface{}
 	err := json.Unmarshal(m.P, &any)
 	check(err)

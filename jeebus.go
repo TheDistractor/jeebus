@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
@@ -111,6 +112,8 @@ func ConnectToServer(topic string) chan *Message {
 	session, err := net.Dial("tcp", "localhost:1883")
 
 	mqttClient := mqtt.NewClientConn(session)
+	// TODO set id to shorten it, but it's not guaranteed to be unique this way
+	mqttClient.ClientId = fmt.Sprintf("%06d", time.Now().Unix() % 1000000)
 	err = mqttClient.Connect("", "")
 	check(err)
 
