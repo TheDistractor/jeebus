@@ -112,7 +112,7 @@ var state *lua.State // FIXME hacked, to get it into luaDbGet
 
 func (s *LuaRegisteredService) Handle(m *jeebus.Message) {
 	// TODO should auto-reload the Lua script if it has changed on disk
-	log.Printf("LUA-RS %s %s", m.T, string(m.P))
+	log.Printf("LUA-SV %s %s", m.T, string(m.P))
 	var any interface{}
 	err := json.Unmarshal(m.P, &any)
 	check(err)

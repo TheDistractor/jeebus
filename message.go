@@ -10,17 +10,11 @@ import (
 type Message struct {
 	T   string                     // topic
 	P   json.RawMessage            // payload
-	R   bool                       // retain
 	obj map[string]json.RawMessage // decoded payload object fields
 }
 
 // String returns a short string representation of a Message.
 func (m *Message) String() string {
-	// display the retain flag only if set
-	retain := ""
-	if m.R {
-		retain = ",R"
-	}
 	// insert an ellipsis if the payload data is too long
 	// note that all numbers, booleans, and nulls will pass through as is
 	msg := string(m.P)
@@ -42,7 +36,7 @@ func (m *Message) String() string {
 		}
 		return r
 	}
-	return fmt.Sprintf("«M:%s,%s%s»", m.T, strings.Map(f, msg), retain)
+	return fmt.Sprintf("«M:%s,%s»", m.T, strings.Map(f, msg))
 }
 
 // unpack the JSON payload into a map, this fails if payload is not an object.

@@ -58,11 +58,7 @@ func main() {
 			topics = os.Args[2]
 		}
 		for m := range jeebus.ConnectToServer(topics) {
-			retain := ""
-			if m.R {
-				retain = "(retain)"
-			}
-			log.Println(m.T, string(m.P), retain)
+			log.Println(m.T, string(m.P))
 		}
 
 	case "serial":

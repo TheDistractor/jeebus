@@ -93,17 +93,16 @@ func (c *Client) Unregister(name string) {
 
 // Publish an arbitrary value to an arbitrary topic.
 func Publish(topic string, value interface{}) {
-	retain := topic[0] == '/'
 	switch v := value.(type) {
 	case []byte:
-		pubChan <- &Message{T: topic, P: v, R: retain}
+		pubChan <- &Message{T: topic, P: v}
 	case json.RawMessage:
-		pubChan <- &Message{T: topic, P: v, R: retain}
+		pubChan <- &Message{T: topic, P: v}
 	default:
 		data, err := json.Marshal(value)
 		check(err)
 		// log.Println("PUB", topic, string(data))
-		pubChan <- &Message{T: topic, P: data, R: retain}
+		pubChan <- &Message{T: topic, P: data}
 	}
 }
 
@@ -127,7 +126,7 @@ func ConnectToServer(topic string) chan *Message {
 		go func() {
 			for msg := range pubChan {
 				mqttClient.Publish(&proto.Publish{
-					Header:    proto.Header{Retain: msg.R},
+					Header:    proto.Header{Retain: msg.T[0] == '/'},
 					TopicName: msg.T,
 					Payload:   proto.BytesPayload(msg.P),
 				})
@@ -141,7 +140,7 @@ func ConnectToServer(topic string) chan *Message {
 			sub <- &Message{
 				T: m.TopicName,
 				P: json.RawMessage(m.Payload.(proto.BytesPayload)),
-				R: m.Header.Retain,
+				// R: m.Header.Retain,
 			}
 		}
 		log.Println("server connection lost")
