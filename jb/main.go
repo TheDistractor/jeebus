@@ -152,14 +152,15 @@ func startAllServers(port string) {
 	wsClient = jeebus.NewClient("ws")
 
 	rdClient = jeebus.NewClient("rd")
-	rdClient.Register("blinker/#", new(BlinkerDecodeService))
 	rdClient.Register("#", new(LoggerService))
 
 	svClient = jeebus.NewClient("sv")
-	svClient.Register("blinker/#", new(BlinkerEncodeService))
 	svClient.Register("lua/#", new(LuaDispatchService))
 
 	jeebus.Publish("/admin/started", time.Now().Format(time.RFC822Z))
+
+	// hook up the blinker script to handle incoming messages
+	jeebus.Publish("sv/lua/register", []byte("rd/blinker"))
 
 	log.Println("starting web server on ", port)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
@@ -400,16 +401,6 @@ func (s *BlinkerDecodeService) Handle(m *jeebus.Message) {
 		msg["red"] = num != 0
 	}
 	jeebus.Publish("ws/blinker", msg)
-}
-
-type BlinkerEncodeService int
-
-func (s *BlinkerEncodeService) Handle(m *jeebus.Message) {
-	// TODO this is hard-coded, should probably be a lookup table set via pub's
-	msg := map[string]interface{}{
-		"text": fmt.Sprintf("L%d%d", m.GetInt("button"), m.GetInt("value")),
-	}
-	jeebus.Publish("if/blinker", msg)
 }
 
 type LoggerService struct {

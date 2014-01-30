@@ -97,9 +97,16 @@ func (s *LuaDispatchService) Handle(m *jeebus.Message) {
 			"dbGet":   luaDbGet,
 			"dbSet":   luaDbSet,
 		})
-		// FIXME assumes path is "sv/..."
-		state = L
-		svClient.Register(string(m.P)[3:], &LuaRegisteredService{L, f})
+		state = L // TODO get rid of this hack
+		// FIXME assumes path is "rd/..." or "sv/..."
+		topic := string(m.P)[3:] + "/#"
+		service := &LuaRegisteredService{L, f}
+		switch string(m.P)[:2] {
+		case "rd":
+			rdClient.Register(topic, service)
+		case "sv":
+			svClient.Register(topic, service)
+		}
 	}
 }
 
