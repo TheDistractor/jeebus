@@ -102,6 +102,7 @@ type LuaRegisteredService struct {
 }
 
 func (s *LuaRegisteredService) Handle(m *jeebus.Message) {
+	// TODO should auto-reload the Lua script if it has changed on disk
 	log.Printf("LUA-RS %s %s %+v", m.T, string(m.P), s.L)
 	var any interface{}
 	err := json.Unmarshal(m.P, &any)
@@ -109,10 +110,5 @@ func (s *LuaRegisteredService) Handle(m *jeebus.Message) {
 	obj := luar.NewLuaObjectFromValue(s.L, any)
 	res, err := s.f.Call(obj)
 	check(err)
-	log.Printf("RESULT %#v", res)
+	log.Printf("RESULT %+v", res)
 }
-
-// func printer(L *lua.State) int {
-// 	fmt.Println("printer:", L.CheckString(1))
-// 	return 0
-// }

@@ -3,5 +3,5 @@ print("hello from TRY")
 
 function service(req)
   print("request:", req, req.c)
-  return {"reply", req}, 123, "abc"
+  return {"reply", req}
 end
