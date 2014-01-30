@@ -138,7 +138,10 @@ func luaDbGet(key string) (obj *luar.LuaObject) {
 
 func luaDbSet(key string, value interface{}) {
 	if strings.HasPrefix(key, "/") {
-		log.Fatal("cannot use dbSet, must publish: ", key)
+		jeebus.Publish(key, value)
+		// TODO fall through, i.e. *also* set the value right away
+		//  need to inverstigate whether that is a good idea
+		//  the alternative causes a slight delay, due to a round trip to MQTT
 	}
 	if value != nil {
 		msg, err := json.Marshal(value)

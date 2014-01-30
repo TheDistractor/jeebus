@@ -1,5 +1,4 @@
 print("hello from TRY")
--- print(package.path)
 
 function service(req)
   print("req:", req, req.c)
