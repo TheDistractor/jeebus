@@ -93,8 +93,12 @@ func (s *LuaDispatchService) Handle(m *jeebus.Message) {
 		f := luar.NewLuaObjectFromName(L, "service")
 		luar.Register(L, "", luar.Map{
 			"publish": jeebus.Publish,
+			"dbKeys":  luaDbKeys,
+			"dbGet":   luaDbGet,
+			"dbSet":   luaDbSet,
 		})
 		// FIXME assumes path is "sv/..."
+		state = L
 		svClient.Register(string(m.P)[3:], &LuaRegisteredService{L, f})
 	}
 }
@@ -103,6 +107,8 @@ type LuaRegisteredService struct {
 	L *lua.State
 	f *luar.LuaObject
 }
+
+var state *lua.State // FIXME hacked, to get it into luaDbGet
 
 func (s *LuaRegisteredService) Handle(m *jeebus.Message) {
 	// TODO should auto-reload the Lua script if it has changed on disk
@@ -114,4 +120,31 @@ func (s *LuaRegisteredService) Handle(m *jeebus.Message) {
 	res, err := s.f.Call(obj)
 	check(err)
 	log.Printf("RESULT %+v", res)
+}
+
+func luaDbKeys(prefix string) *luar.LuaObject {
+	// TODO look for a way to avoid silly little wrappers like this
+	return luar.NewLuaObjectFromValue(state, dbKeys(prefix))
+}
+
+func luaDbGet(key string) (obj *luar.LuaObject) {
+	v, err := db.Get([]byte(key), nil)
+	check(err)
+	var any interface{}
+	err = json.Unmarshal(v, &any)
+	check(err)
+	return luar.NewLuaObjectFromValue(state, any)
+}
+
+func luaDbSet(key string, value interface{}) {
+	if strings.HasPrefix(key, "/") {
+		log.Fatal("cannot use dbSet, must publish: ", key)
+	}
+	if value != nil {
+		msg, err := json.Marshal(value)
+		check(err)
+		db.Put([]byte(key), msg, nil)
+	} else {
+		db.Delete([]byte(key), nil)
+	}
 }

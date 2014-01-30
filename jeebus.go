@@ -113,7 +113,7 @@ func ConnectToServer(topic string) chan *Message {
 
 	mqttClient := mqtt.NewClientConn(session)
 	// TODO set id to shorten it, but it's not guaranteed to be unique this way
-	mqttClient.ClientId = fmt.Sprintf("%06d", time.Now().Unix() % 1000000)
+	mqttClient.ClientId = fmt.Sprintf("%06d", time.Now().Unix()%1000000)
 	err = mqttClient.Connect("", "")
 	check(err)
 
