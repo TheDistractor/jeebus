@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -92,6 +93,18 @@ func main() {
 		time.Sleep(10 * time.Millisecond)
 		close(sub)
 
+	case "import":
+		if len(os.Args) < 3 {
+			log.Fatalf("usage: jb import <jsonfile>")
+		}
+		importJsonData(os.Args[2])
+
+	case "export":
+		if len(os.Args) < 3 {
+			log.Fatalf("usage: jb export <prefix>")
+		}
+		exportJsonData(os.Args[2])
+
 	default:
 		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
 	}
@@ -101,6 +114,55 @@ func check(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func importJsonData(filename string) {
+	data, err := ioutil.ReadFile("confnew.json")
+	check(err)
+	// var values map[string]map[string]json.RawMessage
+	var values map[string]map[string]interface{}
+	err = json.Unmarshal(data, &values)
+	check(err)
+	sub := jeebus.ConnectToServer("?") // TODO nonsense topic
+	for k, v := range values {
+		// jeebus.Publish(k, v)
+		s, e := json.MarshalIndent(v, "", "  ")
+		check(e)
+		fmt.Printf("%q = %s\n", k, s)
+	}
+	time.Sleep(10 * time.Millisecond)
+	close(sub)
+}
+
+func exportJsonData(prefix string) {
+	// o := &opt.Options{ ErrorIfMissing: true }
+	db, err := leveldb.OpenFile("./storage", nil)
+	check(err)
+
+	limit := prefix + "~" // FIXME see below, same as for dumpDatabase()
+	entries := make(map[string]interface{})
+
+	// get and print all the key/value pairs from the database
+	iter := db.NewIterator(nil)
+	iter.Seek([]byte(prefix))
+	for iter.Valid() {
+		key := iter.Key()[len(prefix):]
+		var value interface{}
+		err = json.Unmarshal(iter.Value(), &value)
+		check(err)
+		entries[string(key)] = value
+		if !iter.Next() || string(iter.Key()) > limit {
+			break
+		}
+	}
+	iter.Release()
+
+	values := make(map[string]map[string]interface{})
+	values[prefix] = entries
+
+	s, e := json.MarshalIndent(values, "", "  ")
+	check(e)
+	fmt.Println(string(s))
 }
 
 func dumpDatabase(from, to string) {
