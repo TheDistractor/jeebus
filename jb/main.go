@@ -36,16 +36,6 @@ func main() {
 
 	switch os.Args[1] {
 
-	case "dump":
-		switch len(os.Args) {
-		case 2:
-			dumpDatabase("", "")
-		case 3:
-			dumpDatabase(os.Args[2], "")
-		case 4:
-			dumpDatabase(os.Args[2], os.Args[3])
-		}
-
 	case "run":
 		port := ":3333"
 		if len(os.Args) > 2 {
@@ -93,17 +83,45 @@ func main() {
 		time.Sleep(10 * time.Millisecond)
 		close(sub)
 
-	case "import":
+	case "db":
 		if len(os.Args) < 3 {
-			log.Fatalf("usage: jb import <jsonfile>")
+			log.Fatalf("usage: jb db <command> ...")
 		}
-		importJsonData(os.Args[2])
 
-	case "export":
-		if len(os.Args) < 3 {
-			log.Fatalf("usage: jb export <prefix>")
+		// o := &opt.Options{ ErrorIfMissing: true }
+		dbf, err := leveldb.OpenFile("./storage", nil)
+		check(err)
+		db = dbf
+
+		switch os.Args[2] {
+		case "dump":
+			switch len(os.Args) {
+			case 3:
+				dumpDatabase("", "")
+			case 4:
+				dumpDatabase(os.Args[3], "")
+			case 5:
+				dumpDatabase(os.Args[3], os.Args[4])
+			}
+
+		case "import":
+			if len(os.Args) < 4 {
+				log.Fatalf("usage: jb db import <jsonfile>")
+			}
+			importJsonData(os.Args[3])
+
+		case "export":
+			if len(os.Args) < 4 {
+				log.Fatalf("usage: jb db export <prefix>")
+			}
+			exportJsonData(os.Args[3])
+
+		case "compact":
+			db.CompactRange(leveldb.Range{})
+
+		default:
+			log.Fatal("unknown db sub-command: jb db ", os.Args[2], " ...")
 		}
-		exportJsonData(os.Args[2])
 
 	default:
 		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
@@ -135,10 +153,6 @@ func importJsonData(filename string) {
 }
 
 func exportJsonData(prefix string) {
-	// o := &opt.Options{ ErrorIfMissing: true }
-	db, err := leveldb.OpenFile("./storage", nil)
-	check(err)
-
 	limit := prefix + "~" // FIXME see below, same as for dumpDatabase()
 	entries := make(map[string]interface{})
 
@@ -148,7 +162,7 @@ func exportJsonData(prefix string) {
 	for iter.Valid() {
 		key := iter.Key()[len(prefix):]
 		var value interface{}
-		err = json.Unmarshal(iter.Value(), &value)
+		err := json.Unmarshal(iter.Value(), &value)
 		check(err)
 		entries[string(key)] = value
 		if !iter.Next() || string(iter.Key()) > limit {
@@ -166,10 +180,6 @@ func exportJsonData(prefix string) {
 }
 
 func dumpDatabase(from, to string) {
-	// o := &opt.Options{ ErrorIfMissing: true }
-	db, err := leveldb.OpenFile("./storage", nil)
-	check(err)
-
 	if to == "" {
 		to = from + "~" // FIXME this assumes all key chars are less than "~"
 	}
