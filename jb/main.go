@@ -29,6 +29,10 @@ var regClient, dbClient, ifClient, wsClient, rdClient, svClient *jeebus.Client
 
 var db *leveldb.DB
 
+func init() {
+	log.SetFlags(log.Ltime)
+}
+
 func main() {
 	if len(os.Args) <= 1 {
 		log.Fatalf("usage: jb <cmd> ... (try 'jb run')")
