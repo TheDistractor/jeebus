@@ -131,9 +131,6 @@ func startAllServers(port string) {
 	db, err = leveldb.OpenFile("./storage", nil)
 	check(err)
 
-	log.Println("setting up Lua")
-	setupLua()
-
 	log.Println("starting MQTT server")
 	sock, err := net.Listen("tcp", ":1883")
 	check(err)
