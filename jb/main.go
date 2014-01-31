@@ -104,17 +104,17 @@ func main() {
 				dumpDatabase(os.Args[3], os.Args[4])
 			}
 
-		case "import":
-			if len(os.Args) < 4 {
-				log.Fatalf("usage: jb db import <jsonfile>")
-			}
-			importJsonData(os.Args[3])
-
 		case "export":
 			if len(os.Args) < 4 {
 				log.Fatalf("usage: jb db export <prefix>")
 			}
 			exportJsonData(os.Args[3])
+
+		case "import":
+			if len(os.Args) < 4 {
+				log.Fatalf("usage: jb db import <jsonfile>")
+			}
+			importJsonData(os.Args[3])
 
 		case "compact":
 			db.CompactRange(leveldb.Range{})
@@ -134,24 +134,6 @@ func check(err error) {
 	}
 }
 
-func importJsonData(filename string) {
-	data, err := ioutil.ReadFile("confnew.json")
-	check(err)
-	// var values map[string]map[string]json.RawMessage
-	var values map[string]map[string]interface{}
-	err = json.Unmarshal(data, &values)
-	check(err)
-	sub := jeebus.ConnectToServer("?") // TODO nonsense topic
-	for k, v := range values {
-		// jeebus.Publish(k, v)
-		s, e := json.MarshalIndent(v, "", "  ")
-		check(e)
-		fmt.Printf("%q = %s\n", k, s)
-	}
-	time.Sleep(10 * time.Millisecond)
-	close(sub)
-}
-
 func exportJsonData(prefix string) {
 	limit := prefix + "~" // FIXME see below, same as for dumpDatabase()
 	entries := make(map[string]interface{})
@@ -161,11 +143,14 @@ func exportJsonData(prefix string) {
 	iter.Seek([]byte(prefix))
 	for iter.Valid() {
 		key := iter.Key()[len(prefix):]
+		if string(iter.Key()) > limit {
+			break
+		}
 		var value interface{}
 		err := json.Unmarshal(iter.Value(), &value)
 		check(err)
 		entries[string(key)] = value
-		if !iter.Next() || string(iter.Key()) > limit {
+		if !iter.Next() {
 			break
 		}
 	}
@@ -177,6 +162,45 @@ func exportJsonData(prefix string) {
 	s, e := json.MarshalIndent(values, "", "  ")
 	check(e)
 	fmt.Println(string(s))
+}
+
+func importJsonData(filename string) {
+	data, err := ioutil.ReadFile(filename)
+	check(err)
+
+	var values map[string]map[string]json.RawMessage
+	err = json.Unmarshal(data, &values)
+	check(err)
+
+	for prefix, entries := range values {
+		limit := prefix + "~" // FIXME see below, same as for dumpDatabase()
+		var ndel, nadd int
+
+		// get and print all the key/value pairs from the database
+		iter := db.NewIterator(nil)
+		iter.Seek([]byte(prefix))
+		for iter.Valid() {
+			key := string(iter.Key())
+			if key > limit {
+				break
+			}
+			err = db.Delete([]byte(key), nil)
+			check(err)
+			ndel++
+			if !iter.Next() {
+				break
+			}
+		}
+		iter.Release()
+
+		for k, v := range entries {
+			err = db.Put([]byte(prefix+k), v, nil)
+			check(err)
+			nadd++
+		}
+
+		fmt.Printf("%d deleted, %d added for prefix %q\n", ndel, nadd, prefix)
+	}
 }
 
 func dumpDatabase(from, to string) {
@@ -214,7 +238,7 @@ func startAllServers(port string) {
 	// FIXME this multi-client connect mess makes no sense on the server
 	//	replace with one MQTT client which listens to everything (i.e. "#")
 	//	... and then dispatch locally with own implementation for wildcards
-	
+
 	regClient = jeebus.NewClient("@")
 	regClient.Register("#", &RegistryService{})
 
