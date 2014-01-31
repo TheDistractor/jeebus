@@ -139,6 +139,10 @@ func startAllServers(port string) {
 	// <-svr.Done
 	log.Println("MQTT server is running")
 
+	// FIXME this multi-client connect mess makes no sense on the server
+	//	replace with one MQTT client which listens to everything (i.e. "#")
+	//	... and then dispatch locally with own implementation for wildcards
+	
 	regClient = jeebus.NewClient("@")
 	regClient.Register("#", &RegistryService{})
 
@@ -386,24 +390,6 @@ func dbKeys(prefix string) []string {
 		}
 	}
 	return result
-}
-
-type BlinkerDecodeService int
-
-func (s *BlinkerDecodeService) Handle(m *jeebus.Message) {
-	text := m.Get("text")
-	num, _ := strconv.Atoi(text[1:])
-	// TODO this is hard-coded, should probably be a lookup table set via pub's
-	msg := make(map[string]interface{})
-	switch text[0] {
-	case 'C':
-		msg["count"] = num
-	case 'G':
-		msg["green"] = num != 0
-	case 'R':
-		msg["red"] = num != 0
-	}
-	jeebus.Publish("ws/blinker", msg)
 }
 
 type LoggerService struct {
