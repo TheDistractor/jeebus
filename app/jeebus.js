@@ -6,14 +6,32 @@
   ng = angular.module('myApp');
 
   ng.factory('jeebus', function($rootScope, $q) {
-    var processRpcReply, rpcPromises, seqNum, ws;
+    var attach, connect, detach, processModelUpdate, processRpcReply, rpc, rpcPromises, send, seqNum, trackedModels, ws;
     ws = null;
     seqNum = 0;
     rpcPromises = {};
+    trackedModels = {};
+    processModelUpdate = function(key, value) {
+      var info, k, suffix;
+      for (k in trackedModels) {
+        info = trackedModels[k];
+        if (k === key.slice(0, k.length)) {
+          suffix = key.slice(k.length);
+          if (value) {
+            info.model[suffix] = value;
+          } else {
+            delete info.model[suffix];
+          }
+        }
+      }
+      if (!suffix) {
+        return console.error("spurious model update", key, value);
+      }
+    };
     processRpcReply = function(n, result, err) {
       var d, tid, _ref;
-      _ref = rpcPromises[n] || [], tid = _ref[0], d = _ref[1];
-      if (d) {
+      if (rpcPromises[n]) {
+        _ref = rpcPromises[n], tid = _ref[0], d = _ref[1];
         clearTimeout(tid);
         if (err) {
           console.error(err);
@@ -21,55 +39,57 @@
         } else {
           return d.resolve(result);
         }
+      } else {
+        return console.error("spurious rpc reply", n, result, err);
       }
     };
-    return {
-      connect: function(appTag, port) {
-        var reconnect;
-        if (port == null) {
-          port = location.port;
-        }
-        reconnect = function(firstCall) {
-          ws = new WebSocket("ws://" + location.hostname + ":" + port + "/ws", [appTag]);
-          ws.onopen = function() {
-            return console.log('WS Open');
-          };
-          ws.onmessage = function(m) {
-            if (m.data instanceof ArrayBuffer) {
-              console.log('binary msg', m);
-            }
-            return $rootScope.$apply(function() {
-              var data, k, v, _results;
-              data = JSON.parse(m.data);
-              if (m.data[0] === '[') {
-                return processRpcReply.apply(null, data);
-              } else {
-                _results = [];
-                for (k in data) {
-                  v = data[k];
-                  _results.push($rootScope[k] = v);
-                }
-                return _results;
-              }
-            });
-          };
-          return ws.onclose = function() {
-            console.log('WS Closed');
-            return setTimeout(reconnect, 1000);
-          };
+    connect = function(appTag, port) {
+      var reconnect;
+      if (port == null) {
+        port = location.port;
+      }
+      reconnect = function(firstCall) {
+        ws = new WebSocket("ws://" + location.hostname + ":" + port + "/ws", [appTag]);
+        ws.onopen = function() {
+          return console.log('WS Open');
         };
-        return reconnect(true);
-      },
-      send: function(payload) {
-        var msg;
-        msg = angular.toJson(payload);
-        if (msg[0] === '[') {
-          console.error("payload can't be an array (" + payload.length + " elements)");
-        } else {
-          ws.send(msg);
-        }
-        return this;
-      },
+        ws.onmessage = function(m) {
+          if (m.data instanceof ArrayBuffer) {
+            console.log('binary msg', m);
+          }
+          return $rootScope.$apply(function() {
+            var data, k, v, _results;
+            data = JSON.parse(m.data);
+            if (m.data[0] === '[') {
+              return processRpcReply.apply(null, data);
+            } else {
+              _results = [];
+              for (k in data) {
+                v = data[k];
+                _results.push(processModelUpdate(k, v));
+              }
+              return _results;
+            }
+          });
+        };
+        return ws.onclose = function() {
+          console.log('WS Closed');
+          return setTimeout(reconnect, 1000);
+        };
+      };
+      return reconnect(true);
+    };
+    send = function(payload) {
+      var msg;
+      msg = angular.toJson(payload);
+      if (msg[0] === '[') {
+        console.error("payload can't be an array (" + payload.length + " elements)");
+      } else {
+        ws.send(msg);
+      }
+      return this;
+    };
+    ({
       store: function(key, value) {
         var msg;
         msg = angular.toJson([key, value]);
@@ -79,24 +99,59 @@
           console.error('key does not start with "/":', key);
         }
         return this;
-      },
-      rpc: function() {
-        var args, d, n, tid;
-        args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-        d = $q.defer();
-        n = ++seqNum;
-        ws.send(angular.toJson([n].concat(__slice.call(args))));
-        tid = setTimeout(function() {
-          console.error("RPC " + n + ": no reponse", args);
-          delete rpcPromises[n];
-          return $rootScope.$apply(function() {
-            return d.reject();
-          });
-        }, 10000);
-        rpcPromises[n] = [tid, d];
-        return d.promise;
       }
+    });
+    rpc = function() {
+      var args, d, n, tid;
+      args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      d = $q.defer();
+      n = ++seqNum;
+      ws.send(angular.toJson([n].concat(__slice.call(args))));
+      tid = setTimeout(function() {
+        console.error("RPC " + n + ": no reponse", args);
+        delete rpcPromises[n];
+        return $rootScope.$apply(function() {
+          return d.reject();
+        });
+      }, 10000);
+      rpcPromises[n] = [tid, d];
+      return d.promise;
+    };
+    attach = function(path) {
+      var info;
+      info = trackedModels[path] != null ? trackedModels[path] : trackedModels[path] = {
+        model: {},
+        count: 0
+      };
+      if (info.count++ === 0) {
+        rpc('attach', path).then(function(r) {
+          var k, v;
+          for (k in r) {
+            v = r[k];
+            processModelUpdate(k, v);
+          }
+          return console.log('attached', path);
+        });
+      }
+      return info.model;
+    };
+    detach = function(path) {
+      if (trackedModels[path] && --trackedModels[path].count <= 0) {
+        delete trackedModels[path];
+        return rpc('attach', path).then(function() {
+          return console.log('detached', path);
+        });
+      }
+    };
+    return {
+      connect: connect,
+      send: send,
+      rpc: rpc,
+      attach: attach,
+      detach: detach
     };
   });
 
 }).call(this);
+
+//# sourceMappingURL=jeebus.map

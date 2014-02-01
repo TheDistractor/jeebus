@@ -8,7 +8,17 @@
     return jeebus.connect('blinker');
   });
 
-  ng.controller('MainCtrl', function($scope, jeebus) {
+  ng.controller('MainCtrl', function($scope, $timeout, jeebus) {
+    $timeout(function() {
+      $scope.admin = jeebus.attach('/admin/');
+      $scope.$on('$destroy', function() {
+        return jeebus.detach('/admin/');
+      });
+      $scope.blinker = jeebus.attach('/blinker/');
+      return $scope.$on('$destroy', function() {
+        return jeebus.detach('/blinker/');
+      });
+    }, 100);
     $scope.button = function(button, value) {
       return jeebus.send({
         button: button,
@@ -39,3 +49,5 @@
   });
 
 }).call(this);
+
+//# sourceMappingURL=client.map

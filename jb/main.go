@@ -29,8 +29,12 @@ var regClient, dbClient, ifClient, wsClient, rdClient, svClient *jeebus.Client
 
 var db *leveldb.DB
 
+// map from prefix -> tag -> refcount
+var attached map[string]map[string]int
+
 func init() {
 	log.SetFlags(log.Ltime)
+	attached = make(map[string]map[string]int)
 }
 
 func main() {
@@ -423,7 +427,7 @@ func sockServer(ws *websocket.Conn) {
 				check(err)
 				log.Printf("RPC %.100v (%s)", any, name)
 				// ptocess the RPC request, returns either a value or an error
-				result, err := processRpcRequest(any[1].(string), any[2:])
+				result, err := processRpcRequest(name, any[1].(string), any[2:])
 				// convert errors to strings to send them through JSON
 				var emsg interface{}
 				if err != nil {
@@ -443,18 +447,72 @@ func sockServer(ws *websocket.Conn) {
 	}
 }
 
-func processRpcRequest(cmd string, args []interface{}) (interface{}, error) {
+func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error) {
 	switch cmd {
+
 	case "echo":
 		return args, nil
+
 	case "db-keys":
 		return dbKeys(args[0].(string)), nil
+
 	case "db-get":
 		v, e := db.Get([]byte(args[0].(string)), nil) // TODO yuck...
 		return string(v), e
+
 	case "lua":
 		return luaRunWithArgs(args)
+
+	case "attach":
+		prefix := args[0].(string)
+		if _, ok := attached[prefix]; !ok {
+			attached[prefix] = make(map[string]int)
+		}
+		if _, ok := attached[prefix][name]; !ok {
+			attached[prefix][name] = 0
+		}
+		attached[prefix][name]++
+		log.Println("attached", attached)
+
+		to := prefix + "~" // TODO see notes about "~" elsewhere
+		result := make(map[string]interface{})
+
+		iter := db.NewIterator(nil)
+		iter.Seek([]byte(prefix))
+		for iter.Valid() {
+			if string(iter.Key()) > to {
+				break
+			}
+			fmt.Printf("%s = %s\n", iter.Key(), iter.Value())
+			var obj interface{}
+			err := json.Unmarshal(iter.Value(), &obj) // TODO yuck, why decode?
+			check(err)
+			result[string(iter.Key())] = obj
+			if !iter.Next() {
+				break
+			}
+		}
+		iter.Release()
+
+		return result, nil
+
+	case "detach":
+		prefix := args[0].(string)
+		if v, ok := attached[prefix]; ok {
+			if _, ok := v[name]; ok {
+				attached[prefix][name]--
+				if attached[prefix][name] <= 0 {
+					delete(attached[prefix], name)
+					if len(attached[prefix]) == 0 {
+						delete(attached, prefix)
+					}
+				}
+			}
+		}
+		log.Println("detached", attached)
+		return nil, nil
 	}
+
 	return nil, errors.New("RPC not found: " + cmd)
 }
 

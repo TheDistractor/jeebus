@@ -3,7 +3,14 @@ ng = angular.module 'myApp', ['ui.router']
 ng.run (jeebus) ->
   jeebus.connect 'blinker'
 
-ng.controller 'MainCtrl', ($scope, jeebus) ->
+ng.controller 'MainCtrl', ($scope, $timeout, jeebus) ->
+  # TODO this delay seems to be required to avoid an error with WS setup - why?
+  $timeout ->
+    $scope.admin = jeebus.attach '/admin/'
+    $scope.$on '$destroy', -> jeebus.detach '/admin/'
+    $scope.blinker = jeebus.attach '/blinker/'
+    $scope.$on '$destroy', -> jeebus.detach '/blinker/'
+  , 100
 
   $scope.button = (button, value) ->
     jeebus.send {button,value}

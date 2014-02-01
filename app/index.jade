@@ -25,15 +25,17 @@ html(ng-app='myApp')
           button(ng-click='luaTest()') RPC Lua
       tr
         td
-          input(type='checkbox',ng-model='green',disabled)
+          input(type='checkbox',ng-model='blinker.green',disabled)
           | Green LED
         td
-          input(type='checkbox',ng-model='red',disabled)
+          input(type='checkbox',ng-model='blinker.red',disabled)
           | Red LED
         td(colspan=4)
           | {{ message }}
 
-    p Count = {{ count }}
+    p Count = {{ blinker.count }}
+
+    p Admin = {{ admin.started }}
 
     script(src='client.js')
     script(src='jeebus.js')

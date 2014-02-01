@@ -31,15 +31,16 @@
       </tr>
       <tr>
         <td>
-          <input type="checkbox" ng-model="green" disabled>Green LED
+          <input type="checkbox" ng-model="blinker.green" disabled>Green LED
         </td>
         <td>
-          <input type="checkbox" ng-model="red" disabled>Red LED
+          <input type="checkbox" ng-model="blinker.red" disabled>Red LED
         </td>
         <td colspan="4">{{ message }}</td>
       </tr>
     </table>
-    <p>Count = {{ count }}</p>
+    <p>Count = {{ blinker.count }}</p>
+    <p>Admin = {{ admin.started }}</p>
     <script src="client.js"></script>
     <script src="jeebus.js"></script>
   </body>
