@@ -14,48 +14,28 @@ import (
 type Client struct {
 	Mqtt     *mqtt.ClientConn
 	Services map[string]Service
-	Done	 chan bool
+	Done     chan bool
 }
 
-func (c *Client) Dispatch(m *Message) {
+func (c *Client) Dispatch(topic string, payload interface{}) {
 	// TODO full MQTT wildcard match logic, i.e. also +'s
-	topic := []byte(m.T)
+	m := &Message{T: topic, P: NewPayload(payload)}
+	t := []byte(topic)
 
 	for k, v := range c.Services {
-		if k == m.T {
+		if k == topic {
 			v.Handle(m)
 		} else {
 			for i, b := range []byte(k) {
-				if b == '#' || i == len(topic) && b == '/' {
+				if b == '#' || i == len(t) && b == '/' {
 					v.Handle(m)
-					break
+				} else if b == t[i] {
+					continue
 				}
+				break
 			}
 		}
 	}
-
-/*
-	// look for an exact service match
-	if service, ok := c.Services[subTopic]; ok {
-		service.Handle(message)
-	} else {
-		// look for prefixes and wildcards
-		subPrefix := subTopic + "/"
-		for k, v := range c.Services {
-			n := len(k) - 1
-			// log.Printf("SLICE n %d k %s sp %s", n, k, subPrefix)
-			switch {
-			//  pub "foo/bar" matches sub "foo/bar/bleep"
-			case strings.HasPrefix(k, subPrefix):
-				v.Handle(message)
-			//  pub "foo/bar/bleep" matches sub "foo/bar/#"
-			case n >= 0 && n <= len(subPrefix) &&
-				k[n] == '#' && k[:n] == subPrefix[:n]:
-				v.Handle(message)
-			}
-		}
-	}
-*/
 }
 
 // Service represents the registration for a specific subtopic
@@ -76,8 +56,7 @@ func NewClient() *Client {
 
 	go func() {
 		for m := range mc.Incoming {
-			payload := json.RawMessage(m.Payload.(proto.BytesPayload))
-			c.Dispatch(&Message{T: m.TopicName, P: payload})
+			c.Dispatch(m.TopicName, m.Payload.(proto.BytesPayload))
 		}
 		log.Println("server connection lost")
 		c.Done <- true
@@ -107,70 +86,43 @@ func (c *Client) Unregister(topic string) {
 	delete(c.Services, topic)
 }
 
-// Publish an arbitrary value to an arbitrary topic.
-func (c *Client) Publish(topic string, value interface{}) {
-	var m *Message
+type Payload []byte
+
+func (p *Payload) MarshalJSON() ([]byte, error) {
+	log.Printf("Marshal %v", p)
+	return *p, nil
+}
+
+func (p *Payload) UnmarshalJSON(v []byte) (error) {
+	log.Printf("Unarshal %v", v)
+	*p = v
+	return nil
+}
+
+// NewPayload constructs a payload from just about any type of data.
+func NewPayload(value interface{}) Payload {
 	switch v := value.(type) {
 	case []byte:
-		m = &Message{T: topic, P: v}
+		return v
+	case Payload:
+		return []byte(v)
 	case json.RawMessage:
-		m = &Message{T: topic, P: v}
+		return []byte(v)
 	default:
 		data, err := json.Marshal(value)
 		check(err)
-		// log.Println("PUB", topic, string(data))
-		m = &Message{T: topic, P: data}
+		return data
 	}
+}
+
+// Publish an arbitrary value to an arbitrary topic.
+func (c *Client) Publish(topic string, value interface{}) {
 	c.Mqtt.Publish(&proto.Publish{
-		Header:    proto.Header{Retain: m.T[0] == '/'},
-		TopicName: m.T,
-		Payload:   proto.BytesPayload(m.P),
+		Header:    proto.Header{Retain: topic[0] == '/'},
+		TopicName: topic,
+		Payload:   proto.BytesPayload(NewPayload(value)),
 	})
 }
-
-// ConnectToServer sets up an MQTT client and subscribes to the given topic(s).
-/*
-func ConnectToServer(topic string) chan *Message {
-	session, err := net.Dial("tcp", "localhost:1883")
-
-	mqttClient := mqtt.NewClientConn(session)
-	err = mqttClient.Connect("", "")
-	check(err)
-
-	mqttClient.Subscribe([]proto.TopicQos{
-		{Topic: topic, Qos: proto.QosAtMostOnce},
-	})
-
-	// set up a channel to publish through, but only once
-	if pubChan == nil {
-		pubChan = make(chan *Message)
-		go func() {
-			for msg := range pubChan {
-				mqttClient.Publish(&proto.Publish{
-					Header:    proto.Header{Retain: msg.T[0] == '/'},
-					TopicName: msg.T,
-					Payload:   proto.BytesPayload(msg.P),
-				})
-			}
-		}()
-	}
-
-	sub := make(chan *Message)
-	go func() {
-		for m := range mqttClient.Incoming {
-			sub <- &Message{
-				T: m.TopicName,
-				P: json.RawMessage(m.Payload.(proto.BytesPayload)),
-				// R: m.Header.Retain,
-			}
-		}
-		log.Println("server connection lost")
-		close(sub)
-	}()
-
-	return sub
-}
-*/
 
 func check(err error) {
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 // Message represent a payload over MQTT for a specified topic.
 type Message struct {
 	T   string                     // topic
-	P   json.RawMessage            // payload
+	P   Payload                    // payload
 	obj map[string]json.RawMessage // decoded payload object fields
 }
 
