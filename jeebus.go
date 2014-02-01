@@ -3,28 +3,59 @@ package jeebus
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net"
-	"strings"
-	"time"
 
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
 )
 
-var pubChan chan *Message
-
 // Client represents a group of MQTT topics used as services.
 type Client struct {
-	Prefix   string
-	Sub      chan *Message
+	Mqtt     *mqtt.ClientConn
 	Services map[string]Service
+	Done	 chan bool
 }
 
-// String returns a short string representation of a Client.
-func (c *Client) String() string {
-	return fmt.Sprintf("«C:%s,%d»", c.Prefix, len(c.Services))
+func (c *Client) Dispatch(m *Message) {
+	// TODO full MQTT wildcard match logic, i.e. also +'s
+	topic := []byte(m.T)
+
+	for k, v := range c.Services {
+		if k == m.T {
+			v.Handle(m)
+		} else {
+			for i, b := range []byte(k) {
+				if b == '#' || i == len(topic) && b == '/' {
+					v.Handle(m)
+					break
+				}
+			}
+		}
+	}
+
+/*
+	// look for an exact service match
+	if service, ok := c.Services[subTopic]; ok {
+		service.Handle(message)
+	} else {
+		// look for prefixes and wildcards
+		subPrefix := subTopic + "/"
+		for k, v := range c.Services {
+			n := len(k) - 1
+			// log.Printf("SLICE n %d k %s sp %s", n, k, subPrefix)
+			switch {
+			//  pub "foo/bar" matches sub "foo/bar/bleep"
+			case strings.HasPrefix(k, subPrefix):
+				v.Handle(message)
+			//  pub "foo/bar/bleep" matches sub "foo/bar/#"
+			case n >= 0 && n <= len(subPrefix) &&
+				k[n] == '#' && k[:n] == subPrefix[:n]:
+				v.Handle(message)
+			}
+		}
+	}
+*/
 }
 
 // Service represents the registration for a specific subtopic
@@ -33,86 +64,76 @@ type Service interface {
 	Handle(m *Message)
 }
 
-// NewClient sets up a new MQTT connection for a specified client prefix.
-func NewClient(prefix string) *Client {
-	sub := ConnectToServer(prefix + "/#")
-	c := &Client{prefix, sub, make(map[string]Service)}
+// NewClient sets up a new MQTT connection plus registration mechanism
+func NewClient() *Client {
+	session, err := net.Dial("tcp", "localhost:1883")
 
-	Publish("@/connect", prefix)
-	log.Println("client connected:", prefix)
+	mc := mqtt.NewClientConn(session)
+	err = mc.Connect("", "")
+	check(err)
+
+	c := &Client{mc, make(map[string]Service), make(chan bool)}
 
 	go func() {
-		// can't do this, since the connection has already been lost
-		// defer Publish("@/disconnect", prefix)
-
-		skip := len(prefix) + 1
-		for m := range sub {
-			subTopic := m.T[skip:]
-			message := &Message{T: subTopic, P: m.P}
-
-			// TODO full MQTT wildcard match logic, i.e. also +'s
-			// look for an exact service match
-			if service, ok := c.Services[subTopic]; ok {
-				service.Handle(message)
-			} else {
-				// look for prefixes and wildcards
-				subPrefix := subTopic + "/"
-				for k, v := range c.Services {
-					n := len(k) - 1
-					// log.Printf("SLICE n %d k %s sp %s", n, k, subPrefix)
-					switch {
-					//  pub "foo/bar" matches sub "foo/bar/bleep"
-					case strings.HasPrefix(k, subPrefix):
-						v.Handle(message)
-					//  pub "foo/bar/bleep" matches sub "foo/bar/#"
-					case n >= 0 && n <= len(subPrefix) &&
-						k[n] == '#' && k[:n] == subPrefix[:n]:
-						v.Handle(message)
-					}
-				}
-			}
+		for m := range mc.Incoming {
+			payload := json.RawMessage(m.Payload.(proto.BytesPayload))
+			c.Dispatch(&Message{T: m.TopicName, P: payload})
 		}
-
-		log.Println("client disconnected:", prefix)
+		log.Println("server connection lost")
+		c.Done <- true
 	}()
+
+	// Publish("@/connect", prefix)
+	log.Println("client connected")
 
 	return c
 }
 
 // Register a new service for a client with a specific prefix (can end in "#")
-func (c *Client) Register(name string, service Service) {
-	c.Services[name] = service
-	Publish("@/register"+"/"+c.Prefix, name)
+func (c *Client) Register(topic string, service Service) {
+	if _, ok := c.Services[topic]; ok {
+		log.Fatal("canno register service twice:", topic)
+	}
+	c.Services[topic] = service
+	c.Mqtt.Subscribe([]proto.TopicQos{
+		{Topic: topic, Qos: proto.QosAtMostOnce},
+	})
+	c.Publish("@/register", topic)
 }
 
 // Unregister a previously defined service.
-func (c *Client) Unregister(name string) {
-	Publish("@/unregister"+"/"+c.Prefix, name)
-	delete(c.Services, name)
+func (c *Client) Unregister(topic string) {
+	c.Publish("@/unregister", topic)
+	delete(c.Services, topic)
 }
 
 // Publish an arbitrary value to an arbitrary topic.
-func Publish(topic string, value interface{}) {
+func (c *Client) Publish(topic string, value interface{}) {
+	var m *Message
 	switch v := value.(type) {
 	case []byte:
-		pubChan <- &Message{T: topic, P: v}
+		m = &Message{T: topic, P: v}
 	case json.RawMessage:
-		pubChan <- &Message{T: topic, P: v}
+		m = &Message{T: topic, P: v}
 	default:
 		data, err := json.Marshal(value)
 		check(err)
 		// log.Println("PUB", topic, string(data))
-		pubChan <- &Message{T: topic, P: data}
+		m = &Message{T: topic, P: data}
 	}
+	c.Mqtt.Publish(&proto.Publish{
+		Header:    proto.Header{Retain: m.T[0] == '/'},
+		TopicName: m.T,
+		Payload:   proto.BytesPayload(m.P),
+	})
 }
 
 // ConnectToServer sets up an MQTT client and subscribes to the given topic(s).
+/*
 func ConnectToServer(topic string) chan *Message {
 	session, err := net.Dial("tcp", "localhost:1883")
 
 	mqttClient := mqtt.NewClientConn(session)
-	// TODO set id to shorten it, but it's not guaranteed to be unique this way
-	mqttClient.ClientId = fmt.Sprintf("%06d", time.Now().Unix()%1000000)
 	err = mqttClient.Connect("", "")
 	check(err)
 
@@ -149,6 +170,7 @@ func ConnectToServer(topic string) chan *Message {
 
 	return sub
 }
+*/
 
 func check(err error) {
 	if err != nil {

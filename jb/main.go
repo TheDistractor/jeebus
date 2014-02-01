@@ -25,12 +25,11 @@ import (
 	// "github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-var regClient, dbClient, ifClient, wsClient, rdClient, svClient *jeebus.Client
-
-var db *leveldb.DB
-
-// map from prefix -> tag -> refcount
-var attached map[string]map[string]int
+var (
+	db       *leveldb.DB
+	attached map[string]map[string]int // map from prefix -> tag -> refcount
+	client   *jeebus.Client
+)
 
 func init() {
 	log.SetFlags(log.Ltime)
@@ -56,9 +55,9 @@ func main() {
 		if len(os.Args) > 2 {
 			topics = os.Args[2]
 		}
-		for m := range jeebus.ConnectToServer(topics) {
-			log.Println(m.T, string(m.P))
-		}
+		client = jeebus.NewClient()
+		client.Register(topics, new(SeeService))
+		<-client.Done
 
 	case "serial":
 		if len(os.Args) <= 2 {
@@ -74,7 +73,7 @@ func main() {
 		nbaud, err := strconv.Atoi(baud)
 		check(err)
 		log.Println("opening serial port", dev)
-		ifClient = jeebus.NewClient("if")
+		client = jeebus.NewClient()
 		serialConnect(dev, nbaud, tag)
 
 	case "pub":
@@ -85,11 +84,10 @@ func main() {
 		if len(os.Args) > 3 {
 			value = os.Args[3]
 		}
-		sub := jeebus.ConnectToServer("?") // TODO nonsense topic
-		jeebus.Publish(os.Args[2], []byte(value))
+		client = jeebus.NewClient()
+		client.Publish(os.Args[2], []byte(value))
 		// TODO need to close gracefully, and not too soon!
 		time.Sleep(10 * time.Millisecond)
-		close(sub)
 
 	case "db":
 		if len(os.Args) < 3 {
@@ -140,6 +138,12 @@ func check(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+type SeeService struct{}
+
+func (s *SeeService) Handle(m *jeebus.Message) {
+	log.Println(m.T, string(m.P))
 }
 
 func exportJsonData(prefix string) {
@@ -247,31 +251,26 @@ func startAllServers(port string) {
 	//	replace with one MQTT client which listens to everything (i.e. "#")
 	//	... and then dispatch locally using own implementation for wildcards
 
-	regClient = jeebus.NewClient("@")
-	regClient.Register("#", &RegistryService{})
+	client = jeebus.NewClient()
+	client.Register("@/#", &RegistryService{})
+	client.Register("/#", &DatabaseService{db})
 
-	dbClient = jeebus.NewClient("")
-	dbClient.Register("#", &DatabaseService{db})
+	// ifClient = jeebus.NewClient("if")
+	// wsClient = jeebus.NewClient("ws")
 
-	ifClient = jeebus.NewClient("if")
-	wsClient = jeebus.NewClient("ws")
+	client.Register("rd/#", new(LoggerService))
+	client.Register("sv/lua/#", new(LuaDispatchService))
 
-	rdClient = jeebus.NewClient("rd")
-	rdClient.Register("#", new(LoggerService))
-
-	svClient = jeebus.NewClient("sv")
-	svClient.Register("lua/#", new(LuaDispatchService))
-
-	jeebus.Publish("/admin/started", time.Now().Format(time.RFC822Z))
+	client.Publish("/admin/started", time.Now().Format(time.RFC822Z))
 
 	// FIXME hook up the blinker script to handle incoming messages
-	jeebus.Publish("sv/lua/register", []byte("rd/blinker"))
+	client.Publish("sv/lua/register", []byte("rd/blinker"))
 
 	// continuously publish a tick value, for testing, TODO remove this again
 	go func() {
 		ticker := time.NewTicker(1 * time.Second)
 		for tick := range ticker.C {
-			jeebus.Publish("/admin/tick", tick.String())
+			client.Publish("/admin/tick", tick.String())
 		}
 	}()
 
@@ -328,7 +327,7 @@ func (s *DatabaseService) Handle(m *jeebus.Message) {
 			for dest, _ := range v {
 				// log.Printf("ATT %s -> %s (%s #%d)", k, path, dest, count)
 				// TODO very inefficient, avoid extra round trip through MQTT!
-				jeebus.Publish("ws/" + dest, msg)
+				client.Publish("ws/"+dest, msg)
 			}
 		}
 	}
@@ -375,23 +374,23 @@ func serialConnect(port string, baudrate int, tag string) {
 	name := tag + "/" + dev
 	log.Println("serial ready:", name)
 
-	ifClient.Register(name, &SerialInterfaceService{serial})
+	client.Register("if/" + name, &SerialInterfaceService{serial})
 
 	// store the tag line for this device
 	attachMsg := map[string]string{"text": input.Text, "tag": tag}
-	jeebus.Publish("/attach/"+dev, attachMsg)
+	client.Publish("/attach/"+dev, attachMsg)
 
 	// send the tag line (if present), then send out whatever comes in
 	if input.Text != "" {
-		jeebus.Publish("rd/"+name, &input)
+		client.Publish("rd/"+name, &input)
 	}
 	for scanner.Scan() {
 		input.Time = time.Now().UTC().UnixNano() / 1000000
 		input.Text = scanner.Text()
-		jeebus.Publish("rd/"+name, &input)
+		client.Publish("rd/"+name, &input)
 	}
 
-	ifClient.Unregister(name)
+	client.Unregister("if/" + name)
 }
 
 type WebsocketService struct {
@@ -409,8 +408,8 @@ func sockServer(ws *websocket.Conn) {
 	tag := ws.Request().Header.Get("Sec-Websocket-Protocol")
 	name := tag + "/ip-" + ws.Request().RemoteAddr
 
-	wsClient.Register(name, &WebsocketService{ws})
-	defer wsClient.Unregister(name)
+	client.Register("ws/" + name, &WebsocketService{ws})
+	defer client.Unregister("ws/" + name)
 
 	for {
 		var msg json.RawMessage
@@ -440,7 +439,7 @@ func sockServer(ws *websocket.Conn) {
 				// it's an MQTT publish request
 				log.Println("TOPIC", topic, args)
 				if strings.HasPrefix(topic, "/") {
-					jeebus.Publish(topic, args[1])
+					client.Publish(topic, args[1])
 				} else {
 					log.Fatal("ws: topic must start with '/': ", topic)
 				}
@@ -466,7 +465,7 @@ func sockServer(ws *websocket.Conn) {
 			}
 		default:
 			// everything else (i.e. a JSON object) becomes an MQTT service req
-			jeebus.Publish("sv/"+name, msg)
+			client.Publish("sv/"+name, msg)
 		}
 	}
 }

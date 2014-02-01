@@ -18,17 +18,9 @@ func (s *LuaDispatchService) Handle(m *jeebus.Message) {
 	switch split[1] {
 	case "register":
 		L := newLuaInstance(string(m.P))
-		state = L // TODO get rid of this hack
+		state = L // TODO get rid of this global hack!
 		f := luar.NewLuaObjectFromName(L, "service")
-		// FIXME assumes path is "rd/..." or "sv/..."
-		topic := string(m.P)[3:] + "/#"
-		service := &LuaRegisteredService{L, f}
-		switch string(m.P)[:2] {
-		case "rd":
-			rdClient.Register(topic, service)
-		case "sv":
-			svClient.Register(topic, service)
-		}
+		client.Register(string(m.P) + "/#", &LuaRegisteredService{L, f})
 	}
 }
 
@@ -38,7 +30,7 @@ func newLuaInstance(path string) *lua.State {
 	err := L.DoFile("scripts/" + path + ".lua")
 	check(err)
 	luar.Register(L, "", luar.Map{
-		"publish": jeebus.Publish,
+		"publish": client.Publish,
 		"dbKeys":  luaDbKeys,
 		"dbGet":   luaDbGet,
 		"dbSet":   luaDbSet,
@@ -94,7 +86,7 @@ func luaDbGet(key string) (obj *luar.LuaObject) {
 
 func luaDbSet(key string, value interface{}) {
 	if strings.HasPrefix(key, "/") {
-		jeebus.Publish(key, value)
+		client.Publish(key, value)
 		// TODO fall through, i.e. *also* set the value right away
 		//  need to inverstigate whether that is a good idea
 		//  the alternative causes a slight delay, due to a round trip to MQTT
