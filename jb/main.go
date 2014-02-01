@@ -245,7 +245,7 @@ func startAllServers(port string) {
 
 	// FIXME this multi-client connect mess makes no sense on the server
 	//	replace with one MQTT client which listens to everything (i.e. "#")
-	//	... and then dispatch locally with own implementation for wildcards
+	//	... and then dispatch locally using own implementation for wildcards
 
 	regClient = jeebus.NewClient("@")
 	regClient.Register("#", &RegistryService{})
@@ -264,8 +264,16 @@ func startAllServers(port string) {
 
 	jeebus.Publish("/admin/started", time.Now().Format(time.RFC822Z))
 
-	// hook up the blinker script to handle incoming messages
+	// FIXME hook up the blinker script to handle incoming messages
 	jeebus.Publish("sv/lua/register", []byte("rd/blinker"))
+
+	// continuously publish a tick value, for testing, TODO remove this again
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		for tick := range ticker.C {
+			jeebus.Publish("/admin/tick", tick.String())
+		}
+	}()
 
 	log.Println("starting web server on ", port)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
@@ -299,14 +307,30 @@ type DatabaseService struct {
 }
 
 func (s *DatabaseService) Handle(m *jeebus.Message) {
+	path := "/" + m.T
 	if len(m.P) > 0 {
-		s.db.Put([]byte("/"+m.T), m.P, nil)
+		s.db.Put([]byte(path), m.P, nil)
+		// TODO reconsider carefully whether to use timestamp inside payload
 		millis := time.Now().UnixNano() / 1000000
 		s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", m.T, millis)), m.P, nil)
 	} else {
-		s.db.Delete([]byte("/"+m.T), nil)
+		s.db.Delete([]byte(path), nil)
 		// TODO decide what to do with deletions w.r.t. the historical data
 		//  record the deletion? delete it as well? sweep and clean up later?
+	}
+	for k, v := range attached {
+		if strings.HasPrefix(path, k) {
+			var any interface{}
+			err := json.Unmarshal(m.P, &any) // FIXME why unwrap here???
+			check(err)
+			msg := make(map[string]interface{})
+			msg[path] = any
+			for dest, _ := range v {
+				// log.Printf("ATT %s -> %s (%s #%d)", k, path, dest, count)
+				// TODO very inefficient, avoid extra round trip through MQTT!
+				jeebus.Publish("ws/" + dest, msg)
+			}
+		}
 	}
 }
 
@@ -472,7 +496,7 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 			attached[prefix][name] = 0
 		}
 		attached[prefix][name]++
-		log.Println("attached", attached)
+		log.Println("attached", prefix, name)
 
 		to := prefix + "~" // TODO see notes about "~" elsewhere
 		result := make(map[string]interface{})
@@ -483,7 +507,6 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 			if string(iter.Key()) > to {
 				break
 			}
-			fmt.Printf("%s = %s\n", iter.Key(), iter.Value())
 			var obj interface{}
 			err := json.Unmarshal(iter.Value(), &obj) // TODO yuck, why decode?
 			check(err)
@@ -509,7 +532,7 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 				}
 			}
 		}
-		log.Println("detached", attached)
+		log.Println("detached", prefix, name)
 		return nil, nil
 	}
 
