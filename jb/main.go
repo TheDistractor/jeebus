@@ -77,6 +77,20 @@ func main() {
 		serialConnect(dev, nbaud, tag)
 		<- client.Done
 
+	case "tick":
+		topic := "/admin/tick"
+		if len(os.Args) > 2 {
+			topic = os.Args[2]
+		}
+		client = jeebus.NewClient()
+		go func() {
+			ticker := time.NewTicker(time.Second)
+			for tick := range ticker.C {
+				client.Publish(topic, tick.String())
+			}
+		}()
+		<- client.Done
+
 	case "pub":
 		if len(os.Args) < 3 {
 			log.Fatalf("usage: jb pub <key> ?<jsonval>?")
@@ -257,14 +271,6 @@ func startAllServers(port string) {
 
 	// FIXME hook up the blinker script to handle incoming messages
 	client.Publish("sv/lua/register", []byte("rd/blinker"))
-
-	// continuously publish a tick value, for testing, TODO remove this again
-	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-		for tick := range ticker.C {
-			client.Publish("/admin/tick", tick.String())
-		}
-	}()
 
 	log.Println("starting web server on ", port)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
