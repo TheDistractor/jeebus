@@ -502,6 +502,18 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 		}
 		log.Println("detached", prefix, name)
 		return nil, nil
+
+	case "openfile":
+		name := args[0].(string)
+		// TODO this isn't safe if the filename uses a nasty path!
+		return ioutil.ReadFile("files/" + name)
+
+	case "savefile":
+		name, data := args[0].(string), args[1].(string)
+		// TODO this isn't safe if the filename uses a nasty path!
+		err := ioutil.WriteFile("files/" + name, []byte(data), 0666)
+		check(err)
+		return nil, nil
 	}
 
 	return nil, errors.New("RPC not found: " + cmd)
