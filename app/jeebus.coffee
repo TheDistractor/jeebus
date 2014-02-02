@@ -80,10 +80,10 @@ ng.factory 'jeebus', ($rootScope, $q) ->
     @
 
   # Store a key/value pair in the JeeBus database (key must start with "/").
-  store: (key, value) ->
+  store = (key, value) ->
     msg = angular.toJson [key, value]
     if msg.slice(0, 3) is '["/'
-      ws.send angular.toJson msg
+      ws.send msg
     else
       console.error 'key does not start with "/":', key
     @
@@ -121,4 +121,4 @@ ng.factory 'jeebus', ($rootScope, $q) ->
       rpc 'attach', path
         .then -> console.log 'detached', path
 
-  {connect,send,rpc,attach,detach}
+  {connect,send,store,rpc,attach,detach}
