@@ -9,7 +9,7 @@ import (
 // Message represent a payload over MQTT for a specified topic.
 type Message struct {
 	T   string                     // topic
-	P   Payload                    // payload
+	P   json.RawMessage            // payload
 	obj map[string]json.RawMessage // decoded payload object fields
 }
 
@@ -74,4 +74,27 @@ func (m *Message) GetInt64(key string) int64 {
 func (m *Message) GetFloat64(key string) (v float64) {
 	m.unpack(key, &v)
 	return
+}
+
+// NewPayload constructs a payload from just about any type of data.
+func NewPayload(value interface{}) json.RawMessage {
+	switch v := value.(type) {
+	case []byte:
+		// log.Print(1)
+		return v
+	// case *[]byte:
+	// 	log.Print(2)
+	// 	return *v
+	case json.RawMessage:
+		// log.Print(3)
+		return v
+	// case *json.RawMessage:
+	// 	log.Print(4)
+	// 	return *v
+	default:
+		// log.Print(5)
+		data, err := json.Marshal(&value)
+		check(err)
+		return data
+	}
 }

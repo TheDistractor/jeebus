@@ -180,7 +180,7 @@ func importJsonData(filename string) {
 	data, err := ioutil.ReadFile(filename)
 	check(err)
 
-	var values map[string]map[string]json.RawMessage
+	var values map[string]map[string]*json.RawMessage
 	err = json.Unmarshal(data, &values)
 	check(err)
 
@@ -206,7 +206,7 @@ func importJsonData(filename string) {
 		iter.Release()
 
 		for k, v := range entries {
-			err = db.Put([]byte(prefix+k), v, nil)
+			err = db.Put([]byte(prefix+k), *v, nil)
 			check(err)
 			nadd++
 		}
@@ -247,17 +247,9 @@ func startAllServers(port string) {
 	// <-svr.Done
 	log.Println("MQTT server is running")
 
-	// FIXME this multi-client connect mess makes no sense on the server
-	//	replace with one MQTT client which listens to everything (i.e. "#")
-	//	... and then dispatch locally using own implementation for wildcards
-
 	client = jeebus.NewClient()
 	client.Register("@/#", &RegistryService{})
-	client.Register("/#", &DatabaseService{db})
-
-	// ifClient = jeebus.NewClient("if")
-	// wsClient = jeebus.NewClient("ws")
-
+	client.Register("/#", &DatabaseService{})
 	client.Register("rd/#", new(LoggerService))
 	client.Register("sv/lua/#", new(LuaDispatchService))
 
@@ -301,29 +293,23 @@ func (s *RegistryService) Handle(m *jeebus.Message) {
 	}
 }
 
-type DatabaseService struct {
-	db *leveldb.DB // TODO can't this struct nesting be avoided, somehow?
-}
+type DatabaseService struct{}
 
 func (s *DatabaseService) Handle(m *jeebus.Message) {
-	path := "/" + m.T
 	if len(m.P) > 0 {
-		s.db.Put([]byte(path), m.P, nil)
+		db.Put([]byte(m.T), m.P, nil)
 		// TODO reconsider carefully whether to use timestamp inside payload
 		millis := time.Now().UnixNano() / 1000000
-		s.db.Put([]byte(fmt.Sprintf("hist/%s/%d", m.T, millis)), m.P, nil)
+		db.Put([]byte(fmt.Sprintf("hist/%s/%d", m.T, millis)), m.P, nil)
 	} else {
-		s.db.Delete([]byte(path), nil)
+		db.Delete([]byte(m.T), nil)
 		// TODO decide what to do with deletions w.r.t. the historical data
 		//  record the deletion? delete it as well? sweep and clean up later?
 	}
 	for k, v := range attached {
-		if strings.HasPrefix(path, k) {
-			var any interface{}
-			err := json.Unmarshal(m.P, &any) // FIXME why unwrap here???
-			check(err)
-			msg := make(map[string]interface{})
-			msg[path] = any
+		if strings.HasPrefix(m.T, k) {
+			msg := make(map[string]*json.RawMessage)
+			msg[m.T] = &m.P
 			for dest, _ := range v {
 				// log.Printf("ATT %s -> %s (%s #%d)", k, path, dest, count)
 				// TODO very inefficient, avoid extra round trip through MQTT!
@@ -374,7 +360,7 @@ func serialConnect(port string, baudrate int, tag string) {
 	name := tag + "/" + dev
 	log.Println("serial ready:", name)
 
-	client.Register("if/" + name, &SerialInterfaceService{serial})
+	client.Register("if/"+name, &SerialInterfaceService{serial})
 
 	// store the tag line for this device
 	attachMsg := map[string]string{"text": input.Text, "tag": tag}
@@ -408,7 +394,7 @@ func sockServer(ws *websocket.Conn) {
 	tag := ws.Request().Header.Get("Sec-Websocket-Protocol")
 	name := tag + "/ip-" + ws.Request().RemoteAddr
 
-	client.Register("ws/" + name, &WebsocketService{ws})
+	client.Register("ws/"+name, &WebsocketService{ws})
 	defer client.Unregister("ws/" + name)
 
 	for {
@@ -431,11 +417,11 @@ func sockServer(ws *websocket.Conn) {
 			log.Printf("%s (%s)", text, name) // send to JB server's stdout
 		case '[':
 			// JSON array: either an MQTT publish request, or an RPC request
-			var args []json.RawMessage
+			var args []*json.RawMessage
 			err := json.Unmarshal(msg, &args)
 			check(err)
 			var topic string
-			if json.Unmarshal(args[0], &topic) == nil {
+			if json.Unmarshal(*args[0], &topic) == nil {
 				// it's an MQTT publish request
 				log.Println("TOPIC", topic, args)
 				if strings.HasPrefix(topic, "/") {

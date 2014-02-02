@@ -2,7 +2,6 @@
 package jeebus
 
 import (
-	"encoding/json"
 	"log"
 	"net"
 
@@ -56,7 +55,7 @@ func NewClient() *Client {
 
 	go func() {
 		for m := range mc.Incoming {
-			c.Dispatch(m.TopicName, m.Payload.(proto.BytesPayload))
+			c.Dispatch(m.TopicName, []byte(m.Payload.(proto.BytesPayload)))
 		}
 		log.Println("server connection lost")
 		c.Done <- true
@@ -84,35 +83,6 @@ func (c *Client) Register(topic string, service Service) {
 func (c *Client) Unregister(topic string) {
 	c.Publish("@/unregister", topic)
 	delete(c.Services, topic)
-}
-
-type Payload []byte
-
-func (p *Payload) MarshalJSON() ([]byte, error) {
-	log.Printf("Marshal %v", p)
-	return *p, nil
-}
-
-func (p *Payload) UnmarshalJSON(v []byte) (error) {
-	log.Printf("Unarshal %v", v)
-	*p = v
-	return nil
-}
-
-// NewPayload constructs a payload from just about any type of data.
-func NewPayload(value interface{}) Payload {
-	switch v := value.(type) {
-	case []byte:
-		return v
-	case Payload:
-		return []byte(v)
-	case json.RawMessage:
-		return []byte(v)
-	default:
-		data, err := json.Marshal(value)
-		check(err)
-		return data
-	}
 }
 
 // Publish an arbitrary value to an arbitrary topic.
