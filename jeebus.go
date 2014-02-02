@@ -16,6 +16,7 @@ type Client struct {
 	Done     chan bool
 }
 
+// Dispatch a payload to the appropriate registered services for that topic.
 func (c *Client) Dispatch(topic string, payload interface{}) {
 	// TODO full MQTT wildcard match logic, i.e. also +'s
 	m := &Message{T: topic, P: NewPayload(payload)}
@@ -83,12 +84,12 @@ func (c *Client) Unregister(topic string) {
 	delete(c.Services, topic)
 }
 
-// Publish an arbitrary value to an arbitrary topic.
-func (c *Client) Publish(topic string, value interface{}) {
+// Publish an arbitrary payload to the specified topic.
+func (c *Client) Publish(topic string, payload interface{}) {
 	c.Mqtt.Publish(&proto.Publish{
 		Header:    proto.Header{Retain: topic[0] == '/'},
 		TopicName: topic,
-		Payload:   proto.BytesPayload(NewPayload(value)),
+		Payload:   proto.BytesPayload(NewPayload(payload)),
 	})
 }
 
