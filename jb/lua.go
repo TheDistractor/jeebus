@@ -14,8 +14,8 @@ type LuaDispatchService int
 
 func (s *LuaDispatchService) Handle(m *jeebus.Message) {
 	log.Printf("LUA %s %s", m.T, string(m.P))
-	split := strings.SplitN(m.T, "/", 2)
-	switch split[1] {
+	split := strings.SplitN(m.T, "/", 3)
+	switch split[2] {
 	case "register":
 		L := newLuaInstance(string(m.P))
 		state = L // TODO get rid of this global hack!

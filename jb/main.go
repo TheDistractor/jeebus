@@ -75,6 +75,7 @@ func main() {
 		log.Println("opening serial port", dev)
 		client = jeebus.NewClient()
 		serialConnect(dev, nbaud, tag)
+		<- client.Done
 
 	case "pub":
 		if len(os.Args) < 3 {
@@ -338,6 +339,7 @@ func serialConnect(port string, baudrate int, tag string) {
 	log.Println("serial ready:", name)
 
 	client.Register("if/"+name, &SerialInterfaceService{serial})
+	defer client.Unregister("if/" + name)
 
 	// store the tag line for this device
 	attachMsg := map[string]string{"text": input.Text, "tag": tag}
@@ -352,8 +354,6 @@ func serialConnect(port string, baudrate int, tag string) {
 		input.Text = scanner.Text()
 		client.Publish("rd/"+name, &input)
 	}
-
-	client.Unregister("if/" + name)
 }
 
 type WebsocketService struct {
