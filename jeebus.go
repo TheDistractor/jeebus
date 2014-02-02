@@ -61,7 +61,6 @@ func NewClient() *Client {
 		c.Done <- true
 	}()
 
-	// Publish("@/connect", prefix)
 	log.Println("client connected")
 
 	return c
@@ -76,12 +75,11 @@ func (c *Client) Register(topic string, service Service) {
 	c.Mqtt.Subscribe([]proto.TopicQos{
 		{Topic: topic, Qos: proto.QosAtMostOnce},
 	})
-	c.Publish("@/register", topic)
 }
 
 // Unregister a previously defined service.
 func (c *Client) Unregister(topic string) {
-	c.Publish("@/unregister", topic)
+	// TODO unsubscribe...
 	delete(c.Services, topic)
 }
 

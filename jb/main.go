@@ -248,7 +248,6 @@ func startAllServers(port string) {
 	log.Println("MQTT server is running")
 
 	client = jeebus.NewClient()
-	client.Register("@/#", &RegistryService{})
 	client.Register("/#", &DatabaseService{})
 	client.Register("rd/#", new(LoggerService))
 	client.Register("sv/lua/#", new(LuaDispatchService))
@@ -272,27 +271,6 @@ func startAllServers(port string) {
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
-type RegistryService map[string]map[string]byte
-
-func (s *RegistryService) Handle(m *jeebus.Message) {
-	split := strings.SplitN(m.T, "/", 2)
-	var arg string
-	err := json.Unmarshal(m.P, &arg)
-	check(err)
-	log.Printf("REG %s = %s", m.T, arg)
-
-	switch split[0] {
-	case "connect":
-		(*s)[arg] = make(map[string]byte)
-	case "disconnect":
-		delete(*s, arg)
-	case "register":
-		(*s)[split[1]][arg] = 1
-	case "unregister":
-		delete((*s)[split[1]], arg)
-	}
-}
-
 type DatabaseService struct{}
 
 func (s *DatabaseService) Handle(m *jeebus.Message) {
@@ -306,14 +284,13 @@ func (s *DatabaseService) Handle(m *jeebus.Message) {
 		// TODO decide what to do with deletions w.r.t. the historical data
 		//  record the deletion? delete it as well? sweep and clean up later?
 	}
+	// send out websocket messages for all matching attached topics
+	msg := make(map[string]*json.RawMessage)
+	msg[m.T] = &m.P
 	for k, v := range attached {
 		if strings.HasPrefix(m.T, k) {
-			msg := make(map[string]*json.RawMessage)
-			msg[m.T] = &m.P
 			for dest, _ := range v {
-				// log.Printf("ATT %s -> %s (%s #%d)", k, path, dest, count)
-				// TODO very inefficient, avoid extra round trip through MQTT!
-				client.Publish("ws/"+dest, msg)
+				client.Dispatch("ws/"+dest, msg) // direct dispatch, no MQTT
 			}
 		}
 	}
