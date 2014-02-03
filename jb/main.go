@@ -304,11 +304,11 @@ func (s *DatabaseService) Handle(m *jeebus.Message) {
 }
 
 type SerialInterfaceService struct {
-	serial *rs232.Port // TODO can't this struct nesting be avoided, somehow?
+	*rs232.Port
 }
 
 func (s *SerialInterfaceService) Handle(m *jeebus.Message) {
-	s.serial.Write([]byte(m.Get("text")))
+	s.Write([]byte(m.Get("text")))
 }
 
 func serialConnect(port string, baudrate int, tag string) {
@@ -511,9 +511,7 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 	case "savefile":
 		name, data := args[0].(string), args[1].(string)
 		// TODO this isn't safe if the filename uses a nasty path!
-		err := ioutil.WriteFile("files/" + name, []byte(data), 0666)
-		check(err)
-		return nil, nil
+		return nil, ioutil.WriteFile("files/" + name, []byte(data), 0666)
 	}
 
 	return nil, errors.New("RPC not found: " + cmd)
