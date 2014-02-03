@@ -118,7 +118,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
   detach = (path) ->
     if trackedModels[path] && --trackedModels[path].count <= 0
       delete trackedModels[path]
-      rpc 'attach', path
+      rpc 'detach', path
         .then -> console.log 'detached', path
 
   {connect,send,store,rpc,attach,detach}
