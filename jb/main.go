@@ -13,12 +13,9 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"strconv"
 	"strings"
 	"time"
-	"flag"
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/chimera/rs232"
@@ -40,39 +37,18 @@ func init() {
 }
 
 func main() {
-
-	log.Println("Jeebus 0.2-beta")
-	os.Stdout.Sync()
-
-
 	if len(os.Args) <= 1 {
-		log.Fatalf("usage: jb <cmd> ... (try 'jb run -http=<host><:port> -mqtt=<host><:port>')")
+		log.Fatalf("usage: jb <cmd> ... (try 'jb run')")
 	}
-
 
 	switch os.Args[1] {
 
 	case "run":
-
-		//example: jb run -http=:8080 -mqtt=:1886 #run http and mqtt on non-std ports
-		//example: jb run -http=192.168.147.128:3333 -mqtt=192.168.147.128:1883 #only run http and mqtt on 192.168.147.128 interface
-		http_addr := ":3333"  //binds to all interfaces
-		mqtt_addr := ":1883"  //binds to all interfaces
-
-		flagset := flag.NewFlagSet("runflags",flag.ContinueOnError)
-
-		flagset.StringVar(&http_addr, "http", http_addr, "provide http server on <host><:port>")
-		flagset.StringVar(&mqtt_addr, "mqtt", mqtt_addr, "*use* mqtt server on <host><:port>")
-
-		flagset.Parse( os.Args[2:] )
-
-		//finally - just for reverse compatibility until new format recognised
-		if len(flagset.Args()) > 0 {
-			http_addr = flagset.Args()[0]
-			fmt.Println("Using old http argument, please consider using -http=<host><:port>")
+		port := ":3333"
+		if len(os.Args) > 2 {
+			port = os.Args[2]
 		}
-
-		startAllServers(http_addr, mqtt_addr)
+		startAllServers(port)
 
 	case "see":
 		topics := "#"
@@ -271,15 +247,15 @@ func dumpDatabase(from, to string) {
 	iter.Release()
 }
 
-func startAllServers(http_addr string, mqtt_addr string) {
+func startAllServers(port string) {
 	var err error
 
 	log.Println("opening database")
 	db, err = leveldb.OpenFile("./storage", nil)
 	check(err)
 
-	log.Println("starting MQTT server on ", mqtt_addr)
-	sock, err := net.Listen("tcp", mqtt_addr)
+	log.Println("starting MQTT server")
+	sock, err := net.Listen("tcp", ":1883")
 	check(err)
 	svr := mqtt.NewServer(sock)
 	svr.Start()
@@ -291,42 +267,15 @@ func startAllServers(http_addr string, mqtt_addr string) {
 	client.Register("rd/#", new(LoggerService))
 	client.Register("sv/lua/#", new(LuaDispatchService))
 
-	client.Publish("/admin/started", time.Now().Format(time.RFC822Z)) //see below
+	client.Publish("/admin/started", time.Now().Format(time.RFC822Z))
 
 	// FIXME hook up the blinker script to handle incoming messages
 	client.Publish("sv/lua/register", []byte("rd/blinker"))
 
-	log.Println("starting web server on ", http_addr)
+	log.Println("starting web server on ", port)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
 	http.Handle("/ws", websocket.Handler(sockServer))
-	go func() {
-		log.Fatal(http.ListenAndServe(http_addr, nil))
-	}()
-
-	//I actually think 'admin' should be swapped with 'jeebus', and free admin for something else??
-	//This is getting ready for optional TLS support
-	client.Publish("/admin/http/service", "http," + http_addr ) //where the jeebus http host resides protocol,host
-
-
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
-	for sig := range sigchan {
-		switch sig {
-		case syscall.SIGINT:
-			log.Println("Exit via SIGINT")
-			os.Exit(0)
-		case syscall.SIGTERM:
-			log.Println("Exit via SIGTERM")
-			os.Exit(0)
-		case syscall.SIGHUP:
-			//this is where we can re-read config etc
-
-		}
-	}
-
-
-
+	log.Fatal(http.ListenAndServe(port, nil))
 }
 
 type DatabaseService struct{}
@@ -401,7 +350,6 @@ func serialConnect(port string, baudrate int, tag string) {
 	// store the tag line for this device
 	attachMsg := map[string]string{"text": input.Text, "tag": tag}
 	client.Publish("/attach/"+dev, attachMsg)
-	defer client.Publish("/detatch/"+dev, attachMsg)
 
 	// send the tag line (if present), then send out whatever comes in
 	if input.Text != "" {
