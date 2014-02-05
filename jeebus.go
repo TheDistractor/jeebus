@@ -4,6 +4,7 @@ package jeebus
 import (
 	"log"
 	"net"
+	"net/url"
 
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
@@ -45,8 +46,14 @@ type Service interface {
 }
 
 // NewClient sets up a new MQTT connection plus registration mechanism
-func NewClient() *Client {
-	session, err := net.Dial("tcp", "localhost:1883")
+func NewClient(murl *url.URL) *Client {
+	var err error
+	
+	if murl == nil {
+		murl, err = url.Parse("mqtt://localhost:1883")
+		check(err)
+	}
+	session, err := net.Dial("tcp", murl.String()[7:]) // TODO mqtts!
 
 	mc := mqtt.NewClientConn(session)
 	err = mc.Connect("", "")
