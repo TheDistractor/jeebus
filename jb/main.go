@@ -12,10 +12,14 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"os/signal"
+	"syscall"
 	"strconv"
 	"strings"
 	"time"
+	"flag"
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/chimera/rs232"
@@ -24,6 +28,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	// "github.com/syndtr/goleveldb/leveldb/opt"
 )
+
+const version = "0.2-beta"
 
 var (
 	db       *leveldb.DB
@@ -37,6 +43,8 @@ func init() {
 }
 
 func main() {
+	log.Println("JeeBus", version)
+
 	if len(os.Args) <= 1 {
 		log.Fatalf("usage: jb <cmd> ... (try 'jb run')")
 	}
@@ -44,18 +52,40 @@ func main() {
 	switch os.Args[1] {
 
 	case "run":
-		port := ":3333"
-		if len(os.Args) > 2 {
-			port = os.Args[2]
+		// example: jb run -http=:8080 -mqtt=:1886
+		//		run http and mqtt on non-std ports, bound to all interfaces
+		// example: jb run -http=192.168.147.128:3333 -mqtt=192.168.147.128:1883
+		// 		only run http and mqtt on 192.168.147.128 interface
+		var httpAddr, mqttAddr string
+
+		flagset := flag.NewFlagSet("runflags",flag.ContinueOnError)
+		flagset.StringVar(&httpAddr, "http", ":3333",
+			"provide http server on <host><:port>")
+		flagset.StringVar(&mqttAddr, "mqtt", ":1883",
+			"*use* mqtt server on <host><:port>")
+		flagset.Parse( os.Args[2:] )
+
+		if !strings.Contains(httpAddr, "://") {
+			httpAddr = "http://" + httpAddr
 		}
-		startAllServers(port)
+		hurl, err := url.Parse(httpAddr)
+		check(err);
+		
+		// TODO the "-mqtt=..." flag will also be needed in other subcommands
+		if !strings.Contains(mqttAddr, "://") {
+			mqttAddr = "mqtt://" + mqttAddr
+		}
+		murl, err := url.Parse(mqttAddr)
+		check(err);
+		
+		startAllServers(hurl, murl)
 
 	case "see":
 		topics := "#"
 		if len(os.Args) > 2 {
 			topics = os.Args[2]
 		}
-		client = jeebus.NewClient()
+		client = jeebus.NewClient(nil) // TODO -mqtt=... arg
 		client.Register(topics, new(SeeService))
 		<-client.Done
 
@@ -73,7 +103,7 @@ func main() {
 		nbaud, err := strconv.Atoi(baud)
 		check(err)
 		log.Println("opening serial port", dev)
-		client = jeebus.NewClient()
+		client = jeebus.NewClient(nil) // TODO -mqtt=... arg
 		serialConnect(dev, nbaud, tag)
 		<- client.Done
 
@@ -82,7 +112,7 @@ func main() {
 		if len(os.Args) > 2 {
 			topic = os.Args[2]
 		}
-		client = jeebus.NewClient()
+		client = jeebus.NewClient(nil) // TODO -mqtt=... arg
 		go func() {
 			ticker := time.NewTicker(time.Second)
 			for tick := range ticker.C {
@@ -99,7 +129,7 @@ func main() {
 		if len(os.Args) > 3 {
 			value = os.Args[3]
 		}
-		client = jeebus.NewClient()
+		client = jeebus.NewClient(nil) // TODO -mqtt=... arg
 		client.Publish(os.Args[2], []byte(value))
 		// TODO need to close gracefully, and not too soon!
 		time.Sleep(10 * time.Millisecond)
@@ -247,35 +277,55 @@ func dumpDatabase(from, to string) {
 	iter.Release()
 }
 
-func startAllServers(port string) {
+func startAllServers(hurl, murl *url.URL) {
 	var err error
 
 	log.Println("opening database")
 	db, err = leveldb.OpenFile("./storage", nil)
 	check(err)
 
-	log.Println("starting MQTT server")
-	sock, err := net.Listen("tcp", ":1883")
+	log.Println("starting messaging server on", murl)
+	sock, err := net.Listen("tcp", murl.String()[7:]) // TODO mqtts!
 	check(err)
 	svr := mqtt.NewServer(sock)
 	svr.Start()
 	// <-svr.Done
-	log.Println("MQTT server is running")
 
-	client = jeebus.NewClient()
+	client = jeebus.NewClient(murl)
 	client.Register("/#", &DatabaseService{})
 	client.Register("rd/#", new(LoggerService))
 	client.Register("sv/lua/#", new(LuaDispatchService))
 
-	client.Publish("/admin/started", time.Now().Format(time.RFC822Z))
+	client.Publish("/jeebus/started", time.Now().Format(time.RFC822Z))
+	client.Publish("/jeebus/version", version)
+	// this is getting ready for optional TLS support
+	client.Publish("/jeebus/webserver", hurl.String())
 
 	// FIXME hook up the blinker script to handle incoming messages
 	client.Publish("sv/lua/register", []byte("rd/blinker"))
 
-	log.Println("starting web server on ", port)
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		for sig := range sigchan {
+			switch sig {
+			case syscall.SIGINT:
+				log.Println("Exit via SIGINT")
+				os.Exit(0)
+			case syscall.SIGTERM:
+				log.Println("Exit via SIGTERM")
+				os.Exit(0)
+			// case syscall.SIGHUP:
+				// TODO this is where we can re-read config etc
+			}
+		}
+	}()
+
+	log.Println("starting web server on ", hurl)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
 	http.Handle("/ws", websocket.Handler(sockServer))
-	log.Fatal(http.ListenAndServe(port, nil))
+	log.Fatal(http.ListenAndServe(hurl.String()[7:], nil)) // TODO https!
 }
 
 type DatabaseService struct{}
@@ -350,6 +400,7 @@ func serialConnect(port string, baudrate int, tag string) {
 	// store the tag line for this device
 	attachMsg := map[string]string{"text": input.Text, "tag": tag}
 	client.Publish("/attach/"+dev, attachMsg)
+	defer client.Publish("/detach/"+dev, attachMsg)
 
 	// send the tag line (if present), then send out whatever comes in
 	if input.Text != "" {
