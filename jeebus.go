@@ -48,7 +48,7 @@ type Service interface {
 // NewClient sets up a new MQTT connection plus registration mechanism
 func NewClient(murl *url.URL) *Client {
 	var err error
-	
+
 	if murl == nil {
 		murl, err = url.Parse("mqtt://localhost:1883")
 		check(err)

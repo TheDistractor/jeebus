@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,11 +16,10 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"syscall"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
-	"flag"
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/chimera/rs232"
@@ -58,26 +58,26 @@ func main() {
 		// 		only run http and mqtt on 192.168.147.128 interface
 		var httpAddr, mqttAddr string
 
-		flagset := flag.NewFlagSet("runflags",flag.ContinueOnError)
+		flagset := flag.NewFlagSet("runflags", flag.ContinueOnError)
 		flagset.StringVar(&httpAddr, "http", ":3333",
 			"provide http server on <host><:port>")
 		flagset.StringVar(&mqttAddr, "mqtt", ":1883",
 			"*use* mqtt server on <host><:port>")
-		flagset.Parse( os.Args[2:] )
+		flagset.Parse(os.Args[2:])
 
 		if !strings.Contains(httpAddr, "://") {
 			httpAddr = "http://" + httpAddr
 		}
 		hurl, err := url.Parse(httpAddr)
-		check(err);
-		
+		check(err)
+
 		// TODO the "-mqtt=..." flag will also be needed in other subcommands
 		if !strings.Contains(mqttAddr, "://") {
 			mqttAddr = "mqtt://" + mqttAddr
 		}
 		murl, err := url.Parse(mqttAddr)
-		check(err);
-		
+		check(err)
+
 		startAllServers(hurl, murl)
 
 	case "see":
@@ -105,7 +105,7 @@ func main() {
 		log.Println("opening serial port", dev)
 		client = jeebus.NewClient(nil) // TODO -mqtt=... arg
 		serialConnect(dev, nbaud, tag)
-		<- client.Done
+		<-client.Done
 
 	case "tick":
 		topic := "/admin/tick"
@@ -119,7 +119,7 @@ func main() {
 				client.Publish(topic, tick.String())
 			}
 		}()
-		<- client.Done
+		<-client.Done
 
 	case "pub":
 		if len(os.Args) < 3 {
@@ -316,7 +316,7 @@ func startAllServers(hurl, murl *url.URL) {
 			case syscall.SIGTERM:
 				log.Println("Exit via SIGTERM")
 				os.Exit(0)
-			// case syscall.SIGHUP:
+				// case syscall.SIGHUP:
 				// TODO this is where we can re-read config etc
 			}
 		}
@@ -562,7 +562,7 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 	case "savefile":
 		name, data := args[0].(string), args[1].(string)
 		// TODO this isn't safe if the filename uses a nasty path!
-		return nil, ioutil.WriteFile("files/" + name, []byte(data), 0666)
+		return nil, ioutil.WriteFile("files/"+name, []byte(data), 0666)
 	}
 
 	return nil, errors.New("RPC not found: " + cmd)
