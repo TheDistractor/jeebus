@@ -59,9 +59,9 @@ func main() {
 		var httpAddr, mqttAddr string
 
 		flagset := flag.NewFlagSet("runflags", flag.ContinueOnError)
-		flagset.StringVar(&httpAddr, "http", ":3333",
+		flagset.StringVar(&httpAddr, "http", "0.0.0.0:3333",
 			"provide http server on <host><:port>")
-		flagset.StringVar(&mqttAddr, "mqtt", ":1883",
+		flagset.StringVar(&mqttAddr, "tcp", "0.0.0.0:1883",
 			"*use* mqtt server on <host><:port>")
 		flagset.Parse(os.Args[2:])
 
@@ -73,7 +73,7 @@ func main() {
 
 		// TODO the "-mqtt=..." flag will also be needed in other subcommands
 		if !strings.Contains(mqttAddr, "://") {
-			mqttAddr = "mqtt://" + mqttAddr
+			mqttAddr = "tcp://" + mqttAddr
 		}
 		murl, err := url.Parse(mqttAddr)
 		check(err)
@@ -284,8 +284,8 @@ func startAllServers(hurl, murl *url.URL) {
 	db, err = leveldb.OpenFile("./storage", nil)
 	check(err)
 
-	log.Println("starting messaging server on", murl)
-	sock, err := net.Listen("tcp", murl.String()[7:]) // TODO mqtts!
+	log.Println("starting MQTT server on", murl)
+	sock, err := net.Listen("tcp", murl.Host) // TODO tls!
 	check(err)
 	svr := mqtt.NewServer(sock)
 	svr.Start()
@@ -322,10 +322,10 @@ func startAllServers(hurl, murl *url.URL) {
 		}
 	}()
 
-	log.Println("starting web server on ", hurl)
+	log.Println("starting web server on", hurl)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
 	http.Handle("/ws", websocket.Handler(sockServer))
-	log.Fatal(http.ListenAndServe(hurl.String()[7:], nil)) // TODO https!
+	log.Fatal(http.ListenAndServe(hurl.Host, nil)) // TODO https!
 }
 
 type DatabaseService struct{}

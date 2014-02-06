@@ -2,6 +2,7 @@
 package jeebus
 
 import (
+	"crypto/tls"
 	"log"
 	"net"
 	"net/url"
@@ -12,9 +13,10 @@ import (
 
 // Client represents a group of MQTT topics used as services.
 type Client struct {
-	Mqtt     *mqtt.ClientConn
-	Services map[string]Service
-	Done     chan bool
+	Mqtt     *mqtt.ClientConn	// connection to the MQTT server
+	Services map[string]Service	// map subscriptions to handlers
+	Done     chan bool			// unblocks when the server connection is lost
+	ID		 string				// uniquely identifies this endpoint
 }
 
 // Dispatch a payload to the appropriate registered services for that topic.
@@ -48,18 +50,28 @@ type Service interface {
 // NewClient sets up a new MQTT connection plus registration mechanism
 func NewClient(murl *url.URL) *Client {
 	var err error
+	var session net.Conn
 
 	if murl == nil {
-		murl, err = url.Parse("mqtt://localhost:1883")
+		murl, err = url.Parse("tcp://127.0.0.1:1883")
 		check(err)
 	}
-	session, err := net.Dial("tcp", murl.String()[7:]) // TODO mqtts!
+	switch murl.Scheme {
+	case "tcp":
+		session, err = net.Dial("tcp", murl.Host)
+	case "ssl":
+		session, err = tls.Dial("tcp", murl.Host, nil)
+	default:
+		log.Fatalln("unknown scheme:", murl)
+	}
+	check(err)
 
 	mc := mqtt.NewClientConn(session)
 	err = mc.Connect("", "")
 	check(err)
 
-	c := &Client{mc, make(map[string]Service), make(chan bool)}
+	myAddr := "ip-" + session.LocalAddr().String()
+	c := &Client{mc, make(map[string]Service), make(chan bool), myAddr}
 
 	go func() {
 		for m := range mc.Incoming {
