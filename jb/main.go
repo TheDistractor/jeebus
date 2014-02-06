@@ -295,6 +295,7 @@ func startAllServers(hurl, murl *url.URL) {
 	client.Register("/#", &DatabaseService{})
 	client.Register("rd/#", new(LoggerService))
 	client.Register("sv/lua/#", new(LuaDispatchService))
+	client.Register("sv/rpc/#", new(RpcService))
 
 	client.Publish("/jeebus/started", time.Now().Format(time.RFC822Z))
 	client.Publish("/jeebus/version", version)
@@ -426,10 +427,10 @@ func sockServer(ws *websocket.Conn) {
 	defer ws.Close()
 
 	tag := ws.Request().Header.Get("Sec-Websocket-Protocol")
-	name := tag + "/ip-" + ws.Request().RemoteAddr
+	origin := tag + "/ip-" + ws.Request().RemoteAddr
 
-	client.Register("ws/"+name, &WebsocketService{ws})
-	defer client.Unregister("ws/" + name)
+	client.Register("ws/"+origin, &WebsocketService{ws})
+	defer client.Unregister("ws/" + origin)
 
 	for {
 		var msg json.RawMessage
@@ -441,14 +442,14 @@ func sockServer(ws *websocket.Conn) {
 		// figure out the structure of incoming JSON data to decide what to do
 		switch msg[0] {
 		// case 'n': // null
-		// 	log.Println("shutdown requested from", name)
+		// 	log.Println("shutdown requested from", origin)
 		// 	os.Exit(0)
 		case '"':
 			// show incoming JSON strings on JB's stdout for debugging purposes
 			var text string
 			err := json.Unmarshal(msg, &text)
 			check(err)
-			log.Printf("%s (%s)", text, name) // send to JB server's stdout
+			log.Printf("%s (%s)", text, origin) // send to JB server's stdout
 		case '[':
 			// JSON array: either an MQTT publish request, or an RPC request
 			var args []*json.RawMessage
@@ -465,38 +466,50 @@ func sockServer(ws *websocket.Conn) {
 				}
 			} else {
 				// it's an RPC request of the form (rpcId, req string, args...]
-				var any []interface{}
-				err := json.Unmarshal(msg, &any)
-				check(err)
-				log.Printf("RPC %.100v (%s)", any, name)
-
-				// process the RPC request, returns either a value or an error
-				result, err := processRpcRequest(name, any[1].(string), any[2:])
-				// convert errors to strings to send them through JSON
-				var emsg interface{}
-				if err != nil {
-					emsg = err.Error()
-					result = nil
-				}
-				reply := []interface{}{any[0], result, emsg}
-
-				// shorten the reply log output to fit on one line
-				logText := fmt.Sprintf("%v", reply)
-				if len(logText) > 68 {
-					logText = logText[:67] + "…"
-				}
-				log.Println(" ->", logText)
-
-				msg, err := json.Marshal(reply)
-				check(err)
+				msg = decodeRpcRequest(origin, msg)
 				err = websocket.Message.Send(ws, string(msg))
 				check(err)
 			}
 		default:
 			// everything else (i.e. a JSON object) becomes an MQTT service req
-			client.Publish("sv/"+name, msg)
+			client.Publish("sv/"+origin, msg)
 		}
 	}
+}
+
+func decodeRpcRequest(name string, msg json.RawMessage) json.RawMessage {
+	var any []interface{}
+	err := json.Unmarshal(msg, &any)
+	check(err)
+	log.Printf("RPC %.100v (%s)", any, name)
+
+	// process the RPC request, returns either a value or an error
+	result, err := processRpcRequest(name, any[1].(string), any[2:])
+	// convert errors to strings to send them through JSON
+	var emsg interface{}
+	if err != nil {
+		emsg = err.Error()
+		result = nil
+	}
+	reply := []interface{}{any[0], result, emsg}
+
+	// shorten the reply log output to fit on one line
+	logText := fmt.Sprintf("%v", reply)
+	if len(logText) > 68 {
+		logText = logText[:67] + "…"
+	}
+	log.Println(" ->", logText)
+
+	out, err := json.Marshal(reply)
+	check(err)
+	return out
+}
+
+type RpcService struct{}
+
+func (s *RpcService) Handle(m *jeebus.Message) {
+	origin := strings.SplitN(m.T, "/", 3)[2]
+	client.Publish("cb/" + origin, decodeRpcRequest(origin, m.P))
 }
 
 func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error) {

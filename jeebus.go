@@ -3,9 +3,12 @@ package jeebus
 
 import (
 	"crypto/tls"
+	"encoding/json"
+	"errors"
 	"log"
 	"net"
 	"net/url"
+	"time"
 
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
@@ -17,6 +20,7 @@ type Client struct {
 	Services map[string]Service // map subscriptions to handlers
 	Done     chan bool          // unblocks when the server connection is lost
 	ID       string             // uniquely identifies this endpoint
+	cbs      *CallbackService   // takes care of RPC's and their replies
 }
 
 // Dispatch a payload to the appropriate registered services for that topic.
@@ -71,7 +75,12 @@ func NewClient(murl *url.URL) *Client {
 	check(err)
 
 	myAddr := "ip-" + session.LocalAddr().String()
-	c := &Client{mc, make(map[string]Service), make(chan bool), myAddr}
+	cbs := &CallbackService{nil, make(map[int]chan *Message), 0}
+	c := &Client{mc, make(map[string]Service), make(chan bool), myAddr, cbs}
+	cbs.client = c
+
+	// subscribe to receive all callback messages meant for us
+	c.Register("cb/"+myAddr, cbs)
 
 	go func() {
 		for m := range mc.Incoming {
@@ -82,6 +91,13 @@ func NewClient(murl *url.URL) *Client {
 	}()
 
 	log.Println("client connected")
+
+	// go func() {
+	// 	time.Sleep(time.Second)
+	// 	v, e := c.Call("echo", 1, 4.5, "blah")
+	// 	log.Println("RPC reply:", v, e)
+	// 	check(e)
+	// }()
 
 	return c
 }
@@ -110,6 +126,58 @@ func (c *Client) Publish(topic string, payload interface{}) {
 		TopicName: topic,
 		Payload:   proto.BytesPayload(NewPayload(payload)),
 	})
+}
+
+func (c *Client) Call(name string, args ...interface{}) (interface{}, error) {
+	return c.cbs.SendRPC(name, args)
+}
+
+type CallbackService struct {
+	client  *Client
+	pending map[int]chan *Message
+	seqNum  int
+}
+
+func (s *CallbackService) SendRPC(name string, args []interface{}) (
+	result interface{}, err error) {
+
+	s.seqNum++
+	request := []interface{}{s.seqNum, name}
+	log.Printf("RPC #%d %s %v", s.seqNum, name, args)
+	s.client.Publish("sv/rpc/"+s.client.ID, append(request, args...))
+
+	c := make(chan *Message)
+	s.pending[s.seqNum] = c
+	defer delete(s.pending, s.seqNum)
+
+	select {
+	case m := <-c:
+		var any []interface{}
+		err := json.Unmarshal(m.P, &any)
+		check(err)
+		result = any[1]
+		if any[2] != nil {
+			err = errors.New(any[2].(string))
+		}
+	case <-time.After(10 * time.Second):
+		log.Println("RPC timeout:", name)
+		err = errors.New("timeout on RPC call: " + name)
+	}
+	return
+}
+
+func (s *CallbackService) Handle(m *Message) {
+	var any []json.RawMessage
+	err := json.Unmarshal(m.P, &any)
+	check(err)
+	var seq float64
+	err = json.Unmarshal(any[0], &seq)
+	check(err)
+	if c, ok := s.pending[int(seq)]; ok {
+		c <- m
+	} else {
+		log.Println("spurious reply ignored:", seq, any)
+	}
 }
 
 func check(err error) {
