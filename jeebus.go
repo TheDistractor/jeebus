@@ -13,10 +13,10 @@ import (
 
 // Client represents a group of MQTT topics used as services.
 type Client struct {
-	Mqtt     *mqtt.ClientConn	// connection to the MQTT server
-	Services map[string]Service	// map subscriptions to handlers
-	Done     chan bool			// unblocks when the server connection is lost
-	ID		 string				// uniquely identifies this endpoint
+	Mqtt     *mqtt.ClientConn   // connection to the MQTT server
+	Services map[string]Service // map subscriptions to handlers
+	Done     chan bool          // unblocks when the server connection is lost
+	ID       string             // uniquely identifies this endpoint
 }
 
 // Dispatch a payload to the appropriate registered services for that topic.

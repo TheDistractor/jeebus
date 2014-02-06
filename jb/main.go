@@ -469,15 +469,24 @@ func sockServer(ws *websocket.Conn) {
 				err := json.Unmarshal(msg, &any)
 				check(err)
 				log.Printf("RPC %.100v (%s)", any, name)
-				// ptocess the RPC request, returns either a value or an error
+
+				// process the RPC request, returns either a value or an error
 				result, err := processRpcRequest(name, any[1].(string), any[2:])
 				// convert errors to strings to send them through JSON
 				var emsg interface{}
 				if err != nil {
 					emsg = err.Error()
+					result = nil
 				}
 				reply := []interface{}{any[0], result, emsg}
-				log.Printf(" -> %.100v (%s)", reply, name)
+
+				// shorten the reply log output to fit on one line
+				logText := fmt.Sprintf("%v", reply)
+				if len(logText) > 68 {
+					logText = logText[:67] + "…"
+				}
+				log.Println(" ->", logText)
+
 				msg, err := json.Marshal(reply)
 				check(err)
 				err = websocket.Message.Send(ws, string(msg))

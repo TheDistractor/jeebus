@@ -111,7 +111,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
         .then (r) ->
           for k, v of r
             processModelUpdate k, v
-          console.log 'attached', path
+          console.log 'attach', path
     info.model
 
   # Undo the effects of attaching, i.e. stop following changes.
@@ -119,6 +119,6 @@ ng.factory 'jeebus', ($rootScope, $q) ->
     if trackedModels[path] && --trackedModels[path].count <= 0
       delete trackedModels[path]
       rpc 'detach', path
-        .then -> console.log 'detached', path
+        .then -> console.log 'detach', path
 
   {connect,send,store,rpc,attach,detach}

@@ -32,7 +32,7 @@
       });
     };
     $scope.dbGetTest = function() {
-      return jeebus.rpc('db-get', '/admin/started').then(function(r) {
+      return jeebus.rpc('db-get', '/jeebus/started').then(function(r) {
         return $scope.message = r;
       });
     };
@@ -49,5 +49,3 @@
   });
 
 }).call(this);
-
-//# sourceMappingURL=client.map

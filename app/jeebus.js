@@ -6,7 +6,7 @@
   ng = angular.module('myApp');
 
   ng.factory('jeebus', function($rootScope, $q) {
-    var attach, connect, detach, processModelUpdate, processRpcReply, rpc, rpcPromises, send, seqNum, trackedModels, ws;
+    var attach, connect, detach, processModelUpdate, processRpcReply, rpc, rpcPromises, send, seqNum, store, trackedModels, ws;
     ws = null;
     seqNum = 0;
     rpcPromises = {};
@@ -89,18 +89,16 @@
       }
       return this;
     };
-    ({
-      store: function(key, value) {
-        var msg;
-        msg = angular.toJson([key, value]);
-        if (msg.slice(0, 3) === '["/') {
-          ws.send(angular.toJson(msg));
-        } else {
-          console.error('key does not start with "/":', key);
-        }
-        return this;
+    store = function(key, value) {
+      var msg;
+      msg = angular.toJson([key, value]);
+      if (msg.slice(0, 3) === '["/') {
+        ws.send(msg);
+      } else {
+        console.error('key does not start with "/":', key);
       }
-    });
+      return this;
+    };
     rpc = function() {
       var args, d, n, tid;
       args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
@@ -130,7 +128,7 @@
             v = r[k];
             processModelUpdate(k, v);
           }
-          return console.log('attached', path);
+          return console.log('attach', path);
         });
       }
       return info.model;
@@ -138,14 +136,15 @@
     detach = function(path) {
       if (trackedModels[path] && --trackedModels[path].count <= 0) {
         delete trackedModels[path];
-        return rpc('attach', path).then(function() {
-          return console.log('detached', path);
+        return rpc('detach', path).then(function() {
+          return console.log('detach', path);
         });
       }
     };
     return {
       connect: connect,
       send: send,
+      store: store,
       rpc: rpc,
       attach: attach,
       detach: detach
@@ -153,5 +152,3 @@
   });
 
 }).call(this);
-
-//# sourceMappingURL=jeebus.map
