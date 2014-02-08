@@ -28,12 +28,11 @@ type Client struct {
 
 //helper functions for timestamp
 func TimeStamp(t time.Time) (timestamp int64) {
-		return t.UTC().UnixNano() / 1000000
+	return t.UTC().UnixNano() / 1000000
 }
 func TimeStampToString(t int64) (timestamp string) {
-	return fmt.Sprintf( "%d", t )
+	return fmt.Sprintf("%d", t)
 }
-
 
 // Dispatch a payload to the appropriate registered services for that topic.
 func (c *Client) Dispatch(topic string, payload interface{}) {
@@ -41,31 +40,30 @@ func (c *Client) Dispatch(topic string, payload interface{}) {
 	m := &Message{T: topic, P: NewPayload(payload)}
 
 	matches := make(chan string)
-	go c.ResolveMqttPath(topic,matches)
+	go c.ResolveMqttPath(topic, matches)
 
 	for match := range matches {
 		c.Services[match].Handle(m)
 	}
 }
 
-
 func (c *Client) ResolveMqttPath(key string, matches chan string) {
-	keys := strings.Split(key,"/")
+	keys := strings.Split(key, "/")
 
-	for tk,_ := range c.Services {
-		tkeys := strings.Split(tk,"/")
-		for pi,pv := range tkeys {
+	for tk, _ := range c.Services {
+		tkeys := strings.Split(tk, "/")
+		for pi, pv := range tkeys {
 			if pi > len(keys)-1 {
 				break //hit end and not matched
 			}
 			p := keys[pi]
-			if (pv=="#") {
+			if pv == "#" {
 				matches <- tk //wildcard stem match @ #
 				break
 			}
-			if (p == pv) || (pv=="+")  {
-				if  pi == len(keys)-1 && len(keys)-1 == len(tkeys)-1 {
-					matches <- tk  //end of stem match on === & +
+			if (p == pv) || (pv == "+") {
+				if pi == len(keys)-1 && len(keys)-1 == len(tkeys)-1 {
+					matches <- tk //end of stem match on === & +
 					break
 				}
 				//allow continue on === & +
@@ -77,8 +75,6 @@ func (c *Client) ResolveMqttPath(key string, matches chan string) {
 	close(matches)
 
 }
-
-
 
 // Service represents the registration for a specific subtopic
 type Service interface {
