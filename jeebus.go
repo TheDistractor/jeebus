@@ -8,10 +8,12 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
+
 )
 
 // Client represents a group of MQTT topics used as services.
@@ -23,27 +25,59 @@ type Client struct {
 	cbs      *CallbackService   // takes care of RPC's and their replies
 }
 
+//helper functions for timestamp
+func TimeStamp(t time.Time) (timestamp int64) {
+		return t.UTC().UnixNano() / 1000000
+}
+func TimeStampToString(t int64) (timestamp string) {
+	return fmt.Sprintf( "%d", t )
+}
+
+
 // Dispatch a payload to the appropriate registered services for that topic.
 func (c *Client) Dispatch(topic string, payload interface{}) {
-	// TODO full MQTT wildcard match logic, i.e. also +'s
+	// Done! full MQTT wildcard match logic, i.e. also +'s
 	m := &Message{T: topic, P: NewPayload(payload)}
-	t := []byte(topic)
 
-	for k, v := range c.Services {
-		if k == topic {
-			v.Handle(m)
-		} else {
-			for i, b := range []byte(k) {
-				if b == '#' || i == len(t) && b == '/' {
-					v.Handle(m)
-				} else if b == t[i] {
-					continue
+	matches := make(chan string)
+	go c.ResolveMqttPath(topic,matches)
+
+	for match := range matches {
+		c.Services[match].Handle(m)
+	}
+}
+
+
+func (c *Client) ResolveMqttPath(key string, matches chan string) {
+	keys := strings.Split(key,"/")
+
+	for tk,_ := range c.Services {
+		tkeys := strings.Split(tk,"/")
+		for pi,pv := range tkeys {
+			if pi > len(keys)-1 {
+				break //hit end and not matched
+			}
+			p := keys[pi]
+			if (pv=="#") {
+				matches <- tk //wildcard stem match @ #
+				break
+			}
+			if (p == pv) || (pv=="+")  {
+				if  pi == len(keys)-1 && len(keys)-1 == len(tkeys)-1 {
+					matches <- tk  //end of stem match on === & +
+					break
 				}
+				//allow continue on === & +
+			} else {
 				break
 			}
 		}
 	}
+	close(matches)
+
 }
+
+
 
 // Service represents the registration for a specific subtopic
 type Service interface {
