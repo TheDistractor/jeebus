@@ -450,10 +450,11 @@ type RpcService struct{}
 
 func (s *RpcService) Handle(m *jeebus.Message) {
 	origin := strings.SplitN(m.T, "/", 3)[2]
-	client.Publish("cb/" + origin, decodeRpcRequest(origin, m.P))
+	client.Publish("cb/"+origin, decodeRpcRequest(origin, m.P))
 }
 
 func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error) {
+	log.Printf("rpc cmd %s %v", cmd, args)
 	switch cmd {
 
 	case "echo":
@@ -523,9 +524,16 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 		return ioutil.ReadFile("files/" + name)
 
 	case "savefile":
-		name, data := args[0].(string), args[1].(string)
+		name := args[0].(string)
 		// TODO this isn't safe if the filename uses a nasty path!
-		return nil, ioutil.WriteFile("files/"+name, []byte(data), 0666)
+		if len(args) > 1 {
+			data := args[1].(string)
+			log.Println("WRITE", "files/"+name)
+			return nil, ioutil.WriteFile("files/"+name, []byte(data), 0666)
+		} else {
+			log.Println("REMOVE", "files/"+name)
+			return nil, os.Remove("files/" + name)
+		}
 	}
 
 	return nil, errors.New("RPC not found: " + cmd)
@@ -555,7 +563,7 @@ func dbKeys(prefix string) []string {
 		}
 		// fmt.Printf(" DK %d %d %d %s %s\n", skip, len(prev), i, prev, k)
 		if !bytes.Equal(prev, k[skip:i]) {
-			// TODO need to make a copy of the key, since it's owned by iter
+			// need to make a copy of the key, since it's owned by iter
 			prev = make([]byte, i-skip)
 			copy(prev, k[skip:i])
 			// fmt.Printf("ADD %s\n", prev)
@@ -568,9 +576,7 @@ func dbKeys(prefix string) []string {
 	return result
 }
 
-type LoggerService struct {
-	fd *os.File // TODO can't this struct nesting be avoided, somehow?
-}
+type LoggerService struct{ fd *os.File }
 
 // LOGGER_PREFIX is where log files get created. While this directory exists,
 // the logger will store new files in it and append log items. Note that it is
