@@ -605,7 +605,7 @@ func dbKeys(prefix string) []string {
 	for iter.Valid() {
 		k := iter.Key()
 		// fmt.Printf(" -> %s = %s\n", k, iter.Value())
-		if !iter.Next() || bytes.Compare(k, to) > 0 {
+		if bytes.Compare(k, to) > 0 {
 			break
 		}
 		i := bytes.IndexRune(k[skip:], '/') + skip
@@ -619,6 +619,9 @@ func dbKeys(prefix string) []string {
 			copy(prev, k[skip:i])
 			// fmt.Printf("ADD %s\n", prev)
 			result = append(result, string(prev))
+		}
+		if !iter.Next() {
+			break
 		}
 	}
 	return result
