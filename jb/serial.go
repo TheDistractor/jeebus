@@ -19,7 +19,7 @@ func (s *SerialInterfaceService) Handle(m *jeebus.Message) {
 	s.Write([]byte(m.Get("text")))
 }
 
-func serialConnect(port string, baudrate int, tag string) {
+func serialConnect(port string, baudrate int, tag string, done chan bool) {
 	// open the serial port in 8N1 mode
 	serial, err := rs232.Open(port, rs232.Options{
 		BitRate: uint32(baudrate), DataBits: 8, StopBits: 1,
@@ -34,16 +34,24 @@ func serialConnect(port string, baudrate int, tag string) {
 	}
 
 	// flush all old data from the serial port while looking for a tag
+
+	log.Println("waiting for serial")
+	timeout := time.Now().Add(10*time.Second) //turn this into serial flag --timeout=10
 	if tag == "" {
-		log.Println("waiting for serial")
 		for scanner.Scan() {
-			input.Time = time.Now().UTC().UnixNano() / 1000000
+			if time.Now().After(timeout) {
+				log.Println("Serial Timeout obtaining tag.")
+				client.Done <- true
+				return  //we dont need to detach as we never attached.
+			}
+			input.Time = jeebus.TimeStamp(time.Now())
 			input.Text = scanner.Text()
 			if strings.HasPrefix(input.Text, "[") &&
 				strings.Contains(input.Text, "]") {
 				tag = input.Text[1:strings.IndexAny(input.Text, ".]")]
 				break
 			}
+
 		}
 	}
 
@@ -65,8 +73,23 @@ func serialConnect(port string, baudrate int, tag string) {
 		client.Publish("rd/"+name, &input)
 	}
 	for scanner.Scan() {
-		input.Time = time.Now().UTC().UnixNano() / 1000000
-		input.Text = scanner.Text()
-		client.Publish("rd/"+name, &input)
+		select {
+		case <-done:
+			//we don't defer, after all, mqtt may be gone!
+			client.Publish("/detach/"+dev, attachMsg)
+			//client.Publish("rm/unregister", map[string]string{"Tag": tag, "Id": dev, "Endpoint": resp.Endpoint})
+			serial.Close()
+
+		default:
+			input.Time = jeebus.TimeStamp(time.Now())
+			input.Text = scanner.Text()
+			client.Publish("rd/"+name, &input) //see new logger topic
+			//client.Publish(resp.Endpoint+"/"+jeebus.TimeStampToString(input.Time), &input)
+
+		}
 	}
+	<-time.After(2 * time.Second) //lets allow some breathing room for things to naturally close
+	log.Println("Serial Disconnect!!")
+	client.Done <- true
+
 }
