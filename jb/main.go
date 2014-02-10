@@ -104,8 +104,31 @@ func main() {
 		check(err)
 		log.Println("opening serial port", dev)
 		client = jeebus.NewClient(nil) // TODO -mqtt=... arg
-		serialConnect(dev, nbaud, tag)
+
+		//allow graceful closure from terminal etc.
+		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
+		exit := make(chan bool)
+		go func() {
+			for sig := range sigchan {
+				switch sig {
+				case syscall.SIGINT:
+					exit <- true
+					log.Println("Exit via SIGINT")
+				case syscall.SIGTERM:
+					exit <- true
+					log.Println("Exit via SIGTERM")
+				}
+			}
+		}()
+
+		//we task this as we get better coordination
+		go serialConnect(dev, nbaud, tag, exit)
+
 		<-client.Done
+		//we dont/cant care about a graceful deregister if mqtt is gone as there is nothing to talk to!!
+		log.Println("Serial Ends")
 
 	case "tick":
 		topic := "/admin/tick"
