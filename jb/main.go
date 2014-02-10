@@ -127,8 +127,8 @@ func main() {
 		go serialConnect(dev, nbaud, tag, exit)
 
 		<-client.Done
-		//we dont/cant care about a graceful deregister if mqtt is gone as there is nothing to talk to!!
-		log.Println("Serial Ends")
+		// don't care about a graceful deregister since mqtt is gone
+		log.Println("serial connection ends")
 
 	case "tick":
 		topic := "/admin/tick"

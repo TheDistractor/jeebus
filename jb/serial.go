@@ -1,4 +1,4 @@
-//separate serial so we can start to abstract rs232 to get better x-platform support.
+// Separate serial to abstract rs232 to get better x-platform support.
 package main
 
 import (
@@ -36,13 +36,13 @@ func serialConnect(port string, baudrate int, tag string, done chan bool) {
 	// flush all old data from the serial port while looking for a tag
 
 	log.Println("waiting for serial")
-	timeout := time.Now().Add(10*time.Second) //turn this into serial flag --timeout=10
+	timeout := time.Now().Add(10*time.Second) // TODO turn into --timeout=10
 	if tag == "" {
 		for scanner.Scan() {
 			if time.Now().After(timeout) {
 				log.Println("Serial Timeout obtaining tag.")
 				client.Done <- true
-				return  //we dont need to detach as we never attached.
+				return  // no need to detach as it was never attached
 			}
 			input.Time = jeebus.TimeStamp(time.Now())
 			input.Text = scanner.Text()
@@ -75,20 +75,22 @@ func serialConnect(port string, baudrate int, tag string, done chan bool) {
 	for scanner.Scan() {
 		select {
 		case <-done:
-			//we don't defer, after all, mqtt may be gone!
+			// don't defer since mqtt may be gone
 			client.Publish("/detach/"+dev, attachMsg)
-			//client.Publish("rm/unregister", map[string]string{"Tag": tag, "Id": dev, "Endpoint": resp.Endpoint})
+			// client.Publish("rm/unregister", map[string]string{"Tag":
+			//	tag, "Id": dev, "Endpoint": resp.Endpoint})
 			serial.Close()
 
 		default:
 			input.Time = jeebus.TimeStamp(time.Now())
 			input.Text = scanner.Text()
 			client.Publish("rd/"+name, &input) //see new logger topic
-			//client.Publish(resp.Endpoint+"/"+jeebus.TimeStampToString(input.Time), &input)
+			// client.Publish(resp.Endpoint+"/"+
+			//	jeebus.TimeStampToString(input.Time), &input)
 
 		}
 	}
-	<-time.After(2 * time.Second) //lets allow some breathing room for things to naturally close
+	<-time.After(2 * time.Second) // allow things to naturally close
 	log.Println("Serial Disconnect!!")
 	client.Done <- true
 
