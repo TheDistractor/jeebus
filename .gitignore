@@ -22,5 +22,6 @@ _testmain.go
 *.exe
 
 .idea
+/files
 /logger
 /storage

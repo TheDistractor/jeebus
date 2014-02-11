@@ -348,6 +348,11 @@ func startAllServers(hurl, murl *url.URL) {
 
 	log.Println("starting web server on", hurl)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
+	// TODO these extra access paths should probably not be hard-coded here
+	fs := http.FileServer(http.Dir("./files"))
+	http.Handle("/files/", http.StripPrefix("/files/", fs))
+	lf := http.FileServer(http.Dir("./logger"))
+	http.Handle("/logger/", http.StripPrefix("/logger/", lf))
 	http.Handle("/ws", websocket.Handler(sockServer))
 	log.Fatal(http.ListenAndServe(hurl.Host, nil)) // TODO https!
 }
