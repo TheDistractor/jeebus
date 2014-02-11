@@ -3,6 +3,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -28,10 +29,7 @@ func serialConnect(port string, baudrate int, tag string, done chan bool) {
 
 	scanner := bufio.NewScanner(serial)
 
-	var input struct {
-		Text string `json:"text"`
-		Time int64  `json:"time"`
-	}
+	var input string;
 
 	// flush all old data from the serial port while looking for a tag
 
@@ -44,11 +42,10 @@ func serialConnect(port string, baudrate int, tag string, done chan bool) {
 				client.Done <- true
 				return  // no need to detach as it was never attached
 			}
-			input.Time = jeebus.TimeStamp(time.Now())
-			input.Text = scanner.Text()
-			if strings.HasPrefix(input.Text, "[") &&
-				strings.Contains(input.Text, "]") {
-				tag = input.Text[1:strings.IndexAny(input.Text, ".]")]
+			input = scanner.Text()
+			if strings.HasPrefix(input, "[") &&
+				strings.Contains(input, "]") {
+				tag = input[1:strings.IndexAny(input, ".]")]
 				break
 			}
 
@@ -57,41 +54,39 @@ func serialConnect(port string, baudrate int, tag string, done chan bool) {
 
 	dev := strings.TrimPrefix(port, "/dev/")
 	dev = strings.Replace(dev, "tty.usbserial-", "usb-", 1)
-	name := tag + "/" + dev
+	name := "if/" + tag + "/" + dev
 	log.Println("serial ready:", name)
 
-	client.Register("if/"+name, &SerialInterfaceService{serial})
-	defer client.Unregister("if/" + name)
+	client.Register(name, &SerialInterfaceService{serial})
+	defer client.Unregister(name)
 
 	// store the tag line for this device
-	attachMsg := map[string]string{"text": input.Text, "tag": tag}
+	attachMsg := map[string]string{"text": input, "tag": tag}
 	client.Publish("/attach/"+dev, attachMsg)
 	defer client.Publish("/detach/"+dev, attachMsg)
 
 	// send the tag line (if present), then send out whatever comes in
-	if input.Text != "" {
-		client.Publish("rd/"+name, &input)
+	if input != "" {
+		publishWithTimeStamp(name, input)
 	}
 	for scanner.Scan() {
 		select {
 		case <-done:
-			// don't defer since mqtt may be gone
 			client.Publish("/detach/"+dev, attachMsg)
-			// client.Publish("rm/unregister", map[string]string{"Tag":
-			//	tag, "Id": dev, "Endpoint": resp.Endpoint})
 			serial.Close()
-
 		default:
-			input.Time = jeebus.TimeStamp(time.Now())
-			input.Text = scanner.Text()
-			client.Publish("rd/"+name, &input) //see new logger topic
-			// client.Publish(resp.Endpoint+"/"+
-			//	jeebus.TimeStampToString(input.Time), &input)
-
+			publishWithTimeStamp(name, scanner.Text())
 		}
 	}
-	<-time.After(2 * time.Second) // allow things to naturally close
+	
 	log.Println("Serial Disconnect!!")
+	<-time.After(2 * time.Second) // allow things to naturally close
 	client.Done <- true
 
+}
+
+func publishWithTimeStamp(tag, text string) {
+	now := time.Now().UTC().UnixNano() / 1000000
+	topic := fmt.Sprintf("%s/%d", tag, now)
+	client.Publish(topic, []byte(text)) // do not convert string to JSON
 }

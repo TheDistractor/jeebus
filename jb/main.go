@@ -202,12 +202,6 @@ func main() {
 	}
 }
 
-func check(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 type SeeService struct{}
 
 func (s *SeeService) Handle(m *jeebus.Message) {
@@ -316,7 +310,7 @@ func startAllServers(hurl, murl *url.URL) {
 
 	client = jeebus.NewClient(murl)
 	client.Register("/#", &DatabaseService{})
-	client.Register("rd/#", new(LoggerService))
+	client.Register("if/+/+/+", new(LoggerService))
 	client.Register("sv/lua/#", new(LuaDispatchService))
 	client.Register("sv/rpc/#", new(RpcService))
 
@@ -328,7 +322,8 @@ func startAllServers(hurl, murl *url.URL) {
     })
 
 	// FIXME hook up the blinker script to handle incoming messages
-	client.Publish("sv/lua/register", []byte("rd/blinker"))
+	// FIXME broken due to recent change from rd/... to if/...
+	// client.Publish("sv/lua/register", []byte("if/blinker/+/+"))
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
@@ -614,8 +609,19 @@ type LoggerService struct{ fd *os.File }
 const LOGGER_PREFIX = "./logger/"
 
 func (s *LoggerService) Handle(msg *jeebus.Message) {
+	if !isPlainTextLine(msg.P) {
+		return // filter input on if/... to only log simple plain text lines
+	}
+	
+	split := strings.Split(msg.T, "/");
+	port := split[2]
+	// TODO accepting any value right now, but non-monotonic would be a problem
+	n, err := strconv.Atoi(split[3])
+	check(err)
+	timestamp := time.Unix(0, int64(n) * 1000000)
+
 	// automatic enabling/disabling of the logger, based on presence of dir
-	_, err := os.Stat(LOGGER_PREFIX)
+	_, err = os.Stat(LOGGER_PREFIX)
 	if err != nil {
 		if s.fd != nil {
 			log.Println("logger stopped")
@@ -628,8 +634,7 @@ func (s *LoggerService) Handle(msg *jeebus.Message) {
 		log.Println("logger started")
 	}
 	// figure out name of logfile based on UTC date, with daily rotation
-	now := time.Now().UTC()
-	datePath := dateFilename(now)
+	datePath := dateFilename(timestamp)
 	if s.fd == nil || datePath != s.fd.Name() {
 		if s.fd != nil {
 			s.fd.Close()
@@ -643,11 +648,22 @@ func (s *LoggerService) Handle(msg *jeebus.Message) {
 	}
 	// append a new log entry, here is an example of the format used:
 	// 	L 01:02:03.537 usb-A40117UK OK 9 25 54 66 235 61 210 226 33 19
-	hour, min, sec := now.Clock()
-	port := strings.SplitN(msg.T, "/", 2)[1] // skip the service name
+	hour, min, sec := timestamp.Clock()
 	line := fmt.Sprintf("L %02d:%02d:%02d.%03d %s %s\n",
-		hour, min, sec, now.Nanosecond()/1000000, port, msg.Get("text"))
+		hour, min, sec, timestamp.Nanosecond()/1000000, port, msg.P)
 	s.fd.WriteString(line)
+}
+
+func isPlainTextLine(input []byte) bool {
+	if len(input) > 250 {
+		return false // too long, limit is set (a bit arbitrarily) at 250 bytes
+	}
+	for _, b := range input {
+		if b < 0x20 || b > 0x7E {
+			return false // input has non-printable ASCII characters
+		}
+	}
+	return true
 }
 
 func dateFilename(now time.Time) string {
@@ -656,4 +672,10 @@ func dateFilename(now time.Time) string {
 	os.MkdirAll(path, os.ModePerm)
 	// e.g. "./logger/2014/20140122.txt"
 	return fmt.Sprintf("%s/%d.txt", path, (year*100+int(month))*100+day)
+}
+
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }
