@@ -320,10 +320,12 @@ func startAllServers(hurl, murl *url.URL) {
 	client.Register("sv/lua/#", new(LuaDispatchService))
 	client.Register("sv/rpc/#", new(RpcService))
 
-	client.Publish("/jeebus/started", time.Now().Format(time.RFC822Z))
-	client.Publish("/jeebus/version", version)
-	// this is getting ready for optional TLS support
-	client.Publish("/jeebus/webserver", hurl.String())
+	// persistent messages must be stored as JSON object
+	client.Publish("/jb/info", map[string]interface{}{
+    	"started": time.Now().Format(time.RFC822Z),
+		"version": version,
+		"webserver": hurl.String(),
+    })
 
 	// FIXME hook up the blinker script to handle incoming messages
 	client.Publish("sv/lua/register", []byte("rd/blinker"))
