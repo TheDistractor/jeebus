@@ -32,7 +32,7 @@
       });
     };
     $scope.dbGetTest = function() {
-      return jeebus.rpc('db-get', '/jeebus/started').then(function(r) {
+      return jeebus.rpc('db-get', '/jb/info').then(function(r) {
         return $scope.message = r;
       });
     };
