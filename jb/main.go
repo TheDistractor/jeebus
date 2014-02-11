@@ -310,7 +310,7 @@ func startAllServers(hurl, murl *url.URL) {
 
 	client = jeebus.NewClient(murl)
 	client.Register("/#", &DatabaseService{})
-	client.Register("if/+/+/+", new(LoggerService))
+	client.Register("io/+/+/+", new(LoggerService))
 	client.Register("sv/lua/#", new(LuaDispatchService))
 	client.Register("sv/rpc/#", new(RpcService))
 
@@ -323,7 +323,7 @@ func startAllServers(hurl, murl *url.URL) {
 
 	// FIXME hook up the blinker script to handle incoming messages
 	// FIXME broken due to recent change from rd/... to if/...
-	// client.Publish("sv/lua/register", []byte("if/blinker/+/+"))
+	// client.Publish("sv/lua/register", []byte("io/blinker/+/+"))
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)

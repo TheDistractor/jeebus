@@ -54,7 +54,7 @@ func serialConnect(port string, baudrate int, tag string, done chan bool) {
 
 	dev := strings.TrimPrefix(port, "/dev/")
 	dev = strings.Replace(dev, "tty.usbserial-", "usb-", 1)
-	name := "if/" + tag + "/" + dev
+	name := "io/" + tag + "/" + dev
 	log.Println("serial ready:", name)
 
 	client.Register(name, &SerialInterfaceService{serial})
