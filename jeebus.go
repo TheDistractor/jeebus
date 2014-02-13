@@ -146,7 +146,7 @@ func (c *Client) Register(topic string, service Service) {
 
 // Unregister a previously defined service.
 func (c *Client) Unregister(topic string) {
-	// TODO unsubscribe...
+	// TODO: unsubscribe...
 	delete(c.Services, topic)
 }
 

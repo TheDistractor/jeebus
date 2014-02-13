@@ -18,7 +18,7 @@ func (s *LuaDispatchService) Handle(m *jeebus.Message) {
 	switch split[2] {
 	case "register":
 		L := newLuaInstance(string(m.P))
-		state = L // TODO get rid of this global hack!
+		state = L // TODO: get rid of this global hack!
 		f := luar.NewLuaObjectFromName(L, "service")
 		client.Register(string(m.P) + "/#", &LuaRegisteredService{L, f})
 	}
@@ -46,7 +46,7 @@ type LuaRegisteredService struct {
 var state *lua.State // FIXME hacked, to get it into luaDbGet
 
 func (s *LuaRegisteredService) Handle(m *jeebus.Message) {
-	// TODO should auto-reload the Lua script if it has changed on disk
+	// TODO: should auto-reload the Lua script if it has changed on disk
 	log.Printf("LUA-SV %s %s", m.T, string(m.P))
 	var any interface{}
 	err := json.Unmarshal(m.P, &any)
@@ -71,7 +71,7 @@ func luaRunWithArgs(args []interface{}) (interface{}, error) {
 }
 
 func luaDbKeys(prefix string) *luar.LuaObject {
-	// TODO look for a way to avoid silly little wrappers like this
+	// TODO: look for a way to avoid silly little wrappers like this
 	return luar.NewLuaObjectFromValue(state, dbKeys(prefix))
 }
 
@@ -87,7 +87,7 @@ func luaDbGet(key string) (obj *luar.LuaObject) {
 func luaDbSet(key string, value interface{}) {
 	if strings.HasPrefix(key, "/") {
 		client.Publish(key, value)
-		// TODO fall through, i.e. *also* set the value right away
+		// TODO: fall through, i.e. *also* set the value right away
 		//  need to inverstigate whether that is a good idea
 		//  the alternative causes a slight delay, due to a round trip to MQTT
 	}

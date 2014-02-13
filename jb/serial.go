@@ -34,7 +34,7 @@ func serialConnect(port string, baudrate int, tag string, done chan bool) {
 	// flush all old data from the serial port while looking for a tag
 
 	log.Println("waiting for serial")
-	timeout := time.Now().Add(10*time.Second) // TODO turn into --timeout=10
+	timeout := time.Now().Add(10*time.Second) // TODO: turn into --timeout=10
 	if tag == "" {
 		for scanner.Scan() {
 			if time.Now().After(timeout) {

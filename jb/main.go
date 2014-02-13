@@ -71,7 +71,7 @@ func main() {
 		hurl, err := url.Parse(httpAddr)
 		check(err)
 
-		// TODO the "-mqtt=..." flag will also be needed in other subcommands
+		// TODO: the "-mqtt=..." flag will also be needed in other subcommands
 		if !strings.Contains(mqttAddr, "://") {
 			mqttAddr = "tcp://" + mqttAddr
 		}
@@ -85,7 +85,7 @@ func main() {
 		if len(os.Args) > 2 {
 			topics = os.Args[2]
 		}
-		client = jeebus.NewClient(nil) // TODO -mqtt=... arg
+		client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
 		client.Register(topics, new(SeeService))
 		<-client.Done
 
@@ -103,7 +103,7 @@ func main() {
 		nbaud, err := strconv.Atoi(baud)
 		check(err)
 		log.Println("opening serial port", dev)
-		client = jeebus.NewClient(nil) // TODO -mqtt=... arg
+		client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
 
 		//allow graceful closure from terminal etc.
 		sigchan := make(chan os.Signal, 1)
@@ -135,7 +135,7 @@ func main() {
 		if len(os.Args) > 2 {
 			topic = os.Args[2]
 		}
-		client = jeebus.NewClient(nil) // TODO -mqtt=... arg
+		client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
 		go func() {
 			ticker := time.NewTicker(time.Second)
 			for tick := range ticker.C {
@@ -152,9 +152,9 @@ func main() {
 		if len(os.Args) > 3 {
 			value = os.Args[3]
 		}
-		client = jeebus.NewClient(nil) // TODO -mqtt=... arg
+		client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
 		client.Publish(os.Args[2], []byte(value))
-		// TODO need to close gracefully, and not too soon!
+		// TODO: need to close gracefully, and not too soon!
 		time.Sleep(10 * time.Millisecond)
 
 	case "db":
@@ -302,7 +302,7 @@ func startAllServers(hurl, murl *url.URL) {
 	check(err)
 
 	log.Println("starting MQTT server on", murl)
-	sock, err := net.Listen("tcp", murl.Host) // TODO tls!
+	sock, err := net.Listen("tcp", murl.Host) // TODO: tls!
 	check(err)
 	svr := mqtt.NewServer(sock)
 	svr.Start()
@@ -338,20 +338,20 @@ func startAllServers(hurl, murl *url.URL) {
 				log.Println("Exit via SIGTERM")
 				os.Exit(0)
 				// case syscall.SIGHUP:
-				// TODO this is where we can re-read config etc
+				// TODO: this is where we can re-read config etc
 			}
 		}
 	}()
 
 	log.Println("starting web server on", hurl)
 	http.Handle("/", http.FileServer(http.Dir("./app")))
-	// TODO these extra access paths should probably not be hard-coded here
+	// TODO: these extra access paths should probably not be hard-coded here
 	fs := http.FileServer(http.Dir("./files"))
 	http.Handle("/files/", http.StripPrefix("/files/", fs))
 	lf := http.FileServer(http.Dir("./logger"))
 	http.Handle("/logger/", http.StripPrefix("/logger/", lf))
 	http.Handle("/ws", websocket.Handler(sockServer))
-	log.Fatal(http.ListenAndServe(hurl.Host, nil)) // TODO https!
+	log.Fatal(http.ListenAndServe(hurl.Host, nil)) // TODO: https!
 }
 
 type DatabaseService struct{}
@@ -359,12 +359,12 @@ type DatabaseService struct{}
 func (s *DatabaseService) Handle(m *jeebus.Message) {
 	if len(m.P) > 0 {
 		db.Put([]byte(m.T), m.P, nil)
-		// TODO reconsider carefully whether to use timestamp inside payload
+		// TODO: reconsider carefully whether to use timestamp inside payload
 		millis := time.Now().UnixNano() / 1000000
 		db.Put([]byte(fmt.Sprintf("hist/%s/%d", m.T, millis)), m.P, nil)
 	} else {
 		db.Delete([]byte(m.T), nil)
-		// TODO decide what to do with deletions w.r.t. the historical data
+		// TODO: decide what to do with deletions w.r.t. the historical data
 		//  record the deletion? delete it as well? sweep and clean up later?
 	}
 	// send out websocket messages for all matching attached topics
@@ -381,7 +381,7 @@ func (s *DatabaseService) Handle(m *jeebus.Message) {
 
 
 type WebsocketService struct {
-	ws *websocket.Conn // TODO can't this struct nesting be avoided, somehow?
+	ws *websocket.Conn // TODO: can't this struct nesting be avoided, somehow?
 }
 
 func (s *WebsocketService) Handle(m *jeebus.Message) {
@@ -489,7 +489,7 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 		return dbKeys(args[0].(string)), nil
 
 	case "db-get":
-		v, e := db.Get([]byte(args[0].(string)), nil) // TODO yuck...
+		v, e := db.Get([]byte(args[0].(string)), nil) // TODO: yuck...
 		return string(v), e
 
 	case "lua":
@@ -506,7 +506,7 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 		attached[prefix][name]++
 		log.Println("attached", prefix, name)
 
-		to := prefix + "~" // TODO see notes about "~" elsewhere
+		to := prefix + "~" // TODO: see notes about "~" elsewhere
 		result := make(map[string]interface{})
 
 		iter := db.NewIterator(nil)
@@ -516,7 +516,7 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 				break
 			}
 			var obj interface{}
-			err := json.Unmarshal(iter.Value(), &obj) // TODO yuck, why decode?
+			err := json.Unmarshal(iter.Value(), &obj) // TODO: yuck, why decode?
 			check(err)
 			result[string(iter.Key())] = obj
 			if !iter.Next() {
@@ -545,12 +545,12 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 
 	case "openfile":
 		name := args[0].(string)
-		// TODO this isn't safe if the filename uses a nasty path!
+		// TODO: this isn't safe if the filename uses a nasty path!
 		return ioutil.ReadFile("files/" + name)
 
 	case "savefile":
 		name := args[0].(string)
-		// TODO this isn't safe if the filename uses a nasty path!
+		// TODO: this isn't safe if the filename uses a nasty path!
 		if len(args) > 1 {
 			data := args[1].(string)
 			log.Println("WRITE", "files/"+name)
@@ -565,8 +565,8 @@ func processRpcRequest(name, cmd string, args []interface{}) (interface{}, error
 }
 
 func dbKeys(prefix string) []string {
-	// TODO decide whether this key logic is the most useful & least confusing
-	// TODO should use skips and reverse iterators once the db gets larger!
+	// TODO: decide whether this key logic is the most useful & least confusing
+	// TODO: should use skips and reverse iterators once the db gets larger!
 	from, to, skip := []byte(prefix), []byte(prefix+"~"), len(prefix)
 	// from, to, skip := []byte(prefix+"/"), []byte(prefix+"/~"), len(prefix)+1
 	result := []string{}
@@ -615,7 +615,7 @@ func (s *LoggerService) Handle(msg *jeebus.Message) {
 	
 	split := strings.Split(msg.T, "/");
 	port := split[2]
-	// TODO accepting any value right now, but non-monotonic would be a problem
+	// TODO: accepting any value right now, but non-monotonic would be a problem
 	n, err := strconv.Atoi(split[3])
 	check(err)
 	timestamp := time.Unix(0, int64(n) * 1000000)
