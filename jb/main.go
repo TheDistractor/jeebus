@@ -616,7 +616,7 @@ func (s *LoggerService) Handle(msg *jeebus.Message) {
 	split := strings.Split(msg.T, "/");
 	port := split[2]
 	// TODO: accepting any value right now, but non-monotonic would be a problem
-	n, err := strconv.Atoi(split[3])
+	n, err := strconv.ParseInt(split[3],10,64)	
 	check(err)
 	timestamp := time.Unix(0, int64(n) * 1000000)
 
