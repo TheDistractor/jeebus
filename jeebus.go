@@ -66,6 +66,13 @@ func (c *Client) ResolveMqttPath(key string, matches chan string) {
 					matches <- tk //end of stem match on === & +
 					break
 				}
+				//try a lookahead
+				if pi == len(tkeys)-2 {
+					if (p==pv) && (tkeys[pi+1] == "#") {
+						matches <- tk
+						break
+					}
+				}
 				//allow continue on === & +
 			} else {
 				break
