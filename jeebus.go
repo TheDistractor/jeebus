@@ -17,7 +17,7 @@ import (
 
 )
 
-// Client represents a group of MQTT topics used as services.
+// Client represents a connection to an MQTT server, with subscribed services.
 type Client struct {
 	Mqtt     *mqtt.ClientConn   // connection to the MQTT server
 	Services map[string]Service // map subscriptions to handlers
