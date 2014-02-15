@@ -27,8 +27,9 @@ import (
 const version = "0.2-beta"
 
 var (
-	db     *leveldb.DB
-	client *jeebus.Client
+	mqttUrl *url.URL
+	db      *leveldb.DB
+	client  *jeebus.Client
 )
 
 func init() {
@@ -98,18 +99,12 @@ func main() {
 		},
 	}
 
-	app.Run(os.Args)
-}
+	app.Before = func(c *cli.Context) error {
+		mqttUrl = asUrl(c.GlobalString("mqtt"), "tcp")
+		return nil
+	}
 
-func runCommand(c *cli.Context) {
-	// example: jb run -http=:8080 -mqtt=:1886
-	//		run http and mqtt on non-std ports, bound to all interfaces
-	// example: jb run -http=192.168.147.128:3333 -mqtt=192.168.147.128:1883
-	// 		only run http and mqtt on 192.168.147.128 interface
-	mqttAddr := c.GlobalString("mqtt")
-	httpAddr := c.String("port")
-	// TODO: the "-mqtt=..." flag will also be needed in other subcommands
-	startAllServers(asUrl(httpAddr, "http"), asUrl(mqttAddr, "tcp"))
+	app.Run(os.Args)
 }
 
 func asUrl(addr, proto string) *url.URL {
@@ -124,12 +119,70 @@ func asUrl(addr, proto string) *url.URL {
 	return u
 }
 
+func runCommand(c *cli.Context) {
+	httpUrl := asUrl(c.String("port"), "http")
+	
+	openDatabase()
+
+	log.Println("starting MQTT server on", mqttUrl)
+	sock, err := net.Listen("tcp", mqttUrl.Host) // TODO: tls!
+	check(err)
+	svr := mqtt.NewServer(sock)
+	svr.Start()
+	// <-svr.Done
+
+	client = jeebus.NewClient(mqttUrl)
+	client.Register("/#", &DatabaseService{})
+	client.Register("io/+/+/+", new(LoggerService))
+	client.Register("sv/lua/#", new(LuaDispatchService))
+	client.Register("sv/rpc/#", new(RpcService))
+
+	// persistent messages must be stored as JSON object
+	client.Publish("/jb/info", map[string]interface{}{
+		"started":   time.Now().Format(time.RFC822Z),
+		"version":   version,
+		"webserver": httpUrl.String(),
+	})
+
+	// FIXME hook up the blinker script to handle incoming messages
+	// FIXME broken due to recent change from rd/... to if/...
+	// client.Publish("sv/lua/register", []byte("io/blinker/+/+"))
+
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		for sig := range sigchan {
+			switch sig {
+			case syscall.SIGINT:
+				log.Println("Exit via SIGINT")
+				os.Exit(0)
+			case syscall.SIGTERM:
+				log.Println("Exit via SIGTERM")
+				os.Exit(0)
+				// case syscall.SIGHUP:
+				// TODO: this is where we can re-read config etc
+			}
+		}
+	}()
+
+	log.Println("starting web server on", httpUrl)
+	http.Handle("/", http.FileServer(http.Dir("./app")))
+	// TODO: these extra access paths should probably not be hard-coded here
+	fs := http.FileServer(http.Dir("./files"))
+	http.Handle("/files/", http.StripPrefix("/files/", fs))
+	lf := http.FileServer(http.Dir("./logger"))
+	http.Handle("/logger/", http.StripPrefix("/logger/", lf))
+	http.Handle("/ws", websocket.Handler(sockServer))
+	log.Fatal(http.ListenAndServe(httpUrl.Host, nil)) // TODO: https!
+}
+
 func seeCommand(c *cli.Context) {
 	topics := c.Args().First()
 	if topics == "" {
 		topics = "#"
 	}
-	client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
+	client = jeebus.NewClient(mqttUrl)
 	client.Register(topics, new(SeeService))
 	<-client.Done
 }
@@ -146,7 +199,7 @@ func serialCommand(c *cli.Context) {
 	nbaud, err := strconv.Atoi(baud)
 	check(err)
 	log.Printf("opening serial port %s @ %d baud", dev, nbaud)
-	client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
+	client = jeebus.NewClient(mqttUrl)
 
 	//allow graceful closure from terminal etc.
 	sigchan := make(chan os.Signal, 1)
@@ -179,7 +232,7 @@ func tickCommand(c *cli.Context) {
 	if topic == "" {
 		topic = "/admin/tick"
 	}
-	client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
+	client = jeebus.NewClient(mqttUrl)
 	go func() {
 		ticker := time.NewTicker(time.Second)
 		for tick := range ticker.C {
@@ -194,7 +247,7 @@ func pubCommand(c *cli.Context) {
 		log.Fatalf("usage: jb pub <topic> ?<jsonval>?")
 	}
 	topic, value := c.Args().Get(0), c.Args().Get(1)
-	client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
+	client = jeebus.NewClient(mqttUrl)
 	client.Publish(topic, []byte(value))
 	// TODO: need to close gracefully, and not too soon!
 	time.Sleep(10 * time.Millisecond)
@@ -317,62 +370,6 @@ func importJsonData(filename string) {
 
 		fmt.Printf("%d deleted, %d added for prefix %q\n", ndel, nadd, prefix)
 	}
-}
-
-func startAllServers(hurl, murl *url.URL) {
-	openDatabase()
-
-	log.Println("starting MQTT server on", murl)
-	sock, err := net.Listen("tcp", murl.Host) // TODO: tls!
-	check(err)
-	svr := mqtt.NewServer(sock)
-	svr.Start()
-	// <-svr.Done
-
-	client = jeebus.NewClient(murl)
-	client.Register("/#", &DatabaseService{})
-	client.Register("io/+/+/+", new(LoggerService))
-	client.Register("sv/lua/#", new(LuaDispatchService))
-	client.Register("sv/rpc/#", new(RpcService))
-
-	// persistent messages must be stored as JSON object
-	client.Publish("/jb/info", map[string]interface{}{
-		"started":   time.Now().Format(time.RFC822Z),
-		"version":   version,
-		"webserver": hurl.String(),
-	})
-
-	// FIXME hook up the blinker script to handle incoming messages
-	// FIXME broken due to recent change from rd/... to if/...
-	// client.Publish("sv/lua/register", []byte("io/blinker/+/+"))
-
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		for sig := range sigchan {
-			switch sig {
-			case syscall.SIGINT:
-				log.Println("Exit via SIGINT")
-				os.Exit(0)
-			case syscall.SIGTERM:
-				log.Println("Exit via SIGTERM")
-				os.Exit(0)
-				// case syscall.SIGHUP:
-				// TODO: this is where we can re-read config etc
-			}
-		}
-	}()
-
-	log.Println("starting web server on", hurl)
-	http.Handle("/", http.FileServer(http.Dir("./app")))
-	// TODO: these extra access paths should probably not be hard-coded here
-	fs := http.FileServer(http.Dir("./files"))
-	http.Handle("/files/", http.StripPrefix("/files/", fs))
-	lf := http.FileServer(http.Dir("./logger"))
-	http.Handle("/logger/", http.StripPrefix("/logger/", lf))
-	http.Handle("/ws", websocket.Handler(sockServer))
-	log.Fatal(http.ListenAndServe(hurl.Host, nil)) // TODO: https!
 }
 
 func check(err error) {
