@@ -20,7 +20,7 @@ func (s *LuaDispatchService) Handle(m *jeebus.Message) {
 		L := newLuaInstance(string(m.P))
 		state = L // TODO: get rid of this global hack!
 		f := luar.NewLuaObjectFromName(L, "service")
-		client.Register(string(m.P) + "/#", &LuaRegisteredService{L, f})
+		client.Register(string(m.P)+"/#", &LuaRegisteredService{L, f})
 	}
 }
 

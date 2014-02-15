@@ -1,4 +1,5 @@
 // Separate serial to abstract rs232 to get better x-platform support.
+
 package main
 
 import (
@@ -29,18 +30,18 @@ func serialConnect(port string, baudrate int, tag string, done chan bool) {
 
 	scanner := bufio.NewScanner(serial)
 
-	var input string;
+	var input string
 
 	// flush all old data from the serial port while looking for a tag
 
 	log.Println("waiting for serial")
-	timeout := time.Now().Add(10*time.Second) // TODO: turn into --timeout=10
+	timeout := time.Now().Add(10 * time.Second) // TODO: turn into --timeout=10
 	if tag == "" {
 		for scanner.Scan() {
 			if time.Now().After(timeout) {
 				log.Println("Serial Timeout obtaining tag.")
 				client.Done <- true
-				return  // no need to detach as it was never attached
+				return // no need to detach as it was never attached
 			}
 			input = scanner.Text()
 			if strings.HasPrefix(input, "[") &&
@@ -78,7 +79,7 @@ func serialConnect(port string, baudrate int, tag string, done chan bool) {
 			publishWithTimeStamp(name, scanner.Text())
 		}
 	}
-	
+
 	log.Println("Serial Disconnect!!")
 	<-time.After(2 * time.Second) // allow things to naturally close
 	client.Done <- true
