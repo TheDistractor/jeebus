@@ -112,23 +112,22 @@ func runCommand(c *cli.Context) {
 	//		run http and mqtt on non-std ports, bound to all interfaces
 	// example: jb run -http=192.168.147.128:3333 -mqtt=192.168.147.128:1883
 	// 		only run http and mqtt on 192.168.147.128 interface
-	httpAddr := c.String("http")
-	mqttAddr := c.String("mqtt")
-
-	if !strings.Contains(httpAddr, "://") {
-		httpAddr = "http://" + httpAddr
-	}
-	hurl, err := url.Parse(httpAddr)
-	check(err)
-
+	mqttAddr := c.GlobalString("mqtt")
+	httpAddr := c.String("port")
 	// TODO: the "-mqtt=..." flag will also be needed in other subcommands
-	if !strings.Contains(mqttAddr, "://") {
-		mqttAddr = "tcp://" + mqttAddr
-	}
-	murl, err := url.Parse(mqttAddr)
-	check(err)
+	startAllServers(asUrl(httpAddr, "http"), asUrl(mqttAddr, "tcp"))
+}
 
-	startAllServers(hurl, murl)
+func asUrl(addr, proto string) *url.URL {
+	if _, err := strconv.Atoi(addr); err == nil {
+		addr = ":" + addr
+	}
+	if !strings.Contains(addr, "://") {
+		addr = proto + "://" + addr
+	}
+	u, err := url.Parse(addr)
+	check(err)
+	return u
 }
 
 func seeCommand(c *cli.Context) {
@@ -198,27 +197,22 @@ func tickCommand(c *cli.Context) {
 
 func pubCommand(c *cli.Context) {
 	if len(c.Args()) < 2 {
-		log.Fatalf("usage: jb pub <key> ?<jsonval>?")
+		log.Fatalf("usage: jb pub <topic> ?<jsonval>?")
 	}
-	// key, val := c.Args().Get(0), c.Args().Get(1)
-	var value string
-	if len(os.Args) > 3 {
-		value = os.Args[3]
-	}
+	topic, value := c.Args().Get(0), c.Args().Get(1)
 	client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
-	client.Publish(os.Args[2], []byte(value))
+	client.Publish(topic, []byte(value))
 	// TODO: need to close gracefully, and not too soon!
 	time.Sleep(10 * time.Millisecond)
 }
 
 func dumpCommand(c *cli.Context) {
-	openDatabase()
-
 	from, to := c.Args().Get(0), c.Args().Get(1)
 	if to == "" {
 		to = from + "~" // FIXME this assumes all key chars are less than "~"
 	}
 
+	openDatabase()
 	// get and print all the key/value pairs from the database
 	iter := db.NewIterator(nil)
 	iter.Seek([]byte(from))
@@ -235,19 +229,19 @@ func dumpCommand(c *cli.Context) {
 }
 
 func exportCommand(c *cli.Context) {
-	openDatabase()
-	if len(os.Args) < 4 {
-		log.Fatalf("usage: jb db export <prefix>")
+	if len(c.Args()) < 1 {
+		log.Fatalf("usage: jb export <prefix>")
 	}
-	exportJsonData(os.Args[3])
+	openDatabase()
+	exportJsonData(c.Args().First())
 }
 
 func importCommand(c *cli.Context) {
-	openDatabase()
-	if len(os.Args) < 4 {
-		log.Fatalf("usage: jb db import <jsonfile>")
+	if len(c.Args()) < 1 {
+		log.Fatalf("usage: jb import <jsonfile>")
 	}
-	importJsonData(os.Args[3])
+	openDatabase()
+	importJsonData(c.Args().First())
 }
 
 func compactCommand(c *cli.Context) {
