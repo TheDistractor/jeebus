@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -22,7 +21,7 @@ import (
 	"time"
 
 	"code.google.com/p/go.net/websocket"
-	//"github.com/chimera/rs232"
+	"github.com/codegangsta/cli"
 	"github.com/jcw/jeebus"
 	"github.com/jeffallen/mqtt"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -43,163 +42,224 @@ func init() {
 }
 
 func main() {
-	log.Println("JeeBus", version)
+	app := cli.NewApp()
+	app.Name = "jeebus"
+	app.Version = version
+	app.Usage = "messaging and data storage infrastructure for low-end hardware"
 
-	if len(os.Args) <= 1 {
-		log.Fatalf("usage: jb <cmd> ... (try 'jb run')")
+	app.Flags = []cli.Flag{
+		cli.StringFlag{"mqtt", "1883",
+			"MQTT server port (external if specified as <host:port>)"},
 	}
 
-	switch os.Args[1] {
-
-	case "run":
-		// example: jb run -http=:8080 -mqtt=:1886
-		//		run http and mqtt on non-std ports, bound to all interfaces
-		// example: jb run -http=192.168.147.128:3333 -mqtt=192.168.147.128:1883
-		// 		only run http and mqtt on 192.168.147.128 interface
-		var httpAddr, mqttAddr string
-
-		flagset := flag.NewFlagSet("runflags", flag.ContinueOnError)
-		flagset.StringVar(&httpAddr, "http", "0.0.0.0:3333",
-			"provide http server on <host><:port>")
-		flagset.StringVar(&mqttAddr, "tcp", "0.0.0.0:1883",
-			"*use* mqtt server on <host><:port>")
-		flagset.Parse(os.Args[2:])
-
-		if !strings.Contains(httpAddr, "://") {
-			httpAddr = "http://" + httpAddr
-		}
-		hurl, err := url.Parse(httpAddr)
-		check(err)
-
-		// TODO: the "-mqtt=..." flag will also be needed in other subcommands
-		if !strings.Contains(mqttAddr, "://") {
-			mqttAddr = "tcp://" + mqttAddr
-		}
-		murl, err := url.Parse(mqttAddr)
-		check(err)
-
-		startAllServers(hurl, murl)
-
-	case "see":
-		topics := "#"
-		if len(os.Args) > 2 {
-			topics = os.Args[2]
-		}
-		client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
-		client.Register(topics, new(SeeService))
-		<-client.Done
-
-	case "serial":
-		if len(os.Args) <= 2 {
-			log.Fatalf("usage: jb serial <dev> ?baud? ?tag?")
-		}
-		dev, baud, tag := os.Args[2], "57600", ""
-		if len(os.Args) > 3 {
-			baud = os.Args[3]
-		}
-		if len(os.Args) > 4 {
-			tag = os.Args[4]
-		}
-		nbaud, err := strconv.Atoi(baud)
-		check(err)
-		log.Println("opening serial port", dev)
-		client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
-
-		//allow graceful closure from terminal etc.
-		sigchan := make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
-		exit := make(chan bool)
-		go func() {
-			for sig := range sigchan {
-				switch sig {
-				case syscall.SIGINT:
-					exit <- true
-					log.Println("Exit via SIGINT")
-				case syscall.SIGTERM:
-					exit <- true
-					log.Println("Exit via SIGTERM")
-				}
-			}
-		}()
-
-		//we task this as we get better coordination
-		go serialConnect(dev, nbaud, tag, exit)
-
-		<-client.Done
-		// don't care about a graceful deregister since mqtt is gone
-		log.Println("serial connection ends")
-
-	case "tick":
-		topic := "/admin/tick"
-		if len(os.Args) > 2 {
-			topic = os.Args[2]
-		}
-		client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
-		go func() {
-			ticker := time.NewTicker(time.Second)
-			for tick := range ticker.C {
-				client.Publish(topic, tick.String())
-			}
-		}()
-		<-client.Done
-
-	case "pub":
-		if len(os.Args) < 3 {
-			log.Fatalf("usage: jb pub <key> ?<jsonval>?")
-		}
-		var value string
-		if len(os.Args) > 3 {
-			value = os.Args[3]
-		}
-		client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
-		client.Publish(os.Args[2], []byte(value))
-		// TODO: need to close gracefully, and not too soon!
-		time.Sleep(10 * time.Millisecond)
-
-	case "db":
-		if len(os.Args) < 3 {
-			log.Fatalf("usage: jb db <command> ...")
-		}
-
-		// o := &opt.Options{ ErrorIfMissing: true }
-		dbf, err := leveldb.OpenFile("./storage", nil)
-		check(err)
-		db = dbf
-
-		switch os.Args[2] {
-		case "dump":
-			switch len(os.Args) {
-			case 3:
-				dumpDatabase("", "")
-			case 4:
-				dumpDatabase(os.Args[3], "")
-			case 5:
-				dumpDatabase(os.Args[3], os.Args[4])
-			}
-
-		case "export":
-			if len(os.Args) < 4 {
-				log.Fatalf("usage: jb db export <prefix>")
-			}
-			exportJsonData(os.Args[3])
-
-		case "import":
-			if len(os.Args) < 4 {
-				log.Fatalf("usage: jb db import <jsonfile>")
-			}
-			importJsonData(os.Args[3])
-
-		case "compact":
-			db.CompactRange(leveldb.Range{})
-
-		default:
-			log.Fatal("unknown db sub-command: jb db ", os.Args[2], " ...")
-		}
-
-	default:
-		log.Fatal("unknown sub-command: jb ", os.Args[1], " ...")
+	app.Commands = []cli.Command{
+		{
+			Name:   "run",
+			Usage:  "run as server",
+			Action: runCommand,
+			Flags: []cli.Flag{
+				cli.StringFlag{"port", "3333",
+					"HTTP server port (with optional interface if <iface:port>)"},
+			},
+		},
+		{
+			Name:   "see",
+			Usage:  "display MQTT messages",
+			Action: seeCommand,
+		},
+		{
+			Name:   "serial",
+			Usage:  "connect to a serial port",
+			Action: serialCommand,
+		},
+		{
+			Name:   "tick",
+			Usage:  "publish periodic ticks",
+			Action: tickCommand,
+		},
+		{
+			Name:   "pub",
+			Usage:  "publish one message",
+			Action: pubCommand,
+		},
+		{
+			Name:   "dump",
+			Usage:  "dump the contents of the database",
+			Action: dumpCommand,
+		},
+		{
+			Name:   "export",
+			Usage:  "export from the database as JSON",
+			Action: exportCommand,
+		},
+		{
+			Name:   "import",
+			Usage:  "import from JSON to the database",
+			Action: importCommand,
+		},
+		{
+			Name:   "compact",
+			Usage:  "perform a database compaction",
+			Action: compactCommand,
+		},
 	}
+
+	app.Run(os.Args)
+}
+
+func runCommand(c *cli.Context) {
+	// example: jb run -http=:8080 -mqtt=:1886
+	//		run http and mqtt on non-std ports, bound to all interfaces
+	// example: jb run -http=192.168.147.128:3333 -mqtt=192.168.147.128:1883
+	// 		only run http and mqtt on 192.168.147.128 interface
+	httpAddr := c.String("http")
+	mqttAddr := c.String("mqtt")
+
+	if !strings.Contains(httpAddr, "://") {
+		httpAddr = "http://" + httpAddr
+	}
+	hurl, err := url.Parse(httpAddr)
+	check(err)
+
+	// TODO: the "-mqtt=..." flag will also be needed in other subcommands
+	if !strings.Contains(mqttAddr, "://") {
+		mqttAddr = "tcp://" + mqttAddr
+	}
+	murl, err := url.Parse(mqttAddr)
+	check(err)
+
+	startAllServers(hurl, murl)
+}
+
+func seeCommand(c *cli.Context) {
+	topics := c.Args().First()
+	if topics == "" {
+		topics = "#"
+	}
+	client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
+	client.Register(topics, new(SeeService))
+	<-client.Done
+}
+
+func serialCommand(c *cli.Context) {
+	dev, baud, tag := c.Args().Get(0), c.Args().Get(1), c.Args().Get(2)
+	if dev == "" {
+		log.Fatalf("usage: jb serial <dev> ?baud? ?tag?")
+	}
+	if baud == "" {
+		baud = "57600"
+	}
+
+	nbaud, err := strconv.Atoi(baud)
+	check(err)
+	log.Printf("opening serial port %s @ %d baud", dev, nbaud)
+	client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
+
+	//allow graceful closure from terminal etc.
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
+	exit := make(chan bool)
+	go func() {
+		for sig := range sigchan {
+			switch sig {
+			case syscall.SIGINT:
+				exit <- true
+				log.Println("Exit via SIGINT")
+			case syscall.SIGTERM:
+				exit <- true
+				log.Println("Exit via SIGTERM")
+			}
+		}
+	}()
+
+	//we task this as we get better coordination
+	go serialConnect(dev, nbaud, tag, exit)
+
+	<-client.Done
+	// don't care about a graceful deregister since mqtt is gone
+	log.Println("serial connection ends")
+}
+
+func tickCommand(c *cli.Context) {
+	topic := c.Args().First()
+	if topic == "" {
+		topic = "/admin/tick"
+	}
+	client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		for tick := range ticker.C {
+			client.Publish(topic, tick.String())
+		}
+	}()
+	<-client.Done
+}
+
+func pubCommand(c *cli.Context) {
+	if len(c.Args()) < 2 {
+		log.Fatalf("usage: jb pub <key> ?<jsonval>?")
+	}
+	// key, val := c.Args().Get(0), c.Args().Get(1)
+	var value string
+	if len(os.Args) > 3 {
+		value = os.Args[3]
+	}
+	client = jeebus.NewClient(nil) // TODO: -mqtt=... arg
+	client.Publish(os.Args[2], []byte(value))
+	// TODO: need to close gracefully, and not too soon!
+	time.Sleep(10 * time.Millisecond)
+}
+
+func dumpCommand(c *cli.Context) {
+	openDatabase()
+
+	from, to := c.Args().Get(0), c.Args().Get(1)
+	if to == "" {
+		to = from + "~" // FIXME this assumes all key chars are less than "~"
+	}
+
+	// get and print all the key/value pairs from the database
+	iter := db.NewIterator(nil)
+	iter.Seek([]byte(from))
+	for iter.Valid() {
+		if string(iter.Key()) > to {
+			break
+		}
+		fmt.Printf("%s = %s\n", iter.Key(), iter.Value())
+		if !iter.Next() {
+			break
+		}
+	}
+	iter.Release()
+}
+
+func exportCommand(c *cli.Context) {
+	openDatabase()
+	if len(os.Args) < 4 {
+		log.Fatalf("usage: jb db export <prefix>")
+	}
+	exportJsonData(os.Args[3])
+}
+
+func importCommand(c *cli.Context) {
+	openDatabase()
+	if len(os.Args) < 4 {
+		log.Fatalf("usage: jb db import <jsonfile>")
+	}
+	importJsonData(os.Args[3])
+}
+
+func compactCommand(c *cli.Context) {
+	openDatabase()
+	db.CompactRange(leveldb.Range{})
+}
+
+func openDatabase() {
+	// o := &opt.Options{ ErrorIfMissing: true }
+	var err error
+	db, err = leveldb.OpenFile("./storage", nil)
+	check(err)
 }
 
 type SeeService struct{}
@@ -277,23 +337,6 @@ func importJsonData(filename string) {
 	}
 }
 
-func dumpDatabase(from, to string) {
-	if to == "" {
-		to = from + "~" // FIXME this assumes all key chars are less than "~"
-	}
-
-	// get and print all the key/value pairs from the database
-	iter := db.NewIterator(nil)
-	iter.Seek([]byte(from))
-	for iter.Valid() {
-		fmt.Printf("%s = %s\n", iter.Key(), iter.Value())
-		if !iter.Next() || string(iter.Key()) > to {
-			break
-		}
-	}
-	iter.Release()
-}
-
 func startAllServers(hurl, murl *url.URL) {
 	var err error
 
@@ -316,10 +359,10 @@ func startAllServers(hurl, murl *url.URL) {
 
 	// persistent messages must be stored as JSON object
 	client.Publish("/jb/info", map[string]interface{}{
-    	"started": time.Now().Format(time.RFC822Z),
-		"version": version,
+		"started":   time.Now().Format(time.RFC822Z),
+		"version":   version,
 		"webserver": hurl.String(),
-    })
+	})
 
 	// FIXME hook up the blinker script to handle incoming messages
 	// FIXME broken due to recent change from rd/... to if/...
@@ -378,7 +421,6 @@ func (s *DatabaseService) Handle(m *jeebus.Message) {
 		}
 	}
 }
-
 
 type WebsocketService struct {
 	ws *websocket.Conn // TODO: can't this struct nesting be avoided, somehow?
@@ -612,13 +654,13 @@ func (s *LoggerService) Handle(msg *jeebus.Message) {
 	if !isPlainTextLine(msg.P) {
 		return // filter input on if/... to only log simple plain text lines
 	}
-	
-	split := strings.Split(msg.T, "/");
+
+	split := strings.Split(msg.T, "/")
 	port := split[2]
 	// TODO: accepting any value right now, but non-monotonic would be a problem
-	n, err := strconv.ParseInt(split[3],10,64)	
+	n, err := strconv.ParseInt(split[3], 10, 64)
 	check(err)
-	timestamp := time.Unix(0, int64(n) * 1000000)
+	timestamp := time.Unix(0, int64(n)*1000000)
 
 	// automatic enabling/disabling of the logger, based on presence of dir
 	_, err = os.Stat(LOGGER_PREFIX)

@@ -14,7 +14,6 @@ import (
 
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
-
 )
 
 // Client represents a connection to an MQTT server, with subscribed services.
@@ -68,7 +67,7 @@ func (c *Client) ResolveMqttPath(key string, matches chan string) {
 				}
 				//try a lookahead
 				if pi == len(tkeys)-2 {
-					if (p==pv) && (tkeys[pi+1] == "#") {
+					if (p == pv) && (tkeys[pi+1] == "#") {
 						matches <- tk
 						break
 					}
