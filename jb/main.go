@@ -45,61 +45,61 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "jeebus"
 	app.Version = version
-	app.Usage = "messaging and data storage infrastructure for low-end hardware"
+	app.Usage = "Messaging and data storage infrastructure for low-end systems."
 
 	app.Flags = []cli.Flag{
-		cli.StringFlag{"mqtt", "1883",
+		cli.StringFlag{"mqtt, m", "1883",
 			"MQTT server port (external if specified as <host:port>)"},
 	}
 
 	app.Commands = []cli.Command{
 		{
 			Name:   "run",
-			Usage:  "run as server",
+			Usage:  "Launch as server with HTTP, WebSockets, and MQTT",
 			Action: runCommand,
 			Flags: []cli.Flag{
-				cli.StringFlag{"port", "3333",
-					"HTTP server port (with optional interface if <iface:port>)"},
+				cli.StringFlag{"port, p", "3333",
+					"HTTP server port (limited to interface if <iface:port>)"},
 			},
 		},
 		{
 			Name:   "see",
-			Usage:  "display MQTT messages",
+			Usage:  "Listen to server messages and display them",
 			Action: seeCommand,
 		},
 		{
 			Name:   "serial",
-			Usage:  "connect to a serial port",
+			Usage:  "Connect a serial port to the server",
 			Action: serialCommand,
 		},
 		{
 			Name:   "tick",
-			Usage:  "publish periodic ticks",
+			Usage:  "Publish periodic ticks (useful for debugging)",
 			Action: tickCommand,
 		},
 		{
 			Name:   "pub",
-			Usage:  "publish one message",
+			Usage:  "Publish a single message to the server",
 			Action: pubCommand,
 		},
 		{
 			Name:   "dump",
-			Usage:  "dump the contents of the database",
+			Usage:  "Dump the contents of the database",
 			Action: dumpCommand,
 		},
 		{
 			Name:   "export",
-			Usage:  "export from the database as JSON",
+			Usage:  "Export a range from the database as JSON",
 			Action: exportCommand,
 		},
 		{
 			Name:   "import",
-			Usage:  "import from JSON to the database",
+			Usage:  "Import a range from JSON into the database",
 			Action: importCommand,
 		},
 		{
 			Name:   "compact",
-			Usage:  "perform a database compaction",
+			Usage:  "Perform a database compaction",
 			Action: compactCommand,
 		},
 	}
