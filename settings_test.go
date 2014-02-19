@@ -34,7 +34,7 @@ func TestSettings(t *testing.T) {
 	expect(t, jeebus.Settings.DbDir, "dir3")
 	expect(t, jeebus.Settings.FilesDir, "dir4")
 	expect(t, jeebus.Settings.LoggerDir, "dir5")
-	
+
 	expect(t, jeebus.Settings.CertFile, "cert.pem")
 	expect(t, jeebus.Settings.KeyFile, "key.pem")
 

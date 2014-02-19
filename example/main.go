@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/jcw/jeebus"
 )
@@ -11,6 +12,6 @@ func init() {
 }
 
 func main() {
-	log.Println("JeeBus example", jeebus.Version)
+	log.Println("JeeBus example", jeebus.Version, "pid", os.Getpid())
 	jeebus.Run()
 }
