@@ -57,3 +57,7 @@ func TestRunMain(t *testing.T) {
 		syscall.Kill(pid, syscall.SIGINT)
 	}
 }
+
+func TestCallMain(t *testing.T) {
+	go main() // it's a bit silly, but this increases test coverage to 100% ...
+}
