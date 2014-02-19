@@ -1,0 +1,8 @@
+# lines in this file are of the form: <name> "=" <json-value>
+# these values can be overridden via environment variables
+
+APP_DIR    = "../app"
+COMMON_DIR = "../common"
+DB_DIR     = "../db"
+FILES_DIR  = "../files"
+LOGGER_DIR = "../logger"
