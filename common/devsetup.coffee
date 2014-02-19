@@ -2,7 +2,8 @@
 # -jcw, 2014-02-19
 
 # To be used as:
-#   curl https://github.com/jcw/jeebus/blob/master/common/devsetup.js | node
+#   curl -O https://raw.github.com/jcw/jeebus/master/common/devsetup.js
+#   node devsetup.js
 
 fs = require 'fs'
 {execFile} = require 'child_process'
