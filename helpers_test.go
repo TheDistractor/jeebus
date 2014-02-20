@@ -12,9 +12,7 @@ import (
 	"github.com/jcw/jeebus"
 )
 
-var (
-	onceMessaging sync.Once
-)
+var onceMessaging sync.Once
 
 func init() {
 	log.SetFlags(log.Ltime)

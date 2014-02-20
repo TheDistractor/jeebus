@@ -21,6 +21,10 @@ func ExampleMain() {
 
 // Compile and run main, and wait for it to report starting its HTTP server.
 func TestRunMain(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
 	cmd := exec.Command("go")
 	cmd.Args = append(cmd.Args, "run", "main.go")
 
