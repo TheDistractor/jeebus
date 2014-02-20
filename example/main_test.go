@@ -49,7 +49,7 @@ func TestRunMain(t *testing.T) {
 	}()
 
 	select {
-	case <-time.After(5 * time.Second):
+	case <-time.After(15 * time.Second):
 		// timeout must allow for the compile time as well!
 		t.Errorf("HTTP server did not start")
 		cmd.Process.Kill() // FIXME: this kills go, not the main process!
