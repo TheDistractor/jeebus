@@ -1,0 +1,8 @@
+{
+  "name": "jeebus",
+  "dependencies": {
+    "angular-animate": "*",
+    "angular-foundation": "*",
+    "bower-foundation-css": "*"
+  }
+}
