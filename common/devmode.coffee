@@ -21,15 +21,7 @@ runGin = (done) ->
     process.stderr.write s  unless /execvp\(\)/.test s
   return p
   
-ready = ->
-  console.log '[node] watching for file changes (NOT YET)'
-  
-# assume "go" and "gin" have been installed properly
-gin = runGin()
-
-# else, try to install "gin" first
-gin.on 'error', (err) ->
-  fatal 'cannot launch "gin"', err  unless err.code is 'ENOENT'
+installGin = ->
   console.log '"gin" tool not found, installing...'
   
   # assume "go" has been installed properly
@@ -45,3 +37,14 @@ gin.on 'error', (err) ->
     gin = runGin()
     gin.on 'error', (err) ->
       fatal 'still cannot launch "gin" - is $GOPATH/bin in your $PATH?'
+  
+ready = ->
+  console.log '[node] watching for file changes (NOT YET)'
+  
+# assume "go" and "gin" have been installed properly
+gin = runGin()
+
+# else, try to install "gin" first
+gin.on 'error', (err) ->
+  fatal 'cannot launch "gin"', err  unless err.code is 'ENOENT'
+  installGin()
