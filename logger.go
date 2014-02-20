@@ -26,8 +26,8 @@ type LoggerService struct{ fd *os.File }
 // the logger will store new files in it and append log items. Note that it is
 // perfectly ok to create or remove this directory while the logger is running.
 
-func (s *LoggerService) Handle(topic string, payload interface{}) {
-	if !isPlainTextLine(payload.([]byte)) {
+func (s *LoggerService) Handle(topic string, payload []byte) {
+	if !isPlainTextLine(payload) {
 		return // filter input on if/... to only log simple plain text lines
 	}
 
@@ -68,7 +68,7 @@ func (s *LoggerService) Handle(topic string, payload interface{}) {
 	// 	L 01:02:03.537 usb-A40117UK OK 9 25 54 66 235 61 210 226 33 19
 	hour, min, sec := timestamp.Clock()
 	line := fmt.Sprintf("L %02d:%02d:%02d.%03d %s %s\n",
-		hour, min, sec, timestamp.Nanosecond()/1000000, port, payload.([]byte))
+		hour, min, sec, timestamp.Nanosecond()/1000000, port, payload)
 	s.fd.WriteString(line)
 }
 

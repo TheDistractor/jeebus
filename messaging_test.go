@@ -21,8 +21,8 @@ func TestConnectToServer(t *testing.T) {
 
 type HelloService chan interface{}
 
-func (s *HelloService) Handle(topic string, payload interface{}) {
-	*s <- payload
+func (s *HelloService) Handle(topic string, payload []byte) {
+	*s <- jeebus.FromJson(payload)
 }
 
 func TestPublish(t *testing.T) {

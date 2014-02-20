@@ -18,8 +18,8 @@ type WebsocketService struct {
 	ws *websocket.Conn
 }
 
-func (s *WebsocketService) Handle(topic string, payload interface{}) {
-	err := websocket.Message.Send(s.ws, string(ToJson(payload)))
+func (s *WebsocketService) Handle(topic string, payload []byte) {
+	err := websocket.Message.Send(s.ws, string(payload))
 	Check(err)
 }
 

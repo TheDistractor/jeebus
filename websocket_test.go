@@ -68,7 +68,7 @@ func TestWsPublishAndSave(t *testing.T) {
 
 	reply := <-spy
 	expect(t, reply.a, "/foo") // the published message came back
-	expect(t, reply.b, "bar")  // the published message came back
+	expect(t, jeebus.FromJson(reply.b), "bar")  // the published message came back
 
 	any := jeebus.Get("/foo")
 	expect(t, any, "bar") // the data ended up in the database
@@ -91,7 +91,7 @@ func TestWsServiceRequest(t *testing.T) {
 
 	reply := <-spy
 	expect(t, reply.a, strings.Replace(myAddr, "http://", "sv/test/ip-", 1))
-	expect(t, string(jeebus.ToJson(reply.b)), `{"foo":"bar"}`)
+	expect(t, string(reply.b), `{"foo": "bar"}`)
 }
 
 func TestWsIsRegistered(t *testing.T) {

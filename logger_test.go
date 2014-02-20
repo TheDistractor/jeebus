@@ -32,7 +32,7 @@ func TestLogger(t *testing.T) {
 
 	reply := <-spy
 	expect(t, reply.a, "io/test/dummy/1234567890")
-	expect(t, string(reply.b.([]byte)), "ping")
+	expect(t, string(reply.b), "ping")
 
 	_, err := ioutil.ReadFile("logger/1970/19700115.txt")
 	expect(t, err, nil)

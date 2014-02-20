@@ -2,7 +2,6 @@ package jeebus
 
 import (
 	"net"
-	"strings"
 
 	proto "github.com/huin/mqtt"
 	"github.com/jeffallen/mqtt"
@@ -45,16 +44,10 @@ func StartMessaging() {
 		for m := range mqttClient.Incoming {
 			topic := m.TopicName
 			data := []byte(m.Payload.(proto.BytesPayload))
-			var body interface{} = data
-
-			// FIXME special-cased to treat "io/#" topics as binary data
-			if !strings.HasPrefix(topic, "io/") {
-				body = FromJson(data)
-			}
 
 			for pattern, handler := range services {
 				if MatchTopic(pattern, topic) {
-					handler.Handle(topic, body)
+					handler.Handle(topic, data)
 				}
 			}
 		}
@@ -85,7 +78,7 @@ func MatchTopic(pattern, topic string) bool {
 }
 
 type Service interface {
-	Handle(topic string, payload interface{})
+	Handle(topic string, payload []byte)
 }
 
 func Publish(topic string, payload interface{}) {

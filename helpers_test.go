@@ -36,12 +36,12 @@ func serveOneRequest(method, urlStr string) *httptest.ResponseRecorder {
 
 type SpyInfo struct {
 	a string
-	b interface{}
+	b []byte
 }
 
 type SpyService chan SpyInfo
 
-func (s *SpyService) Handle(topic string, payload interface{}) {
+func (s *SpyService) Handle(topic string, payload []byte) {
 	*s <- SpyInfo{topic, payload}
 }
 

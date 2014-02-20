@@ -14,7 +14,7 @@ var (
 
 type DatabaseService struct{}
 
-func (s *DatabaseService) Handle(topic string, payload interface{}) {
+func (s *DatabaseService) Handle(topic string, payload []byte) {
 	Put(topic, payload)
 }
 

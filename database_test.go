@@ -41,7 +41,7 @@ func TestStoreViaPublish(t *testing.T) {
 	jeebus.Publish("/blah", "bleep")
 	reply := <-spy
 	expect(t, reply.a, "/blah")
-	expect(t, reply.b, "bleep")
+	expect(t, jeebus.FromJson(reply.b), "bleep")
 
 	any := jeebus.Get("/blah")
 	expect(t, any, "bleep")
@@ -60,7 +60,7 @@ func TestNoStoreViaPublish(t *testing.T) {
 	jeebus.Publish("blah", "bleep")
 	reply := <-spy
 	expect(t, reply.a, "blah")
-	expect(t, reply.b, "bleep")
+	expect(t, jeebus.FromJson(reply.b), "bleep")
 
 	any := jeebus.Get("blah")
 	expect(t, any, nil)

@@ -18,7 +18,7 @@ func init() {
 
 type SerialConnectService struct{}
 
-func (s *SerialConnectService) Handle(topic string, payload interface{}) {
+func (s *SerialConnectService) Handle(topic string, payload []byte) {
 	args := strings.SplitN(topic, "/", 3)
 	switch args[2] {
 	case "connect":
@@ -30,8 +30,8 @@ type SerialInterfaceService struct {
 	io.ReadWriter
 }
 
-func (s *SerialInterfaceService) Handle(topic string, payload interface{}) {
-	s.Write(payload.([]byte))
+func (s *SerialInterfaceService) Handle(topic string, payload []byte) {
+	s.Write(payload)
 }
 
 func serialConnect(port string, baudrate int, tag string) chan bool {
