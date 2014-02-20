@@ -57,4 +57,8 @@
     };
   });
 
+  ng.run(function(jeebus) {
+    return jeebus.connect('jeebus');
+  });
+
 }).call(this);

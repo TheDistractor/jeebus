@@ -31,10 +31,10 @@ ng.directive 'appVersion', (appInfo) ->
 
 #------------------------------------------------------------------------------
 # HouseMon-specific setup to connect on startup and define a new "HM" service.
-# 
-# ng.run (jeebus) ->
-#   jeebus.connect 'housemon', 3335
-# 
+
+ng.run (jeebus) ->
+  jeebus.connect 'jeebus'
+
 # ng.factory 'HM', (jeebus) ->
 #   # For the calls below:
 #   #  - if more than one key is specified, they are joined with slashes
