@@ -1,9 +1,9 @@
 ng = angular.module 'myApp'
 
 ng.value 'appInfo',
-  name: 'HouseMon'
-  version: '0.9.0'
-  home: 'https://github.com/jcw/housemon'
+  name: 'JeeBus'
+  version: '0.3.0'
+  home: 'https://github.com/jcw/jeebus'
 
 ng.provider 'navbar', ->
   navs = []
