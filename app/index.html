@@ -5,11 +5,10 @@
     <meta charset="utf-8">
     <style>[ng-cloak] { display: none; }</style>
     <title></title>
-    <script>console.log('layout: HEAD');</script>
-    <link rel="stylesheet" href="/common/vendor/bower-foundation-css/foundation.css">
+    <link rel="stylesheet" href="/common/vendor/bower-foundation-css/foundation.min.css">
     <link rel="stylesheet" href="/main/style.css">
   </head>
-  <body ng-cloak>
+  <body ng-cloak ng-app="myApp">
     <nav ng-controller="NavCtrl" class="top-bar">
       <ul class="title-area">
         <li class="name">
@@ -37,19 +36,13 @@
         <div class="secondary label">@ {{ serverTick | date:'HH:mm:ss' }}</div>
       </div>
     </div>
-    <script src="/common/vendor/angular/angular.js"></script>
-    <script src="/common/vendor/angular-animate/angular-animate.js"></script>
-    <script src="/common/vendor/angular-ui-router.js"></script>
-    <script src="/common/vendor/raphael/raphael.js"></script>
-    <script>
-      console.log('layout: MYAPP');
-      angular.module('myApp', ['ui.router', 'ngAnimate']);
-    </script>
-    <!-- script(src='/primus/primus.js')-->
-    <script>
-      console.log('layout: BOOT');
-      angular.module('myApp').constant('primus', new Primus);
-      angular.bootstrap(document, ['myApp']);
-    </script>
+    <script src="/common/vendor/angular/angular.min.js"></script>
+    <script src="/common/vendor/angular-ui-router.min.js"></script>
+    <script src="/common/vendor/angular-animate/angular-animate.min.js"></script>
+    <script>angular.module('myApp', ['ui.router', 'ngAnimate']);</script>
+    <script src="/common/vendor/raphael/raphael-min.js"></script>
+    <script src="/main/client.js"></script>
+    <script src="/jeebus/jeebus.js"></script>
+    <script>console.log('READY');</script>
   </body>
 </html>

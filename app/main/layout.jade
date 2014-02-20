@@ -1,6 +1,6 @@
 doctype
 block vars
-  title = 'Primus Live'
+  title = 'JeeBus'
 
 html(lang='en')
   head
@@ -9,12 +9,10 @@ html(lang='en')
     
     title #{title}
     
-    script.
-      console.log('layout: HEAD');
     block styles
       link(rel='stylesheet',href='/main/style.css')
 
-  body(ng-cloak)
+  body(ng-cloak,ng-app='myApp')
     nav.top-bar(ng-controller='NavCtrl')
       ul.title-area
         li.name
@@ -44,13 +42,5 @@ html(lang='en')
       .large-3.columns
         .label Conn: {{serverConnection}}
         .secondary.label @ {{ serverTick | date:'HH:mm:ss' }}
-
+    
     block scripts
-      script.
-        console.log('layout: MYAPP');
-        angular.module('myApp', ['ui.router', 'ngAnimate']);
-      // script(src='/primus/primus.js')
-      script.
-        console.log('layout: BOOT');
-        angular.module('myApp').constant('primus', new Primus);
-        angular.bootstrap(document, ['myApp']);

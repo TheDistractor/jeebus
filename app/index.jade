@@ -4,10 +4,17 @@ block vars
   title= 'HouseMon'
 
 prepend styles
-  link(rel='stylesheet',href='/common/vendor/bower-foundation-css/foundation.css')
+  link(rel='stylesheet',href='/common/vendor/bower-foundation-css/foundation.min.css')
 
-prepend scripts
-  script(src='/common/vendor/angular/angular.js')
-  script(src='/common/vendor/angular-animate/angular-animate.js')
-  script(src='/common/vendor/angular-ui-router.js')
-  script(src='/common/vendor/raphael/raphael.js')
+block scripts
+  script(src='/common/vendor/angular/angular.min.js')
+  script(src='/common/vendor/angular-ui-router.min.js')
+  script(src='/common/vendor/angular-animate/angular-animate.min.js')
+  
+  script angular.module('myApp', ['ui.router', 'ngAnimate']);
+  
+  script(src='/common/vendor/raphael/raphael-min.js')
+  script(src='/main/client.js')
+  script(src='/jeebus/jeebus.js')
+  
+  script console.log('READY');
