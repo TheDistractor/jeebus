@@ -100,10 +100,10 @@ func SerialHandler(port string, dev io.ReadWriter, matcher interface{}) chan boo
 	// send the tag line (if present), then send out whatever comes in
 	go func() {
 		if input != "" {
-			jeebus.Publish(topic, input)
+			publishWithTimeStamp(topic, input)
 		}
 		for scanner.Scan() {
-			jeebus.Publish(topic, scanner.Text())
+			publishWithTimeStamp(topic, scanner.Text())
 		}
 		close(done)
 	}()

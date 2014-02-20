@@ -53,8 +53,8 @@ func TestSerialMock(t *testing.T) {
 	defer jeebus.Unregister("/attach/#")
 
 	spy2 := newSpyService()
-	jeebus.Register("io/bb/#", &spy2)
-	defer jeebus.Unregister("io/bb/#")
+	jeebus.Register("io/bb/+", &spy2)
+	defer jeebus.Unregister("io/bb/+")
 
 	spy3 := newSpyService()
 	jeebus.Register("/detach/#", &spy3)
