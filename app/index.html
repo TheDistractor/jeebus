@@ -1,9 +1,55 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
-  <title>JeeBus example</title>
-</head>
-<body>
-  <h1>JeeBus example</h1>
-</body>
+<title>HouseMon</title>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <style>[ng-cloak] { display: none; }</style>
+    <title></title>
+    <script>console.log('layout: HEAD');</script>
+    <link rel="stylesheet" href="/common/vendor/bower-foundation-css/foundation.css">
+    <link rel="stylesheet" href="/main/style.css">
+  </head>
+  <body ng-cloak>
+    <nav ng-controller="NavCtrl" class="top-bar">
+      <ul class="title-area">
+        <li class="name">
+          <h1><a ng-href="{{appInfo.home}}"><img src="/main/logo.png" height="22" width="22">&nbsp; {{appInfo.name}}</a></h1>
+        </li>
+        <li class="toggle-topbar menu-icon"><a href="#"><span></span></a></li>
+      </ul>
+      <section class="top-bar-section">
+        <ul class="left">
+          <li ng-repeat="nav in navbar" class="myNav"><a ng-href="{{nav.route}}">{{nav.title}}</a></li>
+          <li class="divider"></li>
+        </ul>
+        <ul class="right">
+          <li class="myNav"><a href="/admin">Admin</a></li>
+        </ul>
+      </section>
+    </nav>
+    <div ui-view></div>
+    <div class="row">
+      <div class="large-3 columns">
+        <p class="secondary label">Version <span app-version></span></p>
+      </div>
+      <div class="large-3 columns">
+        <div class="label">Conn: {{serverConnection}}</div>
+        <div class="secondary label">@ {{ serverTick | date:'HH:mm:ss' }}</div>
+      </div>
+    </div>
+    <script src="/common/vendor/angular/angular.js"></script>
+    <script src="/common/vendor/angular-animate/angular-animate.js"></script>
+    <script src="/common/vendor/angular-ui-router.js"></script>
+    <script src="/common/vendor/raphael/raphael.js"></script>
+    <script>
+      console.log('layout: MYAPP');
+      angular.module('myApp', ['ui.router', 'ngAnimate']);
+    </script>
+    <!-- script(src='/primus/primus.js')-->
+    <script>
+      console.log('layout: BOOT');
+      angular.module('myApp').constant('primus', new Primus);
+      angular.bootstrap(document, ['myApp']);
+    </script>
+  </body>
+</html>

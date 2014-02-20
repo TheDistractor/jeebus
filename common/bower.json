@@ -3,6 +3,7 @@
   "dependencies": {
     "angular-animate": "*",
     "angular-foundation": "*",
-    "bower-foundation-css": "*"
+    "bower-foundation-css": "*",
+    "raphael": "*"
   }
 }

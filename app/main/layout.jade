@@ -1,0 +1,56 @@
+doctype
+block vars
+  title = 'Primus Live'
+
+html(lang='en')
+  head
+    meta(charset='utf-8')
+    style [ng-cloak] { display: none; }
+    
+    title #{title}
+    
+    script.
+      console.log('layout: HEAD');
+    block styles
+      link(rel='stylesheet',href='/main/style.css')
+
+  body(ng-cloak)
+    nav.top-bar(ng-controller='NavCtrl')
+      ul.title-area
+        li.name
+          h1
+            a(ng-href='{{appInfo.home}}')
+              img(src='/main/logo.png',height=22,width=22)
+              | &nbsp; {{appInfo.name}}
+        li.toggle-topbar.menu-icon
+          a(href='#')
+            span
+      section.top-bar-section
+        ul.left
+          li.myNav(ng-repeat='nav in navbar')
+            a(ng-href='{{nav.route}}') {{nav.title}}
+          li.divider
+        ul.right
+          li.myNav
+            a(href='/admin') Admin
+
+    div(ui-view)
+
+    .row
+      .large-3.columns
+        p.secondary.label
+          | Version 
+          span(app-version)
+      .large-3.columns
+        .label Conn: {{serverConnection}}
+        .secondary.label @ {{ serverTick | date:'HH:mm:ss' }}
+
+    block scripts
+      script.
+        console.log('layout: MYAPP');
+        angular.module('myApp', ['ui.router', 'ngAnimate']);
+      // script(src='/primus/primus.js')
+      script.
+        console.log('layout: BOOT');
+        angular.module('myApp').constant('primus', new Primus);
+        angular.bootstrap(document, ['myApp']);
