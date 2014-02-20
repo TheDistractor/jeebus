@@ -94,3 +94,9 @@ func TestSerialMock(t *testing.T) {
 	// expect(t, mock.written[0], "[bb] xx")
 	// expect(t, mock.written[1], "cc")
 }
+
+func TestSerialIsRegistered(t *testing.T) {
+	jeebus.StartMessaging()
+
+	expect(t, jeebus.IsRegistered("/serial/+/#"), true)
+}

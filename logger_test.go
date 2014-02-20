@@ -10,8 +10,7 @@ import (
 )
 
 func TestLoggerIsRegistered(t *testing.T) {
-	ok := jeebus.IsRegistered("io/+/+/+")
-	expect(t, ok, true)
+	expect(t, jeebus.IsRegistered("io/+/+/+"), true)
 }
 
 func TestLoggerViaServer(t *testing.T) {

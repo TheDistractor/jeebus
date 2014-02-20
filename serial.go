@@ -12,6 +12,20 @@ import (
 	"github.com/chimera/rs232"
 )
 
+func init() {
+	Register("/serial/+/#", &SerialConnectService{})
+}
+
+type SerialConnectService struct{}
+
+func (s *SerialConnectService) Handle(topic string, payload interface{}) {
+	args := strings.SplitN(topic, "/", 3)
+	switch args[2] {
+	case "connect":
+		serialConnect(args[3], 57600, "") // TODO: real config settings
+	}
+}
+
 type SerialInterfaceService struct {
 	io.ReadWriter
 }
@@ -28,7 +42,6 @@ func serialConnect(port string, baudrate int, tag string) chan bool {
 
 	// flush old pending data
 	avail, _ := dev.BytesAvailable()
-	// from http://stackoverflow.com/questions/20320582
 	io.CopyN(ioutil.Discard, dev, int64(avail))
 
 	if tag == "" {
@@ -65,9 +78,9 @@ func SerialHandler(port string, dev io.ReadWriter, matcher interface{}) chan boo
 	scanner := bufio.NewScanner(dev)
 
 	// use matcher as tag without scanning, if it was passed in as string
-	var input, tag string
-	var ok bool
-	if tag, ok = matcher.(string); !ok {
+	var input string
+	tag, ok := matcher.(string)
+	if !ok {
 		m := matcher.(SerialMatcher)
 		log.Println("waiting for serial")
 		// flush all old data from the serial port while looking for a tag
@@ -80,7 +93,6 @@ func SerialHandler(port string, dev io.ReadWriter, matcher interface{}) chan boo
 
 	name := shortSerialName(port)
 	topic := "io/" + tag + "/" + name
-	println(topic)
 
 	Register(topic, &SerialInterfaceService{dev})
 	defer Unregister(topic)
