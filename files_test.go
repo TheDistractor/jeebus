@@ -17,8 +17,14 @@ func TestFilesViaServer(t *testing.T) {
 }
 
 func TestFileFetch(t *testing.T) {
-	data := jeebus.Fetch("README.md")
-	refute(t, len(data), 0)
+	fn := jeebus.Settings.FilesDir + "/ping"
+	defer os.Remove(fn)
+	
+	err := ioutil.WriteFile(fn, []byte("pong"), 0644)
+	expect(t, err, nil)
+
+	data := jeebus.Fetch("ping")
+	expect(t, string(data), "pong")
 }
 
 func TestMissingFetch(t *testing.T) {
@@ -27,28 +33,30 @@ func TestMissingFetch(t *testing.T) {
 }
 
 func TestFileStore(t *testing.T) {
-	defer os.Remove(jeebus.Settings.FilesDir + "/hello")
+	fn := jeebus.Settings.FilesDir + "/hello"
+	defer os.Remove(fn)
 
 	err := jeebus.Store("hello", []byte("Hello, world!"))
 	expect(t, err, nil)
 
-	data, _ := ioutil.ReadFile(jeebus.Settings.FilesDir + "/hello")
+	data, _ := ioutil.ReadFile(fn)
 	expect(t, string(data), "Hello, world!")
 }
 
 func TestFileDelete(t *testing.T) {
-	defer os.Remove(jeebus.Settings.FilesDir + "/foo")
+	fn := jeebus.Settings.FilesDir + "/foo"
+	defer os.Remove(fn)
 
 	err := jeebus.Store("foo", []byte("bar"))
 	expect(t, err, nil)
 
-	data, _ := ioutil.ReadFile(jeebus.Settings.FilesDir + "/foo")
+	data, _ := ioutil.ReadFile(fn)
 	expect(t, string(data), "bar")
 
 	err = jeebus.Store("foo", []byte{})
 	expect(t, err, nil)
 
-	_, err = ioutil.ReadFile(jeebus.Settings.FilesDir + "/foo")
+	_, err = ioutil.ReadFile(fn)
 	refute(t, err, nil)
 }
 
@@ -67,9 +75,15 @@ func contains(list []string, value string) bool {
 }
 
 func TestFileList(t *testing.T) {
+	fn := jeebus.Settings.FilesDir + "/foo"
+	defer os.Remove(fn)
+
+	err := ioutil.WriteFile(fn, []byte("bar"), 0644)
+	expect(t, err, nil)
+
 	files := jeebus.FileList(".", false)
 	refute(t, len(files), 0)
-	expect(t, contains(files, "README.md"), true)
+	expect(t, contains(files, "foo"), true)
 }
 
 func TestMissingDirList(t *testing.T) {
@@ -107,12 +121,13 @@ func TestSafePaths(t *testing.T) {
 }
 
 func TestSubdirStore(t *testing.T) {
-	defer os.RemoveAll(jeebus.Settings.FilesDir + "/hey")
+	fn := jeebus.Settings.FilesDir + "/hey"
+	defer os.RemoveAll(fn)
 
 	err := jeebus.Store("hey/hello", []byte("Howdy!"))
 	expect(t, err, nil)
 
-	data, _ := ioutil.ReadFile(jeebus.Settings.FilesDir + "/hey/hello")
+	data, _ := ioutil.ReadFile(fn + "/hello")
 	expect(t, string(data), "Howdy!")
 
 	expect(t, contains(jeebus.FileList(".", false), "hey"), false)
@@ -122,18 +137,19 @@ func TestSubdirStore(t *testing.T) {
 }
 
 func TestSubdirDelete(t *testing.T) {
-	defer os.RemoveAll(jeebus.Settings.FilesDir + "/hey")
+	fn := jeebus.Settings.FilesDir + "/hey"
+	defer os.RemoveAll(fn)
 
 	err := jeebus.Store("hey/hello", []byte("Yes!"))
 	expect(t, err, nil)
 
-	data, _ := ioutil.ReadFile(jeebus.Settings.FilesDir + "/hey/hello")
+	data, _ := ioutil.ReadFile(fn + "/hello")
 	expect(t, string(data), "Yes!")
 
 	err = jeebus.Store("hey/hi", []byte("No?"))
 	expect(t, err, nil)
 
-	data, _ = ioutil.ReadFile(jeebus.Settings.FilesDir + "/hey/hi")
+	data, _ = ioutil.ReadFile(fn + "/hi")
 	expect(t, string(data), "No?")
 
 	// subdir exists, with both files in it
