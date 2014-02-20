@@ -1,4 +1,4 @@
-package opt
+package jeebus
 
 import (
 	"bufio"
@@ -10,12 +10,7 @@ import (
 	"time"
 
 	"github.com/chimera/rs232"
-	"github.com/jcw/jeebus"
 )
-
-func init() {
-	//
-}
 
 type SerialInterfaceService struct {
 	io.ReadWriter
@@ -29,7 +24,7 @@ func serialConnect(port string, baudrate int, tag string) chan bool {
 	// open the serial port in 8N1 mode
 	opt := rs232.Options{BitRate: uint32(baudrate), DataBits: 8, StopBits: 1}
 	dev, err := rs232.Open(port, opt)
-	jeebus.Check(err)
+	Check(err)
 
 	// flush old pending data
 	avail, _ := dev.BytesAvailable()
@@ -87,13 +82,13 @@ func SerialHandler(port string, dev io.ReadWriter, matcher interface{}) chan boo
 	topic := "io/" + tag + "/" + name
 	println(topic)
 
-	jeebus.Register(topic, &SerialInterfaceService{dev})
-	defer jeebus.Unregister(topic)
+	Register(topic, &SerialInterfaceService{dev})
+	defer Unregister(topic)
 
 	// store the tag line for this device
 	attachMsg := map[string]string{"text": input, "tag": tag}
-	jeebus.Publish("/attach/"+name, attachMsg)
-	defer jeebus.Publish("/detach/"+name, attachMsg)
+	Publish("/attach/"+name, attachMsg)
+	defer Publish("/detach/"+name, attachMsg)
 
 	done := make(chan bool)
 
@@ -119,5 +114,5 @@ func shortSerialName(s string) string {
 func publishWithTimeStamp(tag, text string) {
 	now := time.Now().UTC().UnixNano() / 1000000
 	topic := fmt.Sprintf("%s/%d", tag, now)
-	jeebus.Publish(topic, []byte(text)) // do not convert string to JSON
+	Publish(topic, []byte(text)) // do not convert string to JSON
 }

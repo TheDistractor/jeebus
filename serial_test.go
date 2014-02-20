@@ -1,11 +1,10 @@
-package opt_test
+package jeebus_test
 
 import (
 	"testing"
 	"time"
 
 	"github.com/jcw/jeebus"
-	"github.com/jcw/jeebus/opt"
 )
 
 func TestSerial(t *testing.T) {
@@ -60,7 +59,7 @@ func TestSerialMock(t *testing.T) {
 	jeebus.Register("/detach/#", &spy3)
 	defer jeebus.Unregister("/detach/#")
 
-	done := opt.SerialHandler("/dev/ttyUSB0", mock, &opt.JeeTagMatcher{})
+	done := jeebus.SerialHandler("/dev/ttyUSB0", mock, &jeebus.JeeTagMatcher{})
 
 	reply := <-spy1
 	expect(t, reply.a, "/attach/ttyUSB0")
