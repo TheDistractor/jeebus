@@ -8,8 +8,24 @@ fatal = (s, args...) ->
   console.error args...  if args.length
   process.exit 1
 
+runGin = (done) ->
+  p = spawn 'gin', [], stdio: 'pipe'
+  p.on 'close', (code) ->
+    fatal 'unexpected termination of "gin", code: ' + code  if code > 0
+  p.stdout.on 'data', (data) ->
+    s = data.toString()
+    process.stdout.write s if data.length > 0
+    ready()  if /listening on port/.test s
+  p.stderr.on 'data', (data) ->
+    s = data.toString()
+    process.stderr.write s  unless /execvp\(\)/.test s
+  return p
+  
+ready = ->
+  console.log '[node] watching for file changes (NOT YET)'
+  
 # assume "go" and "gin" have been installed properly
-gin = spawn 'gin', [], stdio: [process.stdin, process.stdout, 'pipe']
+gin = runGin()
 
 # else, try to install "gin" first
 gin.on 'error', (err) ->
@@ -26,15 +42,6 @@ gin.on 'error', (err) ->
       fatal 'install of "gin" failed', serr
 
     # ok, try running "gin" again
-    gin = spawn 'gin', [], stdio: [process.stdin, process.stdout, 'pipe']
+    gin = runGin()
     gin.on 'error', (err) ->
       fatal 'still cannot launch "gin" - is $GOPATH/bin in your $PATH?'
-
-# don't expect "gin" to ever terminate
-gin.on 'close', (code) ->
-  fatal 'unexpected termination of "gin", code: ' + code  if code > 0
-
-watcher = ->
-  console.log '[node] watching for file changes (NOT YET)'
-
-setTimeout watcher, 100
