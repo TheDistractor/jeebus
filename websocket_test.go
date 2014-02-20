@@ -67,8 +67,8 @@ func TestWsPublishAndSave(t *testing.T) {
 	expect(t, err, nil)
 
 	reply := <-spy
-	expect(t, reply.a, "/foo") // the published message came back
-	expect(t, jeebus.FromJson(reply.b), "bar")  // the published message came back
+	expect(t, reply.a, "/foo")                 // the published message came back
+	expect(t, jeebus.FromJson(reply.b), "bar") // the published message came back
 
 	any := jeebus.Get("/foo")
 	expect(t, any, "bar") // the data ended up in the database
