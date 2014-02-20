@@ -51,6 +51,13 @@ func TestWsSendMessage(t *testing.T) {
 	// TODO: not checked, the message should appear on stdout
 }
 
+func TestWsIsListening(t *testing.T) {
+	conn := newClient(t, "blah")
+	defer conn.Close()
+
+	expect(t, jeebus.IsListeningTo("ws/blah/#"), true)
+}
+
 func TestWsPublishAndSave(t *testing.T) {
 	once.Do(startServer)
 	jeebus.StartMessaging()
@@ -92,12 +99,4 @@ func TestWsServiceRequest(t *testing.T) {
 	reply := <-spy
 	expect(t, reply.a, strings.Replace(myAddr, "http://", "sv/test/ip-", 1))
 	expect(t, string(reply.b), `{"foo": "bar"}`)
-}
-
-func TestWsIsRegistered(t *testing.T) {
-	// var actual_msg = make([]byte, 512)
-	// n, err := conn.Read(actual_msg)
-	// expect(t, err, nil)
-	// expect(t, n, 0)
-	// expect(t, jeebus.IsRegistered("ws/#"), true)
 }
