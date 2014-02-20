@@ -5,12 +5,21 @@
 #   curl -O https://raw.github.com/jcw/jeebus/master/common/devsetup.js
 #   node devsetup.js
 
+console.log '''
+
+  This script sets up a fresh application area based on JeeBus.
+  You need to supply the name of a new directory to initialise.
+  It will be prepared with a minimal set of files and settings.
+
+'''
+
 fs = require 'fs'
 {execFile} = require 'child_process'
 readline = require 'readline'
 path = require 'path'
 
-JEEBUS_ROOT = 'github.com/jcw/jeebus'
+# the repository from which jeebus is fetched can be overriden with an env var
+JEEBUS_ROOT = process.env.JEEBUS_ROOT ? 'github.com/jcw/jeebus'
 
 fatal = (s, args...) ->
   console.error '\n[node] fatal error:', s
@@ -35,14 +44,6 @@ installJeeBus = (done) ->
       fatal 'still cannot find jeebus'  unless fs.existsSync jbDir
       done()
 
-console.log '''
-
-  This script sets up a fresh application area based on JeeBus.
-  You need to supply the name of a new directory to initialise.
-  It will be prepared with a minimal set of files and settings.
-
-'''
-
 rl = readline.createInterface
         input: process.stdin
         output: process.stdout
@@ -56,7 +57,6 @@ rl.question 'Directory name? ', (appDir) ->
     fatal 'please enter the name of a nonexistent directory to initialise'
 
   installJeeBus ->
-    console.log "\nSetting up '#{title}' ..."
     fs.mkdirSync appDir
     fs.mkdirSync "#{appDir}/app"
 
@@ -80,7 +80,7 @@ rl.question 'Directory name? ', (appDir) ->
 
       import (
           "log"
-          "github.com/jcw/jeebus"
+          "#{JEEBUS_ROOT}"
       )
 
       const Version = "0.0.1"
@@ -109,10 +109,8 @@ rl.question 'Directory name? ', (appDir) ->
   
     console.log """
 
-      #{title} has been created. To start it up, enter the following commands:
-
+      #{title} has been created. To start it up, enter this command:
           cd #{appDir} && node .
-
-      Then point your browser at this page: http://localhost:3000/ - enjoy!
+      Then open the web page at http://localhost:3000/ - that's it!
 
     """
