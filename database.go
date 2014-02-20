@@ -11,10 +11,6 @@ var (
 	db *leveldb.DB
 )
 
-func init() {
-	Register("/#", &DatabaseService{})
-}
-
 type DatabaseService struct{}
 
 func (s *DatabaseService) Handle(topic string, payload interface{}) {
@@ -25,6 +21,9 @@ func OpenDatabase() error {
 	// o := &opt.Options{ ErrorIfMissing: true }
 	var err error
 	db, err = leveldb.OpenFile(Settings.DbDir, nil)
+	if err == nil {
+		Register("/#", &DatabaseService{})
+	}
 	return err
 }
 
