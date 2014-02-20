@@ -6,13 +6,10 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"sync"
 	"testing"
 
 	"github.com/jcw/jeebus"
 )
-
-var onceMessaging sync.Once
 
 func init() {
 	log.SetFlags(log.Ltime)
@@ -20,13 +17,13 @@ func init() {
 
 func expect(t *testing.T, a interface{}, b interface{}) {
 	if a != b {
-		t.Errorf("Expected %v (%T) - Got %v (%T)", b, b, a, a)
+		t.Errorf("Expected %T: %v - got %T: %v", b, b, a, a)
 	}
 }
 
 func refute(t *testing.T, a interface{}, b interface{}) {
 	if a == b {
-		t.Errorf("Did not expect %v (%T) - Got %v (%T)", b, b, a, a)
+		t.Errorf("Did not expect %T: %v", a, a)
 	}
 }
 
