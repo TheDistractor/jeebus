@@ -40,7 +40,7 @@ func newClient(t *testing.T, proto string) net.Conn {
 
 func TestWsSendMessage(t *testing.T) {
 	once.Do(startServer)
-	onceStartMessaging(t)
+	jeebus.StartMessaging()
 
 	conn := newClient(t, "test")
 	defer conn.Close()
@@ -53,7 +53,7 @@ func TestWsSendMessage(t *testing.T) {
 
 func TestWsPublishAndSave(t *testing.T) {
 	once.Do(startServer)
-	onceStartMessaging(t)
+	jeebus.StartMessaging()
 
 	conn := newClient(t, "test")
 	defer conn.Close()
@@ -76,7 +76,7 @@ func TestWsPublishAndSave(t *testing.T) {
 
 func TestWsServiceRequest(t *testing.T) {
 	once.Do(startServer)
-	onceStartMessaging(t)
+	jeebus.StartMessaging()
 
 	conn := newClient(t, "test")
 	defer conn.Close()

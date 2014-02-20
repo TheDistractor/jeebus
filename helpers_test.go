@@ -30,13 +30,6 @@ func refute(t *testing.T, a interface{}, b interface{}) {
 	}
 }
 
-func onceStartMessaging(t *testing.T) {
-	onceMessaging.Do(func() {
-		err := jeebus.StartMessaging(nil)
-		expect(t, err, nil)
-	})
-}
-
 func serveOneRequest(method, urlStr string) *httptest.ResponseRecorder {
 	response := httptest.NewRecorder()
 	req, _ := http.NewRequest(method, urlStr, nil)

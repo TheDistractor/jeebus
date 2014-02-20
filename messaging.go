@@ -9,20 +9,21 @@ import (
 )
 
 var (
-	mqttServer *mqtt.Server
-	mqttClient *mqtt.ClientConn
-	services   = make(map[string]Service)
+	mqttServer  *mqtt.Server
+	mqttClient  *mqtt.ClientConn
+	services    = make(map[string]Service)
+	mqttStarted bool
 )
 
 // StartMessaging starts the internal MQTT messaging server and client.
-func StartMessaging(listener net.Listener) error {
-	var err error
-
-	if listener == nil {
-		if listener, err = net.Listen("tcp", ":1883"); err != nil {
-			return err
-		}
+func StartMessaging() {
+	if mqttStarted {
+		return
 	}
+	mqttStarted = true
+
+	listener, err := net.Listen("tcp", ":1883")
+	Check(err)
 
 	mqttServer = mqtt.NewServer(listener)
 	mqttServer.Start()
@@ -58,8 +59,6 @@ func StartMessaging(listener net.Listener) error {
 			}
 		}
 	}()
-
-	return nil
 }
 
 func MatchTopic(pattern, topic string) bool {

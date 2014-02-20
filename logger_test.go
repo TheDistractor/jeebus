@@ -21,7 +21,7 @@ func TestLoggerViaServer(t *testing.T) {
 }
 
 func TestLogger(t *testing.T) {
-	onceStartMessaging(t)
+	jeebus.StartMessaging()
 
 	spy := newSpyService()
 	jeebus.Register("io/test/#", &spy)

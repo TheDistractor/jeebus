@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-
+	//
 }
 
 type SerialInterfaceService struct {
@@ -25,26 +25,25 @@ func (s *SerialInterfaceService) Handle(topic string, payload interface{}) {
 	s.Write(payload.([]byte))
 }
 
-func serialConnect(port string, baudrate int, tag string) error {
+func serialConnect(port string, baudrate int, tag string) chan bool {
 	// open the serial port in 8N1 mode
 	opt := rs232.Options{BitRate: uint32(baudrate), DataBits: 8, StopBits: 1}
 	dev, err := rs232.Open(port, opt)
-	if err == nil {
-		// flush old pending data
-		avail, _ := dev.BytesAvailable()
-		// from http://stackoverflow.com/questions/20320582
-		io.CopyN(ioutil.Discard, dev, int64(avail))
-	
-		if tag == "" {
-			SerialHandler(port, dev, &JeeTagMatcher{})
-		} else {
-			SerialHandler(port, dev, tag)
-		}
+	jeebus.Check(err)
+
+	// flush old pending data
+	avail, _ := dev.BytesAvailable()
+	// from http://stackoverflow.com/questions/20320582
+	io.CopyN(ioutil.Discard, dev, int64(avail))
+
+	if tag == "" {
+		return SerialHandler(port, dev, &JeeTagMatcher{})
+	} else {
+		return SerialHandler(port, dev, tag)
 	}
-	return err
 }
 
-type SerialMatcher interface{
+type SerialMatcher interface {
 	Match(s string, dev io.Writer) string
 }
 
@@ -62,17 +61,18 @@ func (m *JeeTagMatcher) Match(s string, dev io.Writer) (tag string) {
 // type KnownTagMatcher struct{
 // 	tag string
 // }
-// 
+//
 // func (m *KnownTagMatcher) Match(s string, dev io.Writer) string {
 // 	return m.tag
 // }
 
-func SerialHandler(port string, dev io.ReadWriter, matcher interface{}) {
+func SerialHandler(port string, dev io.ReadWriter, matcher interface{}) chan bool {
 	scanner := bufio.NewScanner(dev)
 
 	// use matcher as tag without scanning, if it was passed in as string
 	var input, tag string
-	if tag, ok := matcher.(string); !ok {
+	var ok bool
+	if tag, ok = matcher.(string); !ok {
 		m := matcher.(SerialMatcher)
 		log.Println("waiting for serial")
 		// flush all old data from the serial port while looking for a tag
@@ -85,6 +85,7 @@ func SerialHandler(port string, dev io.ReadWriter, matcher interface{}) {
 
 	name := shortSerialName(port)
 	topic := "io/" + tag + "/" + name
+	println(topic)
 
 	jeebus.Register(topic, &SerialInterfaceService{dev})
 	defer jeebus.Unregister(topic)
@@ -94,16 +95,20 @@ func SerialHandler(port string, dev io.ReadWriter, matcher interface{}) {
 	jeebus.Publish("/attach/"+name, attachMsg)
 	defer jeebus.Publish("/detach/"+name, attachMsg)
 
-	// send the tag line (if present), then send out whatever comes in
-	if input != "" {
-		publishWithTimeStamp(topic, input)
-	}
-	for scanner.Scan() {
-		publishWithTimeStamp(topic, scanner.Text())
-	}
+	done := make(chan bool)
 
-	log.Println("Serial disconnect")
-	// <-time.After(2 * time.Second) // allow things to naturally close
+	// send the tag line (if present), then send out whatever comes in
+	go func() {
+		if input != "" {
+			jeebus.Publish(topic, input)
+		}
+		for scanner.Scan() {
+			jeebus.Publish(topic, scanner.Text())
+		}
+		close(done)
+	}()
+
+	return done
 }
 
 func shortSerialName(s string) string {

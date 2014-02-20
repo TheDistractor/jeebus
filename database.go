@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	db *leveldb.DB
+	db        *leveldb.DB
+	dbStarted bool
 )
 
 type DatabaseService struct{}
@@ -17,14 +18,18 @@ func (s *DatabaseService) Handle(topic string, payload interface{}) {
 	Put(topic, payload)
 }
 
-func OpenDatabase() error {
+func OpenDatabase() {
+	if dbStarted {
+		return
+	}
+	dbStarted = true
+
 	// o := &opt.Options{ ErrorIfMissing: true }
 	var err error
 	db, err = leveldb.OpenFile(Settings.DbDir, nil)
-	if err == nil {
-		Register("/#", &DatabaseService{})
-	}
-	return err
+	Check(err)
+
+	Register("/#", &DatabaseService{})
 }
 
 func Get(key string) interface{} {

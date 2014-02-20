@@ -21,13 +21,22 @@ func refute(t *testing.T, a interface{}, b interface{}) {
 	}
 }
 
-func TestJeeBusImport(t *testing.T) {
-	jeebus.Check(nil)
+// FIXME: yuck, copy of same code in helpers_test.go
+type SpyInfo struct {
+	a string
+	b interface{}
 }
 
-func onceStartMessaging(t *testing.T) {
-	onceMessaging.Do(func() {
-		err := jeebus.StartMessaging(nil)
-		expect(t, err, nil)
-	})
+type SpyService chan SpyInfo
+
+func (s *SpyService) Handle(topic string, payload interface{}) {
+	*s <- SpyInfo{topic, payload}
+}
+
+func newSpyService() SpyService {
+	return make(SpyService, 1)
+}
+
+func TestJeeBusImport(t *testing.T) {
+	jeebus.Check(nil)
 }

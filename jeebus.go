@@ -7,12 +7,8 @@ import (
 var Version = "0.3.0"
 
 func Run() {
-	err := OpenDatabase()
-	Check(err)
-
-	err = StartMessaging(nil)
-	Check(err)
-
+	OpenDatabase()
+	StartMessaging()
 	RunHttpServer()
 }
 

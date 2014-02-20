@@ -11,8 +11,7 @@ func TestOpenDatabase(t *testing.T) {
 	err := os.RemoveAll("./db")
 	expect(t, err, nil)
 
-	err = jeebus.OpenDatabase()
-	expect(t, err, nil)
+	jeebus.OpenDatabase()
 
 	_, err = os.Open("./db")
 	expect(t, err, nil)
@@ -33,7 +32,7 @@ func TestStoreAndDelete(t *testing.T) {
 }
 
 func TestStoreViaPublish(t *testing.T) {
-	onceStartMessaging(t)
+	jeebus.StartMessaging()
 
 	spy := newSpyService()
 	jeebus.Register("/blah", &spy)
@@ -52,7 +51,7 @@ func TestStoreViaPublish(t *testing.T) {
 }
 
 func TestNoStoreViaPublish(t *testing.T) {
-	onceStartMessaging(t)
+	jeebus.StartMessaging()
 
 	spy := newSpyService()
 	jeebus.Register("blah", &spy)

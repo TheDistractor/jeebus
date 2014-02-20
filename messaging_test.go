@@ -8,7 +8,7 @@ import (
 )
 
 func TestStartMessaging(t *testing.T) {
-	onceStartMessaging(t)
+	jeebus.StartMessaging()
 }
 
 func TestConnectToServer(t *testing.T) {
