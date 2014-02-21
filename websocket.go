@@ -60,10 +60,10 @@ func sockServer(ws *websocket.Conn) {
 						Check(err)
 					}
 					// use a closure to encapsulate the reply handling
-					ProcessRpc(v[1:], wsReplier)
+					ProcessRpc(origin, v[1:], wsReplier)
 				} else {
 					// it's an event without return ID, so no reply needed
-					ProcessRpc(v, dummyReplier)
+					ProcessRpc(origin, v, dummyReplier)
 				}
 			} else {
 				log.Println("empty [] request ignored")

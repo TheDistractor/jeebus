@@ -42,16 +42,17 @@ func StartMessaging() {
 
 	go func() {
 		for m := range mqttClient.Incoming {
-			topic := m.TopicName
-			data := []byte(m.Payload.(proto.BytesPayload))
-
-			for pattern, handler := range services {
-				if MatchTopic(pattern, topic) {
-					handler.Handle(topic, data)
-				}
-			}
+			Dispatch(m.TopicName, []byte(m.Payload.(proto.BytesPayload)))
 		}
 	}()
+}
+
+func Dispatch(topic string, payload []byte) {
+	for pattern, handler := range services {
+		if MatchTopic(pattern, topic) {
+			handler.Handle(topic, payload)
+		}
+	}
 }
 
 func MatchTopic(pattern, topic string) bool {

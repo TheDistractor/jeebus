@@ -5,15 +5,15 @@ import (
 	"strings"
 )
 
-var rpcMap = make(map[string]func([]interface{}) interface{})
+var rpcMap = make(map[string]func(string, []interface{}) interface{})
 
 func init() {
-	Define("echo", func(args []interface{}) interface{} {
+	Define("echo", func(orig string, args []interface{}) interface{} {
 		return args
 	})
 }
 
-func Define(name string, cmdFun func([]interface{}) interface{}) {
+func Define(name string, cmdFun func(string, []interface{}) interface{}) {
 	rpcMap[name] = cmdFun
 }
 
@@ -21,7 +21,8 @@ func Undefine(name string) {
 	delete(rpcMap, name)
 }
 
-func ProcessRpc(args []interface{}, replyFun func(r interface{}, e error)) {
+// TODO: get rid of the orig arg, e.g. by switching to interfaces
+func ProcessRpc(orig string, args []interface{}, replyFun func(r interface{}, e error)) {
 	defer func() {
 		if err, ok := recover().(error); ok && err != nil {
 			replyFun(nil, err) // capture and report all panics
@@ -36,7 +37,7 @@ func ProcessRpc(args []interface{}, replyFun func(r interface{}, e error)) {
 
 	if f, ok := rpcMap[cmd]; ok {
 		// TODO: add support for goroutines, i.e. replying later on
-		reply = f(args)
+		reply = f(orig, args)
 		// turn an error reply into a genuine error return
 		if e, ok := reply.(error); ok {
 			err = e

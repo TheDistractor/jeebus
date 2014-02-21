@@ -2,6 +2,8 @@ package jeebus
 
 import (
 	"bytes"
+	"log"
+	"strings"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	// "github.com/syndtr/goleveldb/leveldb/opt"
@@ -10,12 +12,22 @@ import (
 var (
 	db        *leveldb.DB
 	dbStarted bool
+	attached  = make(map[string]map[string]int) // prefix -> tag -> refcount
 )
 
 type DatabaseService struct{}
 
 func (s *DatabaseService) Handle(topic string, payload []byte) {
 	Put(topic, payload)
+
+	// send out websocket messages for all matching attached topics
+	for k, v := range attached {
+		if strings.HasPrefix(topic, k) {
+			for dest, _ := range v {
+				Dispatch("ws/"+dest, payload) // direct dispatch, no MQTT
+			}
+		}
+	}
 }
 
 func OpenDatabase() {
@@ -30,13 +42,62 @@ func OpenDatabase() {
 	Check(err)
 
 	Register("/#", &DatabaseService{})
-	
-	Define("db-get", func(args []interface{}) interface{} {
+
+	Define("db-get", func(orig string, args []interface{}) interface{} {
 		return Get(args[0].(string))
 	})
-	Define("db-keys", func(args []interface{}) interface{} {
+	Define("db-keys", func(orig string, args []interface{}) interface{} {
 		return Keys(args[0].(string))
 	})
+	Define("attach", attachRpc)
+	Define("detach", detachRpc)
+}
+
+func attachRpc(orig string, args []interface{}) interface{} {
+	prefix := args[0].(string)
+	if _, ok := attached[prefix]; !ok {
+		attached[prefix] = make(map[string]int)
+	}
+	if _, ok := attached[prefix][orig]; !ok {
+		attached[prefix][orig] = 0
+	}
+	attached[prefix][orig]++
+	log.Println("attached", prefix, orig)
+
+	to := prefix + "~" // TODO: see notes about "~" elsewhere
+	result := make(map[string]interface{})
+
+	iter := db.NewIterator(nil)
+	iter.Seek([]byte(prefix))
+	for iter.Valid() {
+		if string(iter.Key()) > to {
+			break
+		}
+		result[string(iter.Key())] = FromJson(iter.Value())
+		if !iter.Next() {
+			break
+		}
+	}
+	iter.Release()
+
+	return result
+}
+
+func detachRpc(orig string, args []interface{}) interface{} {
+	prefix := args[0].(string)
+	if v, ok := attached[prefix]; ok {
+		if _, ok := v[orig]; ok {
+			attached[prefix][orig]--
+			if attached[prefix][orig] <= 0 {
+				delete(attached[prefix], orig)
+				if len(attached[prefix]) == 0 {
+					delete(attached, prefix)
+				}
+			}
+		}
+	}
+	log.Println("detached", prefix, orig)
+	return nil
 }
 
 func Get(key string) interface{} {

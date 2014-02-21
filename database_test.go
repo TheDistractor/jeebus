@@ -163,3 +163,35 @@ func TestNestedPartialKey(t *testing.T) {
 	expect(t, keys[0], "1")
 	expect(t, keys[1], "2")
 }
+
+func TestAttach(t *testing.T) {
+	jeebus.Put("/a1", 1)
+	jeebus.Put("/a2", 2)
+	defer jeebus.Put("/a1", nil)
+	defer jeebus.Put("/a2", nil)
+
+	jeebus.ProcessRpc("test", wrapArgs("attach", "/a"), mockReply(t))
+	expect(t, string(jeebus.ToJson(rpcReply)), `{"/a1":1,"/a2":2}`)
+
+	spy := newSpyService()
+	jeebus.Register("/a3", &spy)
+	defer jeebus.Unregister("/a3")
+
+	spy2 := newSpyService()
+	jeebus.Register("ws/test", &spy2)
+	defer jeebus.Unregister("ws/test")
+
+	jeebus.Publish("/a3", 3)
+	defer jeebus.Put("/a3", nil)
+
+	reply := <-spy
+	expect(t, reply.a, "/a3")
+	expect(t, jeebus.FromJson(reply.b), float64(3))
+
+	reply = <-spy2
+	expect(t, reply.a, "ws/test")
+	expect(t, jeebus.FromJson(reply.b), float64(3))
+
+	jeebus.ProcessRpc("test", wrapArgs("detach", "/a"), mockReply(t))
+	// TODO: detach is not being tested here, just called for coverage
+}

@@ -11,6 +11,8 @@ import (
 	"github.com/jcw/jeebus"
 )
 
+var rpcReply interface{}
+
 func init() {
 	log.SetFlags(log.Ltime)
 }
@@ -24,6 +26,17 @@ func expect(t *testing.T, a interface{}, b interface{}) {
 func refute(t *testing.T, a interface{}, b interface{}) {
 	if a == b {
 		t.Errorf("Did not expect %T: %v", a, a)
+	}
+}
+
+func mockReply(t *testing.T) func(r interface{}, e error) {
+	rpcReply = ""
+	return func(r interface{}, e error) {
+		if e == nil {
+			rpcReply = r
+		} else {
+			rpcReply = "ERR: " + e.Error()
+		}
 	}
 }
 
@@ -41,6 +54,10 @@ func contains(list []string, value string) bool {
 		}
 	}
 	return false
+}
+
+func wrapArgs(args ...interface{}) []interface{} {
+	return args
 }
 
 type SpyInfo struct {
