@@ -30,6 +30,13 @@ func OpenDatabase() {
 	Check(err)
 
 	Register("/#", &DatabaseService{})
+	
+	Define("db-get", func(args []interface{}) interface{} {
+		return Get(args[0].(string))
+	})
+	Define("db-keys", func(args []interface{}) interface{} {
+		return Keys(args[0].(string))
+	})
 }
 
 func Get(key string) interface{} {

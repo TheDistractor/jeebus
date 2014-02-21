@@ -65,15 +65,6 @@ func TestMissingDelete(t *testing.T) {
 	refute(t, err, nil)
 }
 
-func contains(list []string, value string) bool {
-	for _, x := range list {
-		if x == value {
-			return true
-		}
-	}
-	return false
-}
-
 func TestFileList(t *testing.T) {
 	fn := jeebus.Settings.FilesDir + "/foo"
 	defer os.Remove(fn)

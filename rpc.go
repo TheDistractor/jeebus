@@ -11,12 +11,6 @@ func init() {
 	Define("echo", func(args []interface{}) interface{} {
 		return args
 	})
-	Define("db-get", func(args []interface{}) interface{} {
-		return Get(args[0].(string))
-	})
-	Define("db-keys", func(args []interface{}) interface{} {
-		return Keys(args[0].(string))
-	})
 }
 
 func Define(name string, cmdFun func([]interface{}) interface{}) {
@@ -43,6 +37,11 @@ func ProcessRpc(args []interface{}, replyFun func(r interface{}, e error)) {
 	if f, ok := rpcMap[cmd]; ok {
 		// TODO: add support for goroutines, i.e. replying later on
 		reply = f(args)
+		// turn an error reply into a genuine error return
+		if e, ok := reply.(error); ok {
+			err = e
+			reply = nil
+		}
 	} else if strings.HasPrefix(cmd, "/") {
 		switch len(args) {
 		case 0:

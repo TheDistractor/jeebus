@@ -1,6 +1,8 @@
 package jeebus_test
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/jcw/jeebus"
@@ -79,4 +81,39 @@ func TestDbKeysRpc(t *testing.T) {
 	jeebus.ProcessRpc(wrapArgs("db-keys", "blah"), mockReply(t))
 	expect(t, string(jeebus.ToJson(reply)), "null") // JSON unmarshaling quirk
 	expect(t, len(reply.([]string)), 0) 			// this is a better check
+}
+
+func TestFetchRpc(t *testing.T) {
+	fn := jeebus.Settings.FilesDir + "/ping"
+	defer os.Remove(fn)
+
+	err := ioutil.WriteFile(fn, []byte("pong"), 0644)
+	expect(t, err, nil)
+
+	jeebus.ProcessRpc(wrapArgs("fetch", "ping"), mockReply(t))
+	expect(t, string(reply.([]byte)), "pong")
+}
+
+func TestStoreRpc(t *testing.T) {
+	fn := jeebus.Settings.FilesDir + "/foo"
+	defer os.Remove(fn)
+
+	jeebus.ProcessRpc(wrapArgs("store", "foo", []byte("bar")), mockReply(t))
+	expect(t, reply, nil)
+}
+
+func TestRemoveMissingRpc(t *testing.T) {
+	jeebus.ProcessRpc(wrapArgs("store", "foo", []byte{}), mockReply(t))
+	expect(t, reply, "ERR: remove ./files/foo: no such file or directory")
+}
+
+func TestFileListRpc(t *testing.T) {
+	fn := jeebus.Settings.FilesDir + "/ping"
+	defer os.Remove(fn)
+
+	err := ioutil.WriteFile(fn, []byte("pong"), 0644)
+	expect(t, err, nil)
+
+	jeebus.ProcessRpc(wrapArgs("file-list", ".", false), mockReply(t))
+	expect(t, contains(reply.([]string), "ping"), true)
 }

@@ -14,6 +14,18 @@ func init() {
 
 	fs := http.FileServer(http.Dir(Settings.FilesDir))
 	http.Handle("/files/", http.StripPrefix("/files/", fs))
+
+	Define("fetch", func(args []interface{}) interface{} {
+		return Fetch(args[0].(string))
+	})
+
+	Define("store", func(args []interface{}) interface{} {
+		return Store(args[0].(string), args[1].([]byte))
+	})
+
+	Define("file-list", func(args []interface{}) interface{} {
+		return FileList(args[0].(string), args[1].(bool))
+	})
 }
 
 func PathIsSafe(s string) bool {

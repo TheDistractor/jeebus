@@ -34,6 +34,15 @@ func serveOneRequest(method, urlStr string) *httptest.ResponseRecorder {
 	return response
 }
 
+func contains(list []string, value string) bool {
+	for _, x := range list {
+		if x == value {
+			return true
+		}
+	}
+	return false
+}
+
 type SpyInfo struct {
 	a string
 	b []byte
