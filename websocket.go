@@ -50,7 +50,7 @@ func sockServer(ws *websocket.Conn) {
 			if len(v) > 0 {
 				if rpcId, ok := v[0].(float64); ok {
 					// it's an RPC request with a return ID
-					replier := func(r interface{}, e error) {
+					wsReplier := func(r interface{}, e error) {
 						var emsg string
 						if e != nil {
 							emsg = e.Error()
@@ -60,10 +60,10 @@ func sockServer(ws *websocket.Conn) {
 						Check(err)
 					}
 					// use a closure to encapsulate the reply handling
-					ProcessRpc(v[1:], replier)
+					ProcessRpc(v[1:], wsReplier)
 				} else {
 					// it's an event without return ID, so no reply needed
-					ProcessRpc(v, func(interface{}, error) {})
+					ProcessRpc(v, dummyReplier)
 				}
 			} else {
 				log.Println("empty [] request ignored")
@@ -74,4 +74,8 @@ func sockServer(ws *websocket.Conn) {
 			Publish("sv/"+origin, msg)
 		}
 	}
+}
+
+func dummyReplier(r interface{}, e error) {
+	Check(e)
 }

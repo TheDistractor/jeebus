@@ -2,17 +2,24 @@ package jeebus
 
 import (
 	"errors"
-	"log"
 	"strings"
 )
 
 func ProcessRpc(args []interface{}, replyFun func(r interface{}, e error)) {
-	var cmd string
-	if len(args) > 0 {
-		cmd = args[0].(string)
-		args = args[1:]
+	defer func() {
+		if err, ok := recover().(error); ok && err != nil {
+			replyFun(0, err)
+		}
+	}()
+
+	if len(args) == 0 {
+		replyFun(nil, errors.New("empty RPC command ignored"))
+		return
 	}
-	log.Println("cmd", cmd, "args", args)
+
+	cmd := args[0].(string)
+	args = args[1:]
+
 	var reply interface{}
 	var err error
 
@@ -25,10 +32,12 @@ func ProcessRpc(args []interface{}, replyFun func(r interface{}, e error)) {
 		default:
 			err = errors.New("too many args")
 		}
-	}
-
-	if cmd == "echo" {
-		reply = args
+	} else {
+		if cmd == "echo" {
+			reply = args
+		} else {
+			err = errors.New("no such RPC command: " + cmd)
+		}
 	}
 
 	replyFun(reply, err)
