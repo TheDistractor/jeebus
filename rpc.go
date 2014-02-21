@@ -5,41 +5,45 @@ import (
 	"strings"
 )
 
-var rpcs = make(map[string]func(string,[]interface{}) (interface{}, error))
+var rpcMap = make(map[string]func([]interface{}) interface{})
 
 func init() {
-	Define("echo", func(cmd string, args []interface{}) (interface{}, error) {
-		return args, nil
+	Define("echo", func(args []interface{}) interface{} {
+		return args
+	})
+	Define("db-get", func(args []interface{}) interface{} {
+		return Get(args[0].(string))
+	})
+	Define("db-keys", func(args []interface{}) interface{} {
+		return Keys(args[0].(string))
 	})
 }
 
-func Define(name string, cmdFun func(string,[]interface{}) (interface{}, error)) {
-	rpcs[name] = cmdFun
+func Define(name string, cmdFun func([]interface{}) interface{}) {
+	rpcMap[name] = cmdFun
 }
 
 func Undefine(name string) {
-	delete(rpcs, name)
+	delete(rpcMap, name)
 }
 
 func ProcessRpc(args []interface{}, replyFun func(r interface{}, e error)) {
 	defer func() {
 		if err, ok := recover().(error); ok && err != nil {
-			replyFun(0, err)
+			replyFun(nil, err) // capture and report all panics
 		}
 	}()
-
-	if len(args) == 0 {
-		replyFun(nil, errors.New("empty RPC command ignored"))
-		return
-	}
-
-	cmd := args[0].(string)
-	args = args[1:]
 
 	var reply interface{}
 	var err error
 
-	if strings.HasPrefix(cmd, "/") {
+	cmd := args[0].(string)
+	args = args[1:]
+
+	if f, ok := rpcMap[cmd]; ok {
+		// TODO: add support for goroutines, i.e. replying later on
+		reply = f(args)
+	} else if strings.HasPrefix(cmd, "/") {
 		switch len(args) {
 		case 0:
 			reply = Fetch(cmd)
@@ -49,11 +53,7 @@ func ProcessRpc(args []interface{}, replyFun func(r interface{}, e error)) {
 			err = errors.New("too many args")
 		}
 	} else {
-		if f, ok := rpcs[cmd]; ok {
-			reply, err = f(cmd, args)
-		} else {
-			err = errors.New("no such RPC command: " + cmd)
-		}
+		err = errors.New("unknown RPC command: " + cmd)
 	}
 
 	replyFun(reply, err)
