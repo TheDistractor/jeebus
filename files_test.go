@@ -19,7 +19,7 @@ func TestFilesViaServer(t *testing.T) {
 func TestFileFetch(t *testing.T) {
 	fn := jeebus.Settings.FilesDir + "/ping"
 	defer os.Remove(fn)
-	
+
 	err := ioutil.WriteFile(fn, []byte("pong"), 0644)
 	expect(t, err, nil)
 

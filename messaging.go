@@ -92,7 +92,7 @@ func Publish(topic string, payload interface{}) {
 func IsListeningTo(pattern string) bool {
 	for k, _ := range services {
 		if MatchTopic(pattern, k) {
-			return true;
+			return true
 		}
 	}
 	return false

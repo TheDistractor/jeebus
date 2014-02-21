@@ -98,5 +98,5 @@ func TestWsServiceRequest(t *testing.T) {
 
 	reply := <-spy
 	expect(t, reply.a, strings.Replace(myAddr, "http://", "sv/test/ip-", 1))
-	expect(t, string(reply.b), `{"foo": "bar"}`)
+	expect(t, string(reply.b), `{"foo":"bar"}`)
 }
