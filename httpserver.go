@@ -13,7 +13,7 @@ func init() {
 	Check(err)
 
 	fs := http.FileServer(http.Dir(Settings.AppDir))
-		
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if path.Ext(r.URL.Path) == "" {
 			r.URL.Path = "/" // only serve name.ext as real files for SPA's
