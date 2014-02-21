@@ -1,14 +1,12 @@
 extends base-ng-zf/layout
 
-block vars
-  title= 'JeeBus example'
+//- block vars
 
-block styles
-  link(rel='stylesheet',href='/base-ng-zf/app.css')
+//- block styles
 
-append vendor
-  script(src='/base-ng-zf/vendor/raphael/raphael-min.js')
+prepend vendor
+  script console.log('BEFORE vendor');
 
-append scripts  
+append scripts
+  script console.log('AFTER scripts');
   script(src='/demo/demo.js')
-  script console.log('READY');

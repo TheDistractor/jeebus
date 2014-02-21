@@ -1,7 +1,7 @@
 doctype
 
 block vars
-  title = 'JeeBus'
+  title = JeeBus (NG+ZF)
 
 html(lang='en')
   head
@@ -13,8 +13,9 @@ html(lang='en')
     //- always include the CSS part of Zurb Foundation
     link(rel='stylesheet',href='/base-ng-zf/vendor/bower-foundation-css/foundation.min.css')
 
-    //- additional stylesheets
+    //- additional stylesheets, can be adjusted as needed
     block styles
+      link(rel='stylesheet',href='/base-ng-zf/app.css')
 
   body(ng-cloak,ng-app='myApp')
     nav.top-bar(ng-controller='NavCtrl')
@@ -55,6 +56,7 @@ html(lang='en')
       script(src='/base-ng-zf/vendor/angular-ui-router.min.js')
       script(src='/base-ng-zf/vendor/angular-animate/angular-animate.min.js')
       script(src='/base-ng-zf/vendor/angular-foundation/mm-foundation.min.js') 
+      script(src='/base-ng-zf/vendor/raphael/raphael-min.js')
 
     //- main setup of the Angular app and WebSocket connection
     script(src='/startup.js')

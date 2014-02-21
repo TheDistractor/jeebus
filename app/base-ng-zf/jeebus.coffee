@@ -54,7 +54,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
           if m.data[0] is '['
             processRpcReply data...
           else
-            # TODO should not write into the root scope (or merge, perhaps?)
+            # TODO: should not write into the root scope (or merge, perhaps?)
             for k, v of data
               # $rootScope[k] = v
               processModelUpdate k, v

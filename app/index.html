@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>JeeBus example</title>
+<title>= JeeBus (NG+ZF)</title>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -37,6 +37,7 @@
       </div>
     </div>
     <script src="/base-ng-zf/vendor/angular/angular.min.js"></script>
+    <script>console.log('BEFORE vendor');</script>
     <script src="/base-ng-zf/vendor/angular-ui-router.min.js"></script>
     <script src="/base-ng-zf/vendor/angular-animate/angular-animate.min.js"></script>
     <script src="/base-ng-zf/vendor/angular-foundation/mm-foundation.min.js"></script>
@@ -44,7 +45,7 @@
     <script src="/startup.js"></script>
     <script src="/base-ng-zf/jeebus.js"></script>
     <script src="/base-ng-zf/nav.js"></script>
+    <script>console.log('AFTER scripts');</script>
     <script src="/demo/demo.js"></script>
-    <script>console.log('READY');</script>
   </body>
 </html>
