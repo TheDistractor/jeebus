@@ -5,13 +5,21 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 )
 
 func init() {
 	err := os.MkdirAll(Settings.AppDir, 0755)
 	Check(err)
 
-	http.Handle("/", http.FileServer(http.Dir(Settings.AppDir)))
+	fs := http.FileServer(http.Dir(Settings.AppDir))
+		
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if path.Ext(r.URL.Path) == "" {
+			r.URL.Path = "/" // only serve name.ext as real files for SPA's
+		}
+		fs.ServeHTTP(w, r)
+	})
 }
 
 func ServeHTTP(rw http.ResponseWriter, req *http.Request) {
