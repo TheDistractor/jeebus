@@ -5,6 +5,22 @@ import (
 	"strings"
 )
 
+var rpcs = make(map[string]func(string,[]interface{}) (interface{}, error))
+
+func init() {
+	Define("echo", func(cmd string, args []interface{}) (interface{}, error) {
+		return args, nil
+	})
+}
+
+func Define(name string, cmdFun func(string,[]interface{}) (interface{}, error)) {
+	rpcs[name] = cmdFun
+}
+
+func Undefine(name string) {
+	delete(rpcs, name)
+}
+
 func ProcessRpc(args []interface{}, replyFun func(r interface{}, e error)) {
 	defer func() {
 		if err, ok := recover().(error); ok && err != nil {
@@ -33,8 +49,8 @@ func ProcessRpc(args []interface{}, replyFun func(r interface{}, e error)) {
 			err = errors.New("too many args")
 		}
 	} else {
-		if cmd == "echo" {
-			reply = args
+		if f, ok := rpcs[cmd]; ok {
+			reply, err = f(cmd, args)
 		} else {
 			err = errors.New("no such RPC command: " + cmd)
 		}
