@@ -1,22 +1,14 @@
-extends main/layout
+extends base-ng-zf/layout
 
 block vars
   title= 'JeeBus example'
 
-prepend styles
-  link(rel='stylesheet',href='/common/vendor/bower-foundation-css/foundation.min.css')
+block styles
+  link(rel='stylesheet',href='/base-ng-zf/app.css')
 
-block scripts
-  script(src='/common/vendor/angular/angular.min.js')
-  script(src='/common/vendor/angular-ui-router.min.js')
-  script(src='/common/vendor/angular-animate/angular-animate.min.js')
-  script(src='/common/vendor/angular-foundation/mm-foundation.min.js')
-  
-  script angular.module('myApp', ['ui.router', 'ngAnimate', 'mm.foundation']);
-  
-  script(src='/common/vendor/raphael/raphael-min.js')
-  script(src='/common/jeebus.js')
-  script(src='/main/main.js')
+append vendor
+  script(src='/base-ng-zf/vendor/raphael/raphael-min.js')
+
+append scripts  
   script(src='/demo/demo.js')
-  
   script console.log('READY');

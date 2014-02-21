@@ -1,4 +1,5 @@
 doctype
+
 block vars
   title = 'JeeBus'
 
@@ -8,9 +9,12 @@ html(lang='en')
     style [ng-cloak] { display: none; }
     
     title #{title}
-    
+
+    //- always include the CSS part of Zurb Foundation
+    link(rel='stylesheet',href='/base-ng-zf/vendor/bower-foundation-css/foundation.min.css')
+
+    //- additional stylesheets
     block styles
-      link(rel='stylesheet',href='/main/style.css')
 
   body(ng-cloak,ng-app='myApp')
     nav.top-bar(ng-controller='NavCtrl')
@@ -18,7 +22,7 @@ html(lang='en')
         li.name
           h1
             a(ng-href='{{appInfo.home}}')
-              img(src='/main/logo.png',height=22,width=22)
+              img(src='/base-ng-zf/logo.png',height=22,width=22)
               | &nbsp; {{appInfo.name}}
         li.toggle-topbar.menu-icon
           a(href='#')
@@ -43,4 +47,19 @@ html(lang='en')
         .label Conn: {{serverConnection}}
         .secondary.label @ {{ serverTick | date:'HH:mm:ss' }}
     
+    //- AngularJS is always included first
+    script(src='/base-ng-zf/vendor/angular/angular.min.js')
+
+    //- not essential, these can be replaced
+    block vendor
+      script(src='/base-ng-zf/vendor/angular-ui-router.min.js')
+      script(src='/base-ng-zf/vendor/angular-animate/angular-animate.min.js')
+      script(src='/base-ng-zf/vendor/angular-foundation/mm-foundation.min.js') 
+
+    //- main setup of the Angular app and WebSocket connection
+    script(src='/startup.js')
+    script(src='/base-ng-zf/jeebus.js')
+
+    //- useful additions, can be replaced
     block scripts
+      script(src='/base-ng-zf/nav.js')

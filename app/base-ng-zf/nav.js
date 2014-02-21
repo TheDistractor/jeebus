@@ -4,12 +4,6 @@
 
   ng = angular.module('myApp');
 
-  ng.value('appInfo', {
-    name: 'JeeBus',
-    version: '0.3.0',
-    home: 'https://github.com/jcw/jeebus'
-  });
-
   ng.provider('navbar', function() {
     var navs;
     navs = [];
@@ -42,23 +36,8 @@
     return $locationProvider.html5Mode(true);
   });
 
-  ng.run(function($rootScope, appInfo) {
-    $rootScope.appInfo = appInfo;
-    return $rootScope.shared = {};
-  });
-
   ng.controller('NavCtrl', function($scope, navbar) {
     return $scope.navbar = navbar;
-  });
-
-  ng.directive('appVersion', function(appInfo) {
-    return function(scope, elm, attrs) {
-      return elm.text(appInfo.version);
-    };
-  });
-
-  ng.run(function(jeebus) {
-    return jeebus.connect('jeebus');
   });
 
 }).call(this);

@@ -1,4 +1,4 @@
-/common/vendor
+/app/base-ng-zf/vendor
 /db
 /files
 /logger

@@ -5,14 +5,14 @@
     <meta charset="utf-8">
     <style>[ng-cloak] { display: none; }</style>
     <title></title>
-    <link rel="stylesheet" href="/common/vendor/bower-foundation-css/foundation.min.css">
-    <link rel="stylesheet" href="/main/style.css">
+    <link rel="stylesheet" href="/base-ng-zf/vendor/bower-foundation-css/foundation.min.css">
+    <link rel="stylesheet" href="/base-ng-zf/app.css">
   </head>
   <body ng-cloak ng-app="myApp">
     <nav ng-controller="NavCtrl" class="top-bar">
       <ul class="title-area">
         <li class="name">
-          <h1><a ng-href="{{appInfo.home}}"><img src="/main/logo.png" height="22" width="22">&nbsp; {{appInfo.name}}</a></h1>
+          <h1><a ng-href="{{appInfo.home}}"><img src="/base-ng-zf/logo.png" height="22" width="22">&nbsp; {{appInfo.name}}</a></h1>
         </li>
         <li class="toggle-topbar menu-icon"><a href="#"><span></span></a></li>
       </ul>
@@ -36,14 +36,14 @@
         <div class="secondary label">@ {{ serverTick | date:'HH:mm:ss' }}</div>
       </div>
     </div>
-    <script src="/common/vendor/angular/angular.min.js"></script>
-    <script src="/common/vendor/angular-ui-router.min.js"></script>
-    <script src="/common/vendor/angular-animate/angular-animate.min.js"></script>
-    <script src="/common/vendor/angular-foundation/mm-foundation.min.js"></script>
-    <script>angular.module('myApp', ['ui.router', 'ngAnimate', 'mm.foundation']);</script>
-    <script src="/common/vendor/raphael/raphael-min.js"></script>
-    <script src="/common/jeebus.js"></script>
-    <script src="/main/main.js"></script>
+    <script src="/base-ng-zf/vendor/angular/angular.min.js"></script>
+    <script src="/base-ng-zf/vendor/angular-ui-router.min.js"></script>
+    <script src="/base-ng-zf/vendor/angular-animate/angular-animate.min.js"></script>
+    <script src="/base-ng-zf/vendor/angular-foundation/mm-foundation.min.js"></script>
+    <script src="/base-ng-zf/vendor/raphael/raphael-min.js"></script>
+    <script src="/startup.js"></script>
+    <script src="/base-ng-zf/jeebus.js"></script>
+    <script src="/base-ng-zf/nav.js"></script>
     <script src="/demo/demo.js"></script>
     <script>console.log('READY');</script>
   </body>
