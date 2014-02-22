@@ -20,6 +20,9 @@ func init() {
 		}
 		fs.ServeHTTP(w, r)
 	})
+
+	ba := http.FileServer(http.Dir(Settings.BaseDir))
+	http.Handle("/base/", http.StripPrefix("/base/", ba))
 }
 
 func ServeHTTP(rw http.ResponseWriter, req *http.Request) {

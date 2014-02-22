@@ -21,3 +21,8 @@ func TestAnyFileServer(t *testing.T) {
 	response := serveOneRequest("GET", "/blah.blah") // this one contains a "."
 	expect(t, response.Code, http.StatusNotFound)
 }
+
+func TestBaseFileServer(t *testing.T) {
+	response := serveOneRequest("GET", "/base/blah")
+	expect(t, response.Code, http.StatusNotFound)
+}

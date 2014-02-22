@@ -19,6 +19,7 @@ MQTT_URL = "tcp://0.0.0.0:1883"
 
 # directory path settings
 APP_DIR    = "./app"
+BASE_DIR   = "./base"
 COMMON_DIR = "./common"
 DB_DIR     = "./db"
 FILES_DIR  = "./files"
@@ -30,6 +31,7 @@ var Settings = struct {
 	MqttUrl string `json:",string"`
 
 	AppDir    string `json:",string"`
+	BaseDir   string `json:",string"`
 	CommonDir string `json:",string"`
 	DbDir     string `json:",string"`
 	FilesDir  string `json:",string"`
