@@ -195,3 +195,15 @@ func TestAttach(t *testing.T) {
 	jeebus.ProcessRpc("test", wrapArgs("detach", "/a"), mockReply(t))
 	// TODO: detach is not being tested here, just called for coverage
 }
+
+func TestInfoInDb(t *testing.T) {
+	info := jeebus.Get("/jb/info").(map[string]interface{})
+	expect(t, len(info), 2)
+	expect(t, info["version"], jeebus.Version)
+	refute(t, info["started"], nil)
+}
+
+func TestSettingsInDb(t *testing.T) {
+	settings := jeebus.Get("/jb/settings").(map[string]interface{})
+	expect(t, len(settings), 8)
+}

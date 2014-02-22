@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	// "github.com/syndtr/goleveldb/leveldb/opt"
@@ -40,6 +41,13 @@ func OpenDatabase() {
 	var err error
 	db, err = leveldb.OpenFile(Settings.DbDir, nil)
 	Check(err)
+
+	// no need to publish these, since messaging hasn't been started up yet
+	Put("/jb/info", map[string]interface{}{
+		"started": time.Now().Format(time.RFC822Z),
+		"version": Version,
+	})
+	Put("/jb/settings", Settings)
 
 	Register("/#", &DatabaseService{})
 

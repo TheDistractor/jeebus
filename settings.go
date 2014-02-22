@@ -37,8 +37,8 @@ var Settings = struct {
 	FilesDir  string `json:",string"`
 	LoggerDir string `json:",string"`
 
-	CertFile string `json:",string"`
-	KeyFile  string `json:",string"`
+	CertFile string `json:",string,omitempty"`
+	KeyFile  string `json:",string,omitempty"`
 }{}
 
 var SettingsFound = initSettings() // nasty side-effect is to do a "pre-init"
