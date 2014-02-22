@@ -76,5 +76,3 @@
   });
 
 }).call(this);
-
-//# sourceMappingURL=devmode.map

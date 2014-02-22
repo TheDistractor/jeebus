@@ -63,8 +63,10 @@ rl.question 'Directory name? ', (appDir) ->
     fs.writeFileSync "#{appDir}/index.js",
       """require('#{jbDir}/common/devmode');\n"""
 
-    fs.writeFileSync "#{appDir}/settings.txt",
-      """COMMON_DIR = "#{jbDir}/common"\n"""
+    fs.writeFileSync "#{appDir}/settings.txt", """
+      BASE_DIR = "#{jbDir}/base"
+      COMMON_DIR = "#{jbDir}/common"\n
+    """
 
     fs.writeFileSync "#{appDir}/package.json", """
       {
@@ -95,17 +97,13 @@ rl.question 'Directory name? ', (appDir) ->
       }\n
     """
 
-    fs.writeFileSync "#{appDir}/app/index.html", """
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta http-equiv='Content-type' content='text/html; charset=utf-8'>
-        <title>#{title}</title>
-      </head>
-      <body>
-        <h1>Welcome to #{title} !</h1>
-      </body>\n
-    """
+    s = fs.readFileSync "#{jbDir}/app/index.html", "utf8"
+    # leave out the demo app from JeeBus
+    s = s.replace '<script src="/demo/demo.js"></script>', '<!-- your code -->'
+    fs.writeFileSync "#{appDir}/app/index.html", s
+  
+    s = fs.readFileSync "#{jbDir}/app/startup.js"
+    fs.writeFileSync "#{appDir}/app/startup.js", s
   
     console.log """
 

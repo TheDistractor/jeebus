@@ -6,11 +6,11 @@
 
   ng.config(function($stateProvider, navbarProvider) {
     $stateProvider.state('demo', {
-      url: '/demo',
+      url: '/',
       templateUrl: 'demo/view.html',
       controller: 'DemoCtrl'
     });
-    return navbarProvider.add('/demo', 'Demo', 25);
+    return navbarProvider.add('/', 'Demo', 25);
   });
 
   ng.controller('DemoCtrl', function($scope, jeebus) {

@@ -2,10 +2,10 @@ ng = angular.module 'myApp'
 
 ng.config ($stateProvider, navbarProvider) ->
   $stateProvider.state 'demo',
-    url: '/demo'
+    url: '/'
     templateUrl: 'demo/view.html'
     controller: 'DemoCtrl'
-  navbarProvider.add '/demo', 'Demo', 25
+  navbarProvider.add '/', 'Demo', 25
 
 ng.controller 'DemoCtrl', ($scope, jeebus) ->
   # TODO rewrite these example to use the "hm" service i.s.o. "jeebus"
