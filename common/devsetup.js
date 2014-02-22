@@ -72,7 +72,6 @@
       fs.mkdirSync("" + appDir + "/app");
       fs.writeFileSync("" + appDir + "/index.js", "require('" + jbDir + "/common/devmode');\n");
       fs.writeFileSync("" + appDir + "/settings.txt", "BASE_DIR = \"" + jbDir + "/base\"\nCOMMON_DIR = \"" + jbDir + "/common\"\n");
-      fs.writeFileSync("" + appDir + "/package.json", "{\n  \"name\": \"" + name + "\",\n  \"description\": \"This is the new " + title + " application.\",\n  \"version\": \"0.0.1\",\n  \"main\": \"index.js\"\n}\n");
       fs.writeFileSync("" + appDir + "/main.go", "package main\n\nimport (\n    \"log\"\n    \"" + JEEBUS_ROOT + "\"\n)\n\nconst Version = \"0.0.1\"\n\nfunc init() {\n    log.SetFlags(log.Ltime) // only display HH:MM:SS time in log entries\n}\n\nfunc main() {\n    println(\"\\n" + title + "\", Version, \"/ JeeBus\", jeebus.Version)\n    jeebus.Run()\n}\n");
       s = fs.readFileSync("" + jbDir + "/app/index.html", "utf8");
       s = s.replace('<script src="/demo/demo.js"></script>', '<!-- your code -->');

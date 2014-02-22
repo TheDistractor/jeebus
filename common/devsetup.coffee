@@ -68,14 +68,14 @@ rl.question 'Directory name? ', (appDir) ->
       COMMON_DIR = "#{jbDir}/common"\n
     """
 
-    fs.writeFileSync "#{appDir}/package.json", """
-      {
-        "name": "#{name}",
-        "description": "This is the new #{title} application.",
-        "version": "0.0.1",
-        "main": "index.js"
-      }\n
-    """
+    # fs.writeFileSync "#{appDir}/package.json", """
+    #   {
+    #     "name": "#{name}",
+    #     "description": "This is the new #{title} application.",
+    #     "version": "0.0.1",
+    #     "main": "index.js"
+    #   }\n
+    # """
 
     fs.writeFileSync "#{appDir}/main.go", """
       package main
