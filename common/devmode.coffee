@@ -96,9 +96,9 @@ compileIfNeeded = (srcFile) ->
     catch err
       console.log '[node] cannot compile', srcFile, err
   else if /\.(html|js)$/i.test srcFile
-    triggerRefresh true
+    triggerRefresh true # request a full page reload
   else if /\.(css)$/i.test srcFile
-    triggerRefresh false
+    triggerRefresh false # request a stylesheet reload
 
 traverseDirs = (dir, cb) -> # recursive directory traversal
   stats = fs.statSync dir
@@ -148,11 +148,10 @@ parseSettings = (fn) ->
         map[k] = JSON.parse v
   map
 
-# debounce the refresh calls, in case lots of them are generated at once
+# debounce the refresh triggers, in case lots of them are generated at once
 reload = undefined
 timer = undefined
 
-# this is defined after the initial scans from createWatcher have completed
 triggerRefresh = (refresh) ->
   reload or= refresh
   clearTimeout timer
@@ -164,7 +163,7 @@ triggerRefresh = (refresh) ->
     reload = undefined
   , 100
 
-# Start of devmode application code
+# Start of devmode application code --------------------------------------------
 
 settings = parseSettings 'settings.txt'
 
@@ -175,11 +174,13 @@ gin = runGin()
 gin.on 'error', (err) ->
   fatal 'cannot launch "gin"', err  unless err.code is 'ENOENT'
   installGin()
-  
+
+# if gin goes down, then so should this node process
 gin.on 'exit', ->
   console.error '[node] gin exited'
   process .exit 1
 
+# if this node process goes down, then so should gin and the go application
 process.on 'uncaughtException', (err) ->
   console.error '[node] exception:', err.stack
   gin.kill()

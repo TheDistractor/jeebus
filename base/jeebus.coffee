@@ -88,6 +88,13 @@ ng.factory 'jeebus', ($rootScope, $q) ->
       ws.send msg
     @
 
+  # Fetch a key/value pair from the JeeBus database (key must start with "/").
+  fetch = (key) ->
+    if key[0] is '/'
+      rpc key
+    else
+      console.error 'key does not start with "/":', key
+      
   # Store a key/value pair in the JeeBus database (key must start with "/").
   store = (key, value) ->
     msg = angular.toJson [key, value]
@@ -103,6 +110,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
     d = $q.defer()
     n = ++seqNum
     ws.send angular.toJson [n, args...]
+    # TODO: there's no need to remember tid, it's ok if the timer always fires
     tid = setTimeout ->
       console.error "RPC #{n}: no reponse", args
       delete rpcPromises[n]
@@ -130,4 +138,4 @@ ng.factory 'jeebus', ($rootScope, $q) ->
       rpc 'detach', path
         .then -> console.log 'detach', path
 
-  {connect,send,store,rpc,attach,detach}
+  {connect,send,fetch,store,rpc,attach,detach}
