@@ -54,10 +54,19 @@ ng.factory 'jeebus', ($rootScope, $q) ->
           if m.data[0] is '['
             processRpcReply data...
           else
-            # TODO: should not write into the root scope (or merge, perhaps?)
-            for k, v of data
-              # $rootScope[k] = v
-              processModelUpdate k, v
+            switch data
+              when true # reload app
+                window.location.reload true
+              when false # refresh stylesheets
+                console.log "CSS Reload"
+                for e in document.getElementsByTagName 'link'
+                  if e.href and /stylesheet/i.test e.rel
+                    e.href = "#{e.href.replace /\?.*/, ''}?#{Date.now()}"
+              else
+                # TODO: should not write into the root scope (merge, perhaps?)
+                for k, v of data
+                  # $rootScope[k] = v
+                  processModelUpdate k, v
 
       # ws.onerror = (e) ->
       #   console.log 'Error', e

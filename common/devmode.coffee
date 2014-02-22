@@ -1,7 +1,8 @@
-# JeeBus development mode: launch "gin" and compile CS/Jade/Stylus as needed
+# JeeBus development mode: launches "gin" and compiles CS/Jade/Stylus as needed
 # -jcw, 2014-02-19
 
 fs = require 'fs'
+http = require 'http'
 path = require 'path'
 {execFile,spawn} = require 'child_process'
 
@@ -61,13 +62,21 @@ compileCoffeeScriptWithMap = (sourceCode, filename) ->
   "#{compiled.js}\n#{comment}\n"
   
 compileIfNeeded = (srcFile) ->
-  if /\.(coffee|coffee\.md|litcoffee|jade|styl)$/.test srcFile
+  if /\.(coffee|coffee\.md|litcoffee|jade|styl)$/i.test srcFile
     srcExt = path.extname srcFile
-    switch srcExt
-      when '.jade' then destExt = '.html'
-      when '.styl' then destExt = '.css'
-      else              destExt = '.js'
+    destExt = switch srcExt
+      when '.jade' then '.html'
+      when '.styl' then '.css'
+      else              '.js'
     destFile = srcFile.slice(0, - srcExt.length) + destExt
+
+    t = Date.now()
+    saveResult = (data) ->
+      n = data.length
+      ms = Date.now() - t
+      console.log "[node] compile #{srcFile} -> #{destExt} #{n}b #{ms} ms"
+      fs.writeFileSync destFile, data
+
     try
       srcStat = fs.statSync srcFile
       destStat = fs.statSync destFile  if fs.existsSync destFile
@@ -75,23 +84,21 @@ compileIfNeeded = (srcFile) ->
         src = fs.readFileSync srcFile, encoding: 'utf8'
         switch srcExt
           when '.jade'
-            html = do jade.compile src, filename: srcFile, pretty: true
-            saveResult destFile, html
+            saveResult do jade.compile src, filename: srcFile, pretty: true
           when '.styl'
             stylus.render src, { filename: srcFile }, (err, css) ->
               if err
                 console.log '[node] stylus error', srcFile, err
               else
-                saveResult destFile, css
+                saveResult css
           else
-            js = compileCoffeeScriptWithMap src, path.basename srcFile
-            saveResult destFile, js
+            saveResult compileCoffeeScriptWithMap src, path.basename srcFile
     catch err
       console.log '[node] cannot compile', srcFile, err
-
-saveResult = (file, text) ->
-  console.log "[node] saved #{file} (#{text.length}b)"
-  fs.writeFileSync file, text
+  else if /\.(html|js)$/i.test srcFile
+    triggerRefresh true
+  else if /\.(css)$/i.test srcFile
+    triggerRefresh false
 
 traverseDirs = (dir, cb) -> # recursive directory traversal
   stats = fs.statSync dir
@@ -120,13 +127,13 @@ createWatcher = (root) ->
         # TODO: delete compiled file
   root
 
-ready = ->
+ready = -> # called once gin reports that it is actually listening on a port
   console.log '[node] watching for file changes in:'
   createWatcher settings.AppDir or './app'
   createWatcher settings.BaseDir or './base'
   createWatcher settings.CommonDir or './common'
 
-parseSettings = (fn ='settings.txt') ->
+parseSettings = (fn) ->
   map = {}
   if fs.existsSync fn
     for line in fs.readFileSync(fn, 'utf8').split '\n'
@@ -141,7 +148,25 @@ parseSettings = (fn ='settings.txt') ->
         map[k] = JSON.parse v
   map
 
-settings = parseSettings()
+# debounce the refresh calls, in case lots of them are generated at once
+reload = undefined
+timer = undefined
+
+# this is defined after the initial scans from createWatcher have completed
+triggerRefresh = (refresh) ->
+  reload or= refresh
+  clearTimeout timer
+  timer = setTimeout ->
+    port = settings.Port or 3000
+    # send a "GET /reload?..." to broadcast it on all connected websockets
+    http.get("http://localhost:#{port}/reload?#{reload}").on 'error', (e) ->
+      console.log "Got error: ", e.stack
+    reload = undefined
+  , 100
+
+# Start of devmode application code
+
+settings = parseSettings 'settings.txt'
 
 # assume "go" and "gin" have been installed properly
 gin = runGin()

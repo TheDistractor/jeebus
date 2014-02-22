@@ -4,12 +4,24 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"code.google.com/p/go.net/websocket"
 )
 
 func init() {
 	http.Handle("/ws", websocket.Handler(sockServer))
+	
+	http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request){
+		reload := ToJson(strings.HasSuffix(r.RequestURI, "?true"))
+				
+		// TODO: peeks into the messaging's services map, shouldn't be in here!
+		for k, v := range services {
+			if strings.HasPrefix(k, "ws/") {
+				v.Handle("ws/<broadcast>", reload)
+			}
+		}
+	})
 }
 
 type WebsocketService struct {
