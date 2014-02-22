@@ -48,7 +48,7 @@ installGin = ->
     gin.on 'error', (err) ->
       fatal 'still cannot launch "gin" - is $GOPATH/bin in your $PATH?'
   
-compileCoffeeScript = (sourceCode, filename) ->
+compileCoffeeScriptWithMap = (sourceCode, filename) ->
   compiled = coffee.compile sourceCode,
     filename: filename
     sourceMap: true
@@ -84,13 +84,13 @@ compileIfNeeded = (srcFile) ->
               else
                 saveResult destFile, css
           else
-            js = compileCoffeeScript src, path.basename srcFile
+            js = compileCoffeeScriptWithMap src, path.basename srcFile
             saveResult destFile, js
     catch err
       console.log '[node] cannot compile', srcFile, err
 
 saveResult = (file, text) ->
-  console.log "[node] #{file} (#{text.length}b)"
+  console.log "[node] saved #{file} (#{text.length}b)"
   fs.writeFileSync file, text
 
 traverseDirs = (dir, cb) -> # recursive directory traversal
