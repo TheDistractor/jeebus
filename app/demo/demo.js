@@ -7,7 +7,7 @@
   ng.config(function($stateProvider, navbarProvider) {
     $stateProvider.state('demo', {
       url: '/',
-      templateUrl: 'demo/view.html',
+      templateUrl: 'demo/demo.html',
       controller: 'DemoCtrl'
     });
     return navbarProvider.add('/', 'Demo', 25);
