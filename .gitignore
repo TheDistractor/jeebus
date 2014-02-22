@@ -1,4 +1,5 @@
 /base/vendor
 /db
+/example/gin-bin
 /files
 /logger
