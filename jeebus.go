@@ -24,12 +24,15 @@ func NewApp(name, version string) *cli.App {
 	return app
 }
 
-func AddCommand(cmd *cli.Command) {
+func AddCommand(name string, action func(c *cli.Context)) *cli.Command {
 	if app == nil {
 		NewApp("jeebus", Version)
 	}
-
-	app.Commands = append(app.Commands, *cmd)
+	app.Commands = append(app.Commands, cli.Command{
+		Name:   name,
+		Action: action,
+	})
+	return &app.Commands[len(app.Commands)-1]
 }
 
 func Run() {

@@ -2,62 +2,44 @@ package jeebus
 
 import (
 	"log"
-	
+
 	"github.com/codegangsta/cli"
 )
 
 func DefineToolCommands() {
 	noCustomSubCommands := app == nil || len(app.Commands) == 0
 
-	AddCommand(&cli.Command{
-		Name:      "run",
-		ShortName: "r",
-		Usage:     "launch the web server with messaging and database",
-		Action: func(c *cli.Context) {
-			OpenDatabase()
-			StartMessaging()
-			RunHttpServer()
-		},
+	cmd := AddCommand("run", func(c *cli.Context) {
+		OpenDatabase()
+		StartMessaging()
+		RunHttpServer()
 	})
+	cmd.ShortName = "r"
+	cmd.Usage = "launch the web server with messaging and database"
 
-	AddCommand(&cli.Command{
-		Name:      "subscribe",
-		ShortName: "s",
-		Usage:     "subscribe to messages",
-		Action:    SubscribeCmd,
-	})
+	cmd = AddCommand("subscribe", SubscribeCmd)
+	cmd.ShortName = "s"
+	cmd.Usage = "subscribe to messages"
 
-	AddCommand(&cli.Command{
-		Name:      "publish",
-		ShortName: "p",
-		Usage:     "publish a message to a topic",
-		Action:    PublishCmd,
-	})
+	cmd = AddCommand("publish", PublishCmd)
+	cmd.ShortName = "p"
+	cmd.Usage = "publish a message to a topic"
 
-	AddCommand(&cli.Command{
-		Name:      "dump",
-		ShortName: "d",
-		Usage:     "dump the database contents (offline)",
-		Action:    DumpCmd,
-	})
+	cmd = AddCommand("dump", DumpCmd)
+	cmd.ShortName = "d"
+	cmd.Usage = "dump the database contents (offline)"
 
-	AddCommand(&cli.Command{
-		Name:      "import",
-		ShortName: "i",
-		Usage:     "import a JSON file into the database (offline)",
-		Action:    ImportCmd,
-	})
+	cmd = AddCommand("import", ImportCmd)
+	cmd.ShortName = "i"
+	cmd.Usage = "import a JSON file into the database (offline)"
 
-	AddCommand(&cli.Command{
-		Name:      "export",
-		ShortName: "e",
-		Usage:     "export the database as JSON (offline)",
-		Action:    ExportCmd,
-	})
+	cmd = AddCommand("export", ExportCmd)
+	cmd.ShortName = "e"
+	cmd.Usage = "export the database as JSON (offline)"
 
 	if noCustomSubCommands {
-		// also run the default when no other commands have been defined
-		app.Action = app.Commands[0].Action
+		// also run by default when no other commands have been defined
+		app.Action = app.Command("run").Action
 	}
 }
 
@@ -67,7 +49,7 @@ func SubscribeCmd(c *cli.Context) {
 		pattern = "#"
 	}
 	Register(pattern, &SubscribeService{})
-	<- StartClient()
+	<-StartClient()
 }
 
 type SubscribeService struct{}

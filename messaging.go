@@ -27,7 +27,7 @@ func StartMessaging() {
 	mqttServer = mqtt.NewServer(listener)
 	mqttServer.Start()
 	// <-mqttServer.Done
-	
+
 	StartClient() // return value ignored
 }
 

@@ -14,13 +14,10 @@ func main() {
 	app := jeebus.NewApp("example", jeebus.Version)
 	app.Usage = "a minimal application based on JeeBus"
 
-	jeebus.AddCommand(&cli.Command{
-		Name:  "foo",
-		Usage: "dummy command",
-		Action: func(c *cli.Context) {
-			println("bar")
-		},
+	cmd := jeebus.AddCommand("foo", func(c *cli.Context) {
+		println("bar")
 	})
+	cmd.Usage = "dummy command"
 
 	jeebus.Run()
 }
