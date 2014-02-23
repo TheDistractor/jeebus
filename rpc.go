@@ -2,6 +2,8 @@ package jeebus
 
 import (
 	"errors"
+	"log"
+	"runtime/debug"
 	"strings"
 )
 
@@ -25,6 +27,11 @@ func Undefine(name string) {
 func ProcessRpc(orig string, args []interface{}, replyFun func(r interface{}, e error)) {
 	defer func() {
 		if err, ok := recover().(error); ok && err != nil {
+			if Settings.VerboseRpc {
+				log.Print("RPC error stack trace -----------------------------")
+				debug.PrintStack()
+				log.Print("===================================================")
+			}
 			replyFun(nil, err) // capture and report all panics
 		}
 	}()

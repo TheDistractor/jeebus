@@ -20,7 +20,11 @@ func init() {
 	})
 
 	Define("store", func(orig string, args []interface{}) interface{} {
-		return Store(args[0].(string), args[1].([]byte))
+		var data []byte
+		if len(args) > 1 {
+			data = []byte(args[1].(string))
+		}
+		return Store(args[0].(string), data)
 	})
 
 	Define("file-list", func(orig string, args []interface{}) interface{} {

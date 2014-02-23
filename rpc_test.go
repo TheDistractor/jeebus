@@ -81,12 +81,12 @@ func TestStoreRpc(t *testing.T) {
 	fn := jeebus.Settings.FilesDir + "/foo"
 	defer os.Remove(fn)
 
-	jeebus.ProcessRpc("", wrapArgs("store", "foo", []byte("bar")), mockReply(t))
+	jeebus.ProcessRpc("", wrapArgs("store", "foo", "bar"), mockReply(t))
 	expect(t, rpcReply, nil)
 }
 
 func TestRemoveMissingRpc(t *testing.T) {
-	jeebus.ProcessRpc("", wrapArgs("store", "foo", []byte{}), mockReply(t))
+	jeebus.ProcessRpc("", wrapArgs("store", "foo", ""), mockReply(t))
 	expect(t, rpcReply, "ERR: remove ./files/foo: no such file or directory")
 }
 

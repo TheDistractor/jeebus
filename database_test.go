@@ -205,5 +205,5 @@ func TestInfoInDb(t *testing.T) {
 
 func TestSettingsInDb(t *testing.T) {
 	settings := jeebus.Get("/jb/settings").(map[string]interface{})
-	expect(t, len(settings), 8)
+	expect(t, len(settings), 9)
 }

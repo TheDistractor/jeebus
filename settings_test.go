@@ -8,18 +8,20 @@ import (
 )
 
 const fakeSettings = `
-	PORT 	   = 123
-	MQTT_URL   = "abc"
-
-	APP_DIR    = "dir1"
-	BASE_DIR   = "dir2"
-	COMMON_DIR = "dir3"
-	DB_DIR     = "dir4"
-	FILES_DIR  = "dir5"
-	LOGGER_DIR = "dir6"
-
-	CERT_FILE  = "cert.pem"
-	KEY_FILE   = "key.pem"
+	PORT 	    = 123
+	MQTT_URL    = "abc"
+                
+	APP_DIR     = "dir1"
+	BASE_DIR    = "dir2"
+	COMMON_DIR  = "dir3"
+	DB_DIR      = "dir4"
+	FILES_DIR   = "dir5"
+	LOGGER_DIR  = "dir6"
+                
+	CERT_FILE   = "cert.pem"
+	KEY_FILE    = "key.pem"
+	
+	VERBOSE_RPC = true
 `
 
 func TestSettings(t *testing.T) {
@@ -39,6 +41,8 @@ func TestSettings(t *testing.T) {
 
 	expect(t, jeebus.Settings.CertFile, "cert.pem")
 	expect(t, jeebus.Settings.KeyFile, "key.pem")
+
+	expect(t, jeebus.Settings.VerboseRpc, true)
 
 	jeebus.LoadSettings(bytes.NewBufferString(jeebus.DefaultSettings))
 }

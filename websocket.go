@@ -11,10 +11,10 @@ import (
 
 func init() {
 	http.Handle("/ws", websocket.Handler(sockServer))
-	
-	http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request){
+
+	http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
 		reload := ToJson(strings.HasSuffix(r.RequestURI, "?true"))
-				
+
 		// TODO: peeks into the messaging's services map, shouldn't be in here!
 		for k, v := range services {
 			if strings.HasPrefix(k, "ws/") {
@@ -58,7 +58,9 @@ func sockServer(ws *websocket.Conn) {
 
 		case []interface{}:
 			// an array represents an RPC request or event (i.e. no reply)
-			log.Printf("RPC %s (%s)", DisplayMax(v, 40), origin)
+			if Settings.VerboseRpc {
+				log.Printf("RPC %s (%s)", DisplayMax(v, 40), origin)
+			}
 			if len(v) > 0 {
 				if rpcId, ok := v[0].(float64); ok {
 					// it's an RPC request with a return ID

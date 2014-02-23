@@ -65,7 +65,9 @@ rl.question 'Directory name? ', (appDir) ->
 
     fs.writeFileSync "#{appDir}/settings.txt", """
       BASE_DIR = "#{jbDir}/base"
-      COMMON_DIR = "#{jbDir}/common"\n
+      COMMON_DIR = "#{jbDir}/common"
+      
+      VERBOSE_RPC = true\n
     """
 
     fs.writeFileSync "#{appDir}/package.json", """

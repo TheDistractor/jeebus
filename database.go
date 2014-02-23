@@ -25,7 +25,7 @@ func (s *DatabaseService) Handle(topic string, payload []byte) {
 	msg := make(map[string]interface{})
 	msg[topic] = FromJson(payload) // TODO: unfortunate extra decode/encode
 	json := ToJson(msg)
-	
+
 	for k, v := range attached {
 		if strings.HasPrefix(topic, k) {
 			for dest, _ := range v {
@@ -75,8 +75,11 @@ func attachRpc(orig string, args []interface{}) interface{} {
 		attached[prefix][orig] = 0
 	}
 	attached[prefix][orig]++
-	log.Println("attached", prefix, orig)
-
+	
+	if Settings.VerboseRpc {
+		log.Println("attached", prefix, orig)
+	}
+	
 	to := prefix + "~" // TODO: see notes about "~" elsewhere
 	result := make(map[string]interface{})
 
@@ -109,7 +112,11 @@ func detachRpc(orig string, args []interface{}) interface{} {
 			}
 		}
 	}
-	log.Println("detached", prefix, orig)
+
+	if Settings.VerboseRpc {
+		log.Println("detached", prefix, orig)
+	}
+	
 	return nil
 }
 

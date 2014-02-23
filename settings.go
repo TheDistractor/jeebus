@@ -24,6 +24,9 @@ COMMON_DIR = "./common"
 DB_DIR     = "./db"
 FILES_DIR  = "./files"
 LOGGER_DIR = "./logger"
+
+# debug options
+VERBOSE_RPC = false
 `
 
 var Settings = struct {
@@ -39,6 +42,8 @@ var Settings = struct {
 
 	CertFile string `json:",string,omitempty"`
 	KeyFile  string `json:",string,omitempty"`
+
+	VerboseRpc bool `json:",string"`
 }{}
 
 var SettingsFound = initSettings() // nasty side-effect is to do a "pre-init"
