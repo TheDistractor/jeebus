@@ -1,7 +1,6 @@
 doctype
 
 block vars
-  title = JeeBus (NG+ZF)
 
 html(lang='en')
   head
@@ -9,7 +8,7 @@ html(lang='en')
     style [ng-cloak] { display: none; }
     
     block title
-      title #{title}
+      title JeeBus
 
     //- always include the CSS part of Zurb Foundation
     link(rel='stylesheet',href='/base/vendor/bower-foundation-css/foundation.min.css')
@@ -36,11 +35,13 @@ html(lang='en')
             li.myNav(ng-repeat='nav in navbar')
               a(ng-href='{{nav.route}}') {{nav.title}}
             li.divider
-          ul.right
-            li.myNav
-              a(href='/admin') Admin
+          block admin
+            ul.right
+              li.myNav
+                a(href='/admin') Admin
 
-    div(ui-view)
+    block main
+      div(ui-view)
 
     block footer
       .row
