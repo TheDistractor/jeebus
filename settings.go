@@ -26,6 +26,7 @@ FILES_DIR  = "./files"
 LOGGER_DIR = "./logger"
 
 # debug options
+VERBOSE_LOG = 2
 VERBOSE_RPC = false
 `
 
@@ -43,6 +44,7 @@ var Settings = struct {
 	CertFile string `json:",string,omitempty"`
 	KeyFile  string `json:",string,omitempty"`
 
+	VerboseLog int  `json:",string"`
 	VerboseRpc bool `json:",string"`
 }{}
 

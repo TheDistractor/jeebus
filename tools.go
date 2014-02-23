@@ -9,7 +9,7 @@ import (
 func DefineToolCommands() {
 	noCustomSubCommands := app == nil || len(app.Commands) == 0
 
-	NewCommand(&cli.Command{
+	AddCommand(&cli.Command{
 		Name:      "run",
 		ShortName: "r",
 		Usage:     "launch the web server with messaging and database",
@@ -20,35 +20,35 @@ func DefineToolCommands() {
 		},
 	})
 
-	NewCommand(&cli.Command{
+	AddCommand(&cli.Command{
 		Name:      "subscribe",
 		ShortName: "s",
 		Usage:     "subscribe to messages",
 		Action:    SubscribeCmd,
 	})
 
-	NewCommand(&cli.Command{
+	AddCommand(&cli.Command{
 		Name:      "publish",
 		ShortName: "p",
 		Usage:     "publish a message to a topic",
 		Action:    PublishCmd,
 	})
 
-	NewCommand(&cli.Command{
+	AddCommand(&cli.Command{
 		Name:      "dump",
 		ShortName: "d",
 		Usage:     "dump the database contents (offline)",
 		Action:    DumpCmd,
 	})
 
-	NewCommand(&cli.Command{
+	AddCommand(&cli.Command{
 		Name:      "import",
 		ShortName: "i",
 		Usage:     "import a JSON file into the database (offline)",
 		Action:    ImportCmd,
 	})
 
-	NewCommand(&cli.Command{
+	AddCommand(&cli.Command{
 		Name:      "export",
 		ShortName: "e",
 		Usage:     "export the database as JSON (offline)",

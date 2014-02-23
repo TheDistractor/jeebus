@@ -21,6 +21,7 @@ const fakeSettings = `
 	CERT_FILE   = "cert.pem"
 	KEY_FILE    = "key.pem"
 	
+	VERBOSE_LOG = 3
 	VERBOSE_RPC = true
 `
 
@@ -42,6 +43,7 @@ func TestSettings(t *testing.T) {
 	expect(t, jeebus.Settings.CertFile, "cert.pem")
 	expect(t, jeebus.Settings.KeyFile, "key.pem")
 
+	expect(t, jeebus.Settings.VerboseLog, 3)
 	expect(t, jeebus.Settings.VerboseRpc, true)
 
 	jeebus.LoadSettings(bytes.NewBufferString(jeebus.DefaultSettings))

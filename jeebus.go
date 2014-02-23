@@ -3,6 +3,7 @@ package jeebus
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 
@@ -23,7 +24,7 @@ func NewApp(name, version string) *cli.App {
 	return app
 }
 
-func NewCommand(cmd *cli.Command) {
+func AddCommand(cmd *cli.Command) {
 	if app == nil {
 		NewApp("jeebus", Version)
 	}
@@ -32,6 +33,7 @@ func NewCommand(cmd *cli.Command) {
 }
 
 func Run() {
+	log.SetFlags(Settings.VerboseLog)
 	DefineToolCommands()
 	app.Run(os.Args)
 }
