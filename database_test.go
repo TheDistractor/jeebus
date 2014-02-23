@@ -190,7 +190,7 @@ func TestAttach(t *testing.T) {
 
 	reply = <-spy2
 	expect(t, reply.a, "ws/test")
-	expect(t, jeebus.FromJson(reply.b), float64(3))
+	expect(t, string(reply.b), `{"/a3":3}`)
 
 	jeebus.ProcessRpc("test", wrapArgs("detach", "/a"), mockReply(t))
 	// TODO: detach is not being tested here, just called for coverage

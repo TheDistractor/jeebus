@@ -2,9 +2,13 @@ package jeebus
 
 import (
 	"encoding/json"
+	"fmt"
+	"regexp"
 )
 
 var Version = "0.3.0"
+
+var nonPrintables = regexp.MustCompile("[^[:print:]]")
 
 func Run() {
 	OpenDatabase()
@@ -36,4 +40,13 @@ func FromJson(value json.RawMessage) interface{} {
 	err := json.Unmarshal(value, &any)
 	Check(err)
 	return any
+}
+
+func DisplayMax(any interface{}, maxLen int) string {
+	s := fmt.Sprintf("%v", any)
+	s = nonPrintables.ReplaceAllLiteralString(s, ".")
+	if len(s) > maxLen {
+		s = s[:maxLen-1] + "…"
+	}
+	return s
 }

@@ -58,7 +58,7 @@ func sockServer(ws *websocket.Conn) {
 
 		case []interface{}:
 			// an array represents an RPC request or event (i.e. no reply)
-			log.Printf("RPC %v (%s)", v, origin)
+			log.Printf("RPC %s (%s)", DisplayMax(v, 40), origin)
 			if len(v) > 0 {
 				if rpcId, ok := v[0].(float64); ok {
 					// it's an RPC request with a return ID

@@ -43,3 +43,9 @@ func TestFromToJson(t *testing.T) {
 	o := jeebus.ToJson(jeebus.FromJson(i))
 	expect(t, string(i), string(o))
 }
+
+func TestDisplayMaxOk(t *testing.T) {
+	expect(t, jeebus.DisplayMax("a", 2), "a")
+	expect(t, jeebus.DisplayMax("ab", 2), "ab")
+	expect(t, jeebus.DisplayMax("abc", 2), "a…")
+}

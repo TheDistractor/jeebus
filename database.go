@@ -22,10 +22,15 @@ func (s *DatabaseService) Handle(topic string, payload []byte) {
 	Put(topic, payload)
 
 	// send out websocket messages for all matching attached topics
+	msg := make(map[string]interface{})
+	msg[topic] = FromJson(payload) // TODO: unfortunate extra decode/encode
+	json := ToJson(msg)
+	
 	for k, v := range attached {
 		if strings.HasPrefix(topic, k) {
 			for dest, _ := range v {
-				Dispatch("ws/"+dest, payload) // direct dispatch, no MQTT
+				log.Println("dispatch", dest, string(payload))
+				Dispatch("ws/"+dest, json) // direct dispatch, no MQTT
 			}
 		}
 	}
