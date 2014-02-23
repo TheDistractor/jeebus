@@ -9,9 +9,5 @@ ng.provider 'navbar', ->
   $get: ->
     navs.sort (a, b) -> a.weight - b.weight
   
-ng.config ($urlRouterProvider, $locationProvider) ->
-  $urlRouterProvider.otherwise '/'
-  $locationProvider.html5Mode true
-  
 ng.controller 'NavCtrl', ($scope, navbar) ->
   $scope.navbar = navbar

@@ -20,5 +20,5 @@ ng.controller 'DemoCtrl', ($scope, jeebus) ->
       $scope.message = r
 
   $scope.dbKeysTest = ->
-    jeebus.rpc('db-keys', '/').then (r) ->
+    jeebus.rpc('db-keys', '/jb/').then (r) ->
       $scope.message = r

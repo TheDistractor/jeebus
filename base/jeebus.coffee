@@ -1,5 +1,9 @@
 ng = angular.module 'myApp'
 
+ng.config ($urlRouterProvider, $locationProvider) ->
+  $urlRouterProvider.otherwise '/'
+  $locationProvider.html5Mode true
+  
 # The "jeebus" service below is the same for all client-side applications.
 # It lets angular connect to the JeeBus server and send/receive messages.
 ng.factory 'jeebus', ($rootScope, $q) ->
