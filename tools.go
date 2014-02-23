@@ -1,6 +1,8 @@
 package jeebus
 
 import (
+	"log"
+	
 	"github.com/codegangsta/cli"
 )
 
@@ -60,6 +62,18 @@ func DefineToolCommands() {
 }
 
 func SubscribeCmd(c *cli.Context) {
+	pattern := c.Args().First()
+	if pattern == "" {
+		pattern = "#"
+	}
+	Register(pattern, &SubscribeService{})
+	<- StartClient()
+}
+
+type SubscribeService struct{}
+
+func (s *SubscribeService) Handle(topic string, payload []byte) {
+	log.Println(topic, string(payload))
 }
 
 func PublishCmd(c *cli.Context) {

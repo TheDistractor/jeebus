@@ -27,7 +27,11 @@ func StartMessaging() {
 	mqttServer = mqtt.NewServer(listener)
 	mqttServer.Start()
 	// <-mqttServer.Done
+	
+	StartClient() // return value ignored
+}
 
+func StartClient() chan bool {
 	sock, err := net.Dial("tcp", ":1883")
 	Check(err)
 
@@ -40,11 +44,14 @@ func StartMessaging() {
 		addSubscription(pattern)
 	}
 
+	done := make(chan bool)
 	go func() {
 		for m := range mqttClient.Incoming {
 			Dispatch(m.TopicName, []byte(m.Payload.(proto.BytesPayload)))
 		}
+		done <- true
 	}()
+	return done
 }
 
 func Dispatch(topic string, payload []byte) {
