@@ -75,11 +75,11 @@ func attachRpc(orig string, args []interface{}) interface{} {
 		attached[prefix][orig] = 0
 	}
 	attached[prefix][orig]++
-	
+
 	if Settings.VerboseRpc {
 		log.Println("attached", prefix, orig)
 	}
-	
+
 	to := prefix + "~" // TODO: see notes about "~" elsewhere
 	result := make(map[string]interface{})
 
@@ -116,7 +116,7 @@ func detachRpc(orig string, args []interface{}) interface{} {
 	if Settings.VerboseRpc {
 		log.Println("detached", prefix, orig)
 	}
-	
+
 	return nil
 }
 

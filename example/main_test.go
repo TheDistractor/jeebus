@@ -26,7 +26,7 @@ func TestRunMain(t *testing.T) {
 	}
 
 	cmd := exec.Command("go")
-	cmd.Args = append(cmd.Args, "run", "main.go")
+	cmd.Args = append(cmd.Args, "run", "main.go", "r")
 
 	sout, err := cmd.StderrPipe()
 	jeebus.Check(err)

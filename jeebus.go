@@ -3,17 +3,37 @@ package jeebus
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
+
+	"github.com/codegangsta/cli"
 )
 
-var Version = "0.3.0"
+var (
+	Version       = "0.3.0"
+	nonPrintables = regexp.MustCompile("[^[:print:]]")
+	app           *cli.App
+)
 
-var nonPrintables = regexp.MustCompile("[^[:print:]]")
+func NewApp(name, version string) *cli.App {
+	app = cli.NewApp()
+	app.Name = name
+	app.Version = version
+
+	return app
+}
+
+func NewCommand(cmd *cli.Command) {
+	if app == nil {
+		NewApp("jeebus", Version)
+	}
+
+	app.Commands = append(app.Commands, *cmd)
+}
 
 func Run() {
-	OpenDatabase()
-	StartMessaging()
-	RunHttpServer()
+	DefineToolCommands()
+	app.Run(os.Args)
 }
 
 func Check(e error) {
