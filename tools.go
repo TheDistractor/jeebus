@@ -21,7 +21,7 @@ func DefineToolCommands() {
 
 	// also run by default when no command has been specified
 	app.Action = app.Command("run").Action
-	
+
 	cmd = AddCommand("subscribe", SubscribeCmd)
 	cmd.ShortName = "s"
 	cmd.Usage = "subscribe to messages"
@@ -107,19 +107,9 @@ func DumpCmd(c *cli.Context) {
 	}
 
 	OpenDatabase()
-	// get and print all the key/value pairs from the database
-	iter := db.NewIterator(nil, nil) // TODO: use new slices
-	iter.Seek([]byte(from))
-	for iter.Valid() {
-		if string(iter.Key()) > to {
-			break
-		}
-		fmt.Printf("%s = %s\n", iter.Key(), iter.Value())
-		if !iter.Next() {
-			break
-		}
-	}
-	iter.Release()
+	IterateOverKeys(from, to, func(k string, v []byte) {
+		fmt.Printf("%s = %s\n", k, v)
+	})
 }
 
 func ImportJsonData(filename string) {
@@ -131,25 +121,13 @@ func ImportJsonData(filename string) {
 	Check(err)
 
 	for prefix, entries := range values {
-		limit := prefix + "~" // FIXME see below, same as for dumpDatabase()
 		var ndel, nadd int
 
-		// get and print all the key/value pairs from the database
-		iter := db.NewIterator(nil, nil) // TODO: use new slices
-		iter.Seek([]byte(prefix))
-		for iter.Valid() {
-			key := string(iter.Key())
-			if key > limit {
-				break
-			}
-			err = db.Delete([]byte(key), nil)
+		IterateOverKeys(prefix, "", func(k string, v []byte) {
+			err = db.Delete([]byte(k), nil)
 			Check(err)
 			ndel++
-			if !iter.Next() {
-				break
-			}
-		}
-		iter.Release()
+		})
 
 		for k, v := range entries {
 			err = db.Put([]byte(prefix+k), *v, nil)
@@ -162,26 +140,14 @@ func ImportJsonData(filename string) {
 }
 
 func ExportJsonData(prefix string) {
-	limit := prefix + "~" // FIXME see below, same as for dumpDatabase()
 	entries := make(map[string]interface{})
 
-	// get and print all the key/value pairs from the database
-	iter := db.NewIterator(nil, nil) // TODO: use new slices
-	iter.Seek([]byte(prefix))
-	for iter.Valid() {
-		key := iter.Key()[len(prefix):]
-		if string(iter.Key()) > limit {
-			break
-		}
+	IterateOverKeys(prefix, "", func(k string, v []byte) {
 		var value interface{}
-		err := json.Unmarshal(iter.Value(), &value)
+		err := json.Unmarshal(v, &value)
 		Check(err)
-		entries[string(key)] = value
-		if !iter.Next() {
-			break
-		}
-	}
-	iter.Release()
+		entries[k] = value
+	})
 
 	values := make(map[string]map[string]interface{})
 	values[prefix] = entries

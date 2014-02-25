@@ -1,13 +1,13 @@
 package jeebus
 
 import (
-	"bytes"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
-	// "github.com/syndtr/goleveldb/leveldb/opt"
+	// dbopt "github.com/syndtr/goleveldb/leveldb/opt"
+	dbutil "github.com/syndtr/goleveldb/leveldb/util"
 )
 
 var (
@@ -80,22 +80,10 @@ func attachRpc(orig string, args []interface{}) interface{} {
 		log.Println("attached", prefix, orig)
 	}
 
-	to := prefix + "~" // TODO: see notes about "~" elsewhere
 	result := make(map[string]interface{})
-
-	iter := db.NewIterator(nil, nil) // TODO: use new slices
-	iter.Seek([]byte(prefix))
-	for iter.Valid() {
-		if string(iter.Key()) > to {
-			break
-		}
-		result[string(iter.Key())] = FromJson(iter.Value())
-		if !iter.Next() {
-			break
-		}
-	}
-	iter.Release()
-
+	IterateOverKeys(prefix, "", func(k string, v []byte) {
+		result[k] = FromJson(v)
+	})
 	return result
 }
 
@@ -140,35 +128,33 @@ func Put(key string, value interface{}) {
 func Keys(prefix string) (results []string) {
 	// TODO: decide whether this key logic is the most useful & least confusing
 	// TODO: should use skips and reverse iterators once the db gets larger!
-	from, to, skip := []byte(prefix), []byte(prefix+"~"), len(prefix)
-	// from, to, skip := []byte(prefix+"/"), []byte(prefix+"/~"), len(prefix)+1
-	prev := []byte("/") // impossible value, this never matches actual results
+	skip := len(prefix)
+	prev := "/" // impossible value, this never matches actual results
 
-	iter := db.NewIterator(nil, nil) // TODO: use new slices
-	defer iter.Release()
-
-	iter.Seek(from)
-	for iter.Valid() {
-		k := iter.Key()
-		// fmt.Printf(" -> %s = %s\n", k, iter.Value())
-		if bytes.Compare(k, to) > 0 {
-			break
-		}
-		i := bytes.IndexRune(k[skip:], '/') + skip
+	IterateOverKeys(prefix, "", func(k string, v []byte) {
+		i := strings.IndexRune(k[skip:], '/') + skip
 		if i < skip {
 			i = len(k)
 		}
-		// fmt.Printf(" DK %d %d %d %s %s\n", skip, len(prev), i, prev, k)
-		if !bytes.Equal(prev, k[skip:i]) {
+		if prev != k[skip:i] {
 			// need to make a copy of the key, since it's owned by iter
-			prev = make([]byte, i-skip)
-			copy(prev, k[skip:i])
-			// fmt.Printf("ADD %s\n", prev)
+			prev = k[skip:i]
 			results = append(results, string(prev))
 		}
-		if !iter.Next() {
-			break
-		}
-	}
+	})
 	return
+}
+
+func IterateOverKeys(from, to string, iterFun func(string, []byte)) {
+	slice := &dbutil.Range{[]byte(from), []byte(to)}
+	if len(to) == 0 {
+		slice.Limit = append(slice.Start, 0xFF)
+	}
+
+	iter := db.NewIterator(slice, nil)
+	defer iter.Release()
+
+	for iter.Next() {
+		iterFun(string(iter.Key()), iter.Value())
+	}
 }
