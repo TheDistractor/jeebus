@@ -2,8 +2,8 @@ package jeebus
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"time"
 
@@ -11,15 +11,9 @@ import (
 )
 
 func DefineToolCommands() {
-	noCustomSubCommands := app == nil || len(app.Commands) == 0
-
-	cmd := AddCommand("run", func(c *cli.Context) {
-		OpenDatabase()
-		StartMessaging()
-		RunHttpServer()
-	})
+	cmd := AddCommand("run", app.Action) // alias for default case
 	cmd.ShortName = "r"
-	cmd.Usage = "launch the web server with messaging and database"
+	cmd.Usage = "launch the web server with messaging and database (default)"
 
 	cmd = AddCommand("subscribe", SubscribeCmd)
 	cmd.ShortName = "s"
@@ -56,11 +50,6 @@ func DefineToolCommands() {
 	})
 	cmd.ShortName = "e"
 	cmd.Usage = "export the database as JSON (offline)"
-
-	if noCustomSubCommands {
-		// also run by default when no other commands have been defined
-		app.Action = app.Command("run").Action
-	}
 }
 
 func SubscribeCmd(c *cli.Context) {
@@ -101,7 +90,7 @@ func TickCmd(c *cli.Context) {
 			Publish(topic, tick.String())
 		}
 	}()
-	<- done
+	<-done
 }
 
 func DumpCmd(c *cli.Context) {
