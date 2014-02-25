@@ -83,7 +83,7 @@ func attachRpc(orig string, args []interface{}) interface{} {
 	to := prefix + "~" // TODO: see notes about "~" elsewhere
 	result := make(map[string]interface{})
 
-	iter := db.NewIterator(nil)
+	iter := db.NewIterator(nil, nil) // TODO: use new slices
 	iter.Seek([]byte(prefix))
 	for iter.Valid() {
 		if string(iter.Key()) > to {
@@ -144,7 +144,7 @@ func Keys(prefix string) (results []string) {
 	// from, to, skip := []byte(prefix+"/"), []byte(prefix+"/~"), len(prefix)+1
 	prev := []byte("/") // impossible value, this never matches actual results
 
-	iter := db.NewIterator(nil)
+	iter := db.NewIterator(nil, nil) // TODO: use new slices
 	defer iter.Release()
 
 	iter.Seek(from)

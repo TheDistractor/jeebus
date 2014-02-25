@@ -108,7 +108,7 @@ func DumpCmd(c *cli.Context) {
 
 	OpenDatabase()
 	// get and print all the key/value pairs from the database
-	iter := db.NewIterator(nil)
+	iter := db.NewIterator(nil, nil) // TODO: use new slices
 	iter.Seek([]byte(from))
 	for iter.Valid() {
 		if string(iter.Key()) > to {
@@ -135,7 +135,7 @@ func ImportJsonData(filename string) {
 		var ndel, nadd int
 
 		// get and print all the key/value pairs from the database
-		iter := db.NewIterator(nil)
+		iter := db.NewIterator(nil, nil) // TODO: use new slices
 		iter.Seek([]byte(prefix))
 		for iter.Valid() {
 			key := string(iter.Key())
@@ -166,7 +166,7 @@ func ExportJsonData(prefix string) {
 	entries := make(map[string]interface{})
 
 	// get and print all the key/value pairs from the database
-	iter := db.NewIterator(nil)
+	iter := db.NewIterator(nil, nil) // TODO: use new slices
 	iter.Seek([]byte(prefix))
 	for iter.Valid() {
 		key := iter.Key()[len(prefix):]
