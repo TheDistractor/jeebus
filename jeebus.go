@@ -21,13 +21,6 @@ func NewApp(name, version string) *cli.App {
 	app.Name = name
 	app.Version = version
 
-	// this runs by default when no other commands have been defined
-	app.Action = func(c *cli.Context) {
-		OpenDatabase()
-		StartMessaging()
-		RunHttpServer()
-	}
-
 	return app
 }
 

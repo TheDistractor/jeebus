@@ -11,10 +11,17 @@ import (
 )
 
 func DefineToolCommands() {
-	cmd := AddCommand("run", app.Action) // alias for default case
+	cmd := AddCommand("run", func(c *cli.Context) {
+		OpenDatabase()
+		StartMessaging()
+		RunHttpServer()
+	})
 	cmd.ShortName = "r"
 	cmd.Usage = "launch the web server with messaging and database (default)"
 
+	// also run by default when no command has been specified
+	app.Action = app.Command("run").Action
+	
 	cmd = AddCommand("subscribe", SubscribeCmd)
 	cmd.ShortName = "s"
 	cmd.Usage = "subscribe to messages"
