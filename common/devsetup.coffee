@@ -88,19 +88,9 @@ rl.question 'Directory name? ', (appDir) ->
     fs.writeFileSync "#{appDir}/main.go", """
       package main
 
-      import (
-          "log"
-          "#{JEEBUS_ROOT}"
-      )
-
-      const Version = "0.0.1"
-      
-      func init() {
-          log.SetFlags(log.Ltime) // only display HH:MM:SS time in log entries
-      }
+      import "#{JEEBUS_ROOT}"
 
       func main() {
-          println("\\n#{title}", Version, "/ JeeBus", jeebus.Version)
           jeebus.Run()
       }\n
     """
@@ -116,7 +106,7 @@ rl.question 'Directory name? ', (appDir) ->
     console.log """
 
       #{title} has been created. To start it up, enter this command:
-          cd #{appDir} && node .
+          cd #{appDir} && npm update && node .
       Then open the web page at http://localhost:3000/ - that's it!
 
     """
