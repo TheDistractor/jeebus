@@ -2,6 +2,8 @@
 package jeebus
 
 import (
+	_ "github.com/jcw/flow/workers"
+
 	_ "github.com/jcw/jeebus/gadgets/database"
 	_ "github.com/jcw/jeebus/gadgets/decoders"
 	_ "github.com/jcw/jeebus/gadgets/javascript"

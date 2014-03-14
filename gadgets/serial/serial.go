@@ -1,4 +1,6 @@
-// Interface to serial port devices.
+// +build linux darwin
+
+// Interface to serial port devices (only Linux and Mac OSX).
 package serial
 
 import (
