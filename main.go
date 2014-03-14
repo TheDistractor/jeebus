@@ -18,7 +18,7 @@ import (
 var (
 	verbose    = flag.Bool("V", false, "show version and registry contents")
 	wait       = flag.Bool("w", false, "wait forever, don't exit main")
-	configFile = flag.String("c", "config.json", "use configuration file")
+	configFile = flag.String("c", "warmup.json", "use configuration file")
 	appMain    = flag.String("r", "main", "which registered group to run")
 )
 
@@ -43,7 +43,8 @@ func main() {
 		printRegistry()
 		println("\nDocumentation at http://godoc.org/github.com/jcw/jeebus")
 	} else {
-		glog.Infof("JeeBus %s, registry size %d", jeebus.Version, len(flow.Registry))
+		glog.Infof("JeeBus %s - starting, registry size %d",
+			jeebus.Version, len(flow.Registry))
 		if factory, ok := flow.Registry[*appMain]; ok {
 			factory().Run()
 			if *wait {
@@ -52,7 +53,7 @@ func main() {
 		} else {
 			glog.Fatalln(*appMain, "not found in:", *configFile)
 		}
-		glog.Infof("JeeBus %s, normal exit", jeebus.Version)
+		glog.Infof("JeeBus %s -, normal exit", jeebus.Version)
 	}
 }
 
