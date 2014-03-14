@@ -11,15 +11,8 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/jcw/flow/flow"
-
-	_ "github.com/jcw/flow/fbpparse"
 	_ "github.com/jcw/flow/workers"
-	_ "github.com/jcw/jeebus/gadgets/decoders"
-	_ "github.com/jcw/jeebus/gadgets/rfdata"
-	_ "github.com/jcw/jeebus/gadgets/database"
-	_ "github.com/jcw/jeebus/gadgets/javascript"
-	_ "github.com/jcw/jeebus/gadgets/network"
-	_ "github.com/jcw/jeebus/gadgets/serial"
+	"github.com/jcw/jeebus/gadgets"
 )
 
 var (
@@ -46,11 +39,11 @@ func main() {
 	}
 
 	if *verbose {
-		println("Flow " + flow.Version + "\n")
+		println("JeeBus", jeebus.Version, "+ Flow", flow.Version, "\n")
 		printRegistry()
-		println("\nDocumentation at http://godoc.org/github.com/jcw/flow")
+		println("\nDocumentation at http://godoc.org/github.com/jcw/jeebus")
 	} else {
-		glog.Infof("Flow %s, registry size %d", flow.Version, len(flow.Registry))
+		glog.Infof("JeeBus %s, registry size %d", jeebus.Version, len(flow.Registry))
 		if factory, ok := flow.Registry[*appMain]; ok {
 			factory().Run()
 			if *wait {
@@ -59,7 +52,7 @@ func main() {
 		} else {
 			glog.Fatalln(*appMain, "not found in:", *configFile)
 		}
-		glog.Infof("Flow %s, normal exit", flow.Version)
+		glog.Infof("JeeBus %s, normal exit", jeebus.Version)
 	}
 }
 
