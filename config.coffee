@@ -46,8 +46,8 @@ groups.main =
     { data: "RFg5i24 roomNode zolderkamer",  to: "nm.Info" }
     
     { data: "[RF12demo.10] _ i31* g5 @ 868 MHz", to: "rf.In" }
-    { data: "../gadgets/rfdata/20121130.txt.gz", to: "lr.Name" }
-    { data: "../logger", to: "lg.Dir" }
+    { data: "./gadgets/rfdata/20121130.txt.gz", to: "lr.Name" }
+    { data: "./logger", to: "lg.Dir" }
   ]
 
 # serial port test
@@ -83,9 +83,9 @@ groups.jeebus =
     { name: "http", type: "HTTPServer" }
   ]
   requests: [
-    { tag: "/", data: "../app",  to: "http.Handlers" }
-    { tag: "/base/", data: "../base",  to: "http.Handlers" }
-    { tag: "/common/", data: "../common",  to: "http.Handlers" }
+    { tag: "/", data: "./app",  to: "http.Handlers" }
+    { tag: "/base/", data: "./base",  to: "http.Handlers" }
+    { tag: "/common/", data: "./common",  to: "http.Handlers" }
     { tag: "/ws", data: "<websocket>",  to: "http.Handlers" }
     { data: ":3000",  to: "http.Start" }
   ]

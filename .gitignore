@@ -1,5 +1,5 @@
 /db
-/example/gin-bin
-/example/node_modules
 /files
+/gin-bin
 /logger
+/node_modules

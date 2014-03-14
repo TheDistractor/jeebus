@@ -158,11 +158,11 @@
                 "to": "rf.In"
             },
             {
-                "data": "../gadgets/rfdata/20121130.txt.gz",
+                "data": "./gadgets/rfdata/20121130.txt.gz",
                 "to": "lr.Name"
             },
             {
-                "data": "../logger",
+                "data": "./logger",
                 "to": "lg.Dir"
             }
         ]
@@ -253,17 +253,17 @@
         "requests": [
             {
                 "tag": "/",
-                "data": "../app",
+                "data": "./app",
                 "to": "http.Handlers"
             },
             {
                 "tag": "/base/",
-                "data": "../base",
+                "data": "./base",
                 "to": "http.Handlers"
             },
             {
                 "tag": "/common/",
-                "data": "../common",
+                "data": "./common",
                 "to": "http.Handlers"
             },
             {
