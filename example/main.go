@@ -1,23 +1,92 @@
+// This application exercises the "flow" package via a JSON config file.
+// Use the "-v" flag for a list of built-in (i.e. pre-registered) workers.
 package main
 
 import (
-	"os"
+	"encoding/json"
+	"flag"
+	"io/ioutil"
+	"sort"
+	"time"
 
-	"github.com/codegangsta/cli"
-	"github.com/jcw/jeebus"
+	"github.com/golang/glog"
+	"github.com/jcw/flow/flow"
+
+	_ "github.com/jcw/flow/fbpparse"
+	_ "github.com/jcw/flow/workers"
+	_ "github.com/jcw/jeebus/gadgets/decoders"
+	_ "github.com/jcw/jeebus/gadgets/rfdata"
+	_ "github.com/jcw/jeebus/gadgets/database"
+	_ "github.com/jcw/jeebus/gadgets/javascript"
+	_ "github.com/jcw/jeebus/gadgets/network"
+	_ "github.com/jcw/jeebus/gadgets/serial"
+)
+
+var (
+	verbose    = flag.Bool("V", false, "show version and registry contents")
+	wait       = flag.Bool("w", false, "wait forever, don't exit main")
+	configFile = flag.String("c", "config.json", "use configuration file")
+	appMain    = flag.String("r", "main", "which registered group to run")
 )
 
 func main() {
-	// TODO: this message is needed for testing, which picks up the pid from it
-	println("JeeBus example", jeebus.Version, "pid", os.Getpid())
+	defer flow.DontPanic() // generate concise panic messages
+	defer glog.Flush()     // flush logs before exiting
+	flag.Parse()           // required
 
-	app := jeebus.NewApp("example", jeebus.Version)
-	app.Usage = "a minimal application based on JeeBus"
+	data, err := ioutil.ReadFile(*configFile)
+	flow.Check(err)
 
-	cmd := jeebus.AddCommand("foo", func(c *cli.Context) {
-		println("bar")
-	})
-	cmd.Usage = "dummy command"
+	var definitions map[string]json.RawMessage
+	err = json.Unmarshal(data, &definitions)
+	flow.Check(err)
 
-	jeebus.Run()
+	for name, def := range definitions {
+		registerGroup(name, def)
+	}
+
+	if *verbose {
+		println("Flow " + flow.Version + "\n")
+		printRegistry()
+		println("\nDocumentation at http://godoc.org/github.com/jcw/flow")
+	} else {
+		glog.Infof("Flow %s, registry size %d", flow.Version, len(flow.Registry))
+		if factory, ok := flow.Registry[*appMain]; ok {
+			factory().Run()
+			if *wait {
+				time.Sleep(1e6 * time.Hour)
+			}
+		} else {
+			glog.Fatalln(*appMain, "not found in:", *configFile)
+		}
+		glog.Infof("Flow %s, normal exit", flow.Version)
+	}
+}
+
+func registerGroup(name string, def []byte) {
+	flow.Registry[name] = func() flow.Worker {
+		g := flow.NewGroup()
+		err := g.LoadJSON(def)
+		flow.Check(err)
+		return g
+	}
+}
+
+func printRegistry() {
+	keys := []string{}
+	for k := range flow.Registry {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	s := " "
+	for _, k := range keys {
+		if len(s)+len(k) > 78 {
+			println(s)
+			s = " "
+		}
+		s += " " + k
+	}
+	if len(s) > 1 {
+		println(s)
+	}
 }

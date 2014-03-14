@@ -1,67 +1,19 @@
 package main
 
-import (
-	"bufio"
-	"fmt"
-	"os/exec"
-	"strconv"
-	"strings"
-	"syscall"
-	"testing"
-	"time"
+import "github.com/jcw/flow/flow"
 
-	"github.com/jcw/jeebus"
-)
-
-func ExampleMain() {
-	fmt.Println("version", jeebus.Version)
+func Example() {
+	g := flow.NewGroup()
+	g.Add("clock", "Clock")
+	g.Add("counter", "Counter") // will return 0 when not hooked up
+	g.Add("pipe", "Pipe")
+	g.Add("printer", "Printer")
+	g.Add("repeater", "Repeater")
+	g.Add("serial", "SerialPort")
+	g.Add("sink", "Sink")
+	g.Add("timer", "Timer")
+	g.Add("timestamp", "TimeStamp")
+	g.Run()
 	// Output:
-	// version 0.3.0
-}
-
-// Compile and run main, and wait for it to report starting its HTTP server.
-func TestRunMain(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode.")
-	}
-
-	cmd := exec.Command("go")
-	cmd.Args = append(cmd.Args, "run", "main.go", "r")
-
-	sout, err := cmd.StderrPipe()
-	jeebus.Check(err)
-	scanner := bufio.NewScanner(sout)
-
-	err = cmd.Start()
-	jeebus.Check(err)
-	defer cmd.Wait()
-
-	done := make(chan int)
-
-	go func() {
-		var pid int
-		for scanner.Scan() {
-			t := scanner.Text()
-			if n := strings.Index(t, " pid "); n > 0 {
-				pid, _ = strconv.Atoi(t[n+5:])
-			}
-			const startMsg = "starting HTTP server on http://localhost:3000"
-			if pid > 0 && strings.Contains(t, startMsg) {
-				done <- pid
-			}
-		}
-	}()
-
-	select {
-	case <-time.After(15 * time.Second):
-		// timeout must allow for the compile time as well!
-		t.Errorf("HTTP server did not start")
-		cmd.Process.Kill() // FIXME: this kills go, not the main process!
-	case pid := <-done:
-		syscall.Kill(pid, syscall.SIGINT)
-	}
-}
-
-func TestCallMain(t *testing.T) {
-	go main() // it's a bit silly, but this increases test coverage to 100% ...
+	// Lost int: 0
 }
