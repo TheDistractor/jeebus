@@ -1,7 +1,7 @@
 circuits = {}
 
-# default app runs a replay simulation with dynamic decoders
-circuits.main =
+# this app runs a replay simulation with dynamic decoders
+circuits.replay =
   gadgets: [
     { name: "lr", type: "LogReader" }
     { name: "rf", type: "Pipe" } # used to inject an "[RF12demo...]" line
@@ -77,17 +77,18 @@ circuits.serial =
     { data: "/dev/tty.usbserial-A901ROSM", to: "sp.Port" }
   ]
 
-  # simple jeebus setup, with dummy websocket support
-circuits.jeebus =
+# simple jeebus setup, with dummy websocket support
+circuits.main =
   gadgets: [
     { name: "http", type: "HTTPServer" }
+		{ name: "forever", type: "Forever" }
   ]
   feeds: [
     { tag: "/", data: "./app",  to: "http.Handlers" }
     { tag: "/base/", data: "./base",  to: "http.Handlers" }
     { tag: "/common/", data: "./common",  to: "http.Handlers" }
     { tag: "/ws", data: "<websocket>",  to: "http.Handlers" }
-    { data: ":3000",  to: "http.Start" }
+    { data: ":3001",  to: "http.Start" }
   ]
 
 # define the websocket handler as just a pipe back to the browser for now

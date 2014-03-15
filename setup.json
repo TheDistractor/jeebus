@@ -1,5 +1,5 @@
 {
-    "main": {
+    "replay": {
         "gadgets": [
             {
                 "name": "lr",
@@ -243,11 +243,15 @@
             }
         ]
     },
-    "jeebus": {
+    "main": {
         "gadgets": [
             {
                 "name": "http",
                 "type": "HTTPServer"
+            },
+            {
+                "name": "forever",
+                "type": "Forever"
             }
         ],
         "feeds": [
@@ -272,7 +276,7 @@
                 "to": "http.Handlers"
             },
             {
-                "data": ":3000",
+                "data": ":3001",
                 "to": "http.Start"
             }
         ]
