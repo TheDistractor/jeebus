@@ -7,18 +7,18 @@ import (
 
 func ExampleMQTTSub() {
 	// The following example never ends.
-	g := flow.NewGroup()
+	g := flow.NewCircuit()
 	g.Add("s", "MQTTSub")
-	g.Set("s.Port", ":1883")
-	g.Set("s.Topic", "#")
+	g.Feed("s.Port", ":1883")
+	g.Feed("s.Topic", "#")
 	g.Run()
 }
 
 func ExampleMQTTPub() {
 	// The following example never ends.
-	g := flow.NewGroup()
+	g := flow.NewCircuit()
 	g.Add("p", "MQTTPub")
-	g.Set("p.Port", ":1883")
-	g.Set("p.In", []string{"Hello", "world"})
+	g.Feed("p.Port", ":1883")
+	g.Feed("p.In", []string{"Hello", "world"})
 	g.Run()
 }

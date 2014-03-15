@@ -8,12 +8,12 @@ import (
 )
 
 func init() {
-	flow.Registry["Node-smaRelay"] = func() flow.Worker { return &SmaRelay{} }
+	flow.Registry["Node-smaRelay"] = func() flow.Circuitry { return &SmaRelay{} }
 }
 
 // Decoder for the "smaRelay.ino" sketch. Registers as "Node-smaRelay".
 type SmaRelay struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }

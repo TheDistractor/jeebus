@@ -11,16 +11,16 @@ import (
 )
 
 func init() {
-	flow.Registry["ReadTextFile"] = func() flow.Worker { return &ReadTextFile{} }
-	flow.Registry["IntelHexToBin"] = func() flow.Worker { return &IntelHexToBin{} }
-	flow.Registry["BinaryFill"] = func() flow.Worker { return &BinaryFill{} }
-	flow.Registry["CalcCrc16"] = func() flow.Worker { return &CalcCrc16{} }
+	flow.Registry["ReadTextFile"] = func() flow.Circuitry { return &ReadTextFile{} }
+	flow.Registry["IntelHexToBin"] = func() flow.Circuitry { return &IntelHexToBin{} }
+	flow.Registry["BinaryFill"] = func() flow.Circuitry { return &BinaryFill{} }
+	flow.Registry["CalcCrc16"] = func() flow.Circuitry { return &CalcCrc16{} }
 }
 
 // ReadTextFile takes strings and replaces them by the lines of that file.
 // Inserts <open> and <close> tags before doing so. Registers as "ReadTextFile".
 type ReadTextFile struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }
@@ -46,7 +46,7 @@ func (w *ReadTextFile) Run() {
 // IntelHexToBin takes lines of text and converts them to a large []byte value.
 // Inserts an <addr> tag before the data. Registers as "IntelHexToBin".
 type IntelHexToBin struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }
@@ -82,7 +82,7 @@ func (w *IntelHexToBin) Run() {
 // Take binary data and make sure it is filled to a specified multiple.
 // Registers as "BinaryFill".
 type BinaryFill struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Len flow.Input
 	Out flow.Output
@@ -106,7 +106,7 @@ func (w *BinaryFill) Run() {
 // CalcCrc16 takes []byte values and adds its CRC-16 as <crc16> tag after it.
 // Registers as "CalcCrc16".
 type CalcCrc16 struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }

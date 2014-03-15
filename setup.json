@@ -1,6 +1,6 @@
 {
     "main": {
-        "workers": [
+        "gadgets": [
             {
                 "name": "lr",
                 "type": "LogReader"
@@ -46,7 +46,7 @@
                 "type": "Printer"
             }
         ],
-        "connections": [
+        "wires": [
             {
                 "from": "lr.Out",
                 "to": "w1.In"
@@ -88,7 +88,7 @@
                 "to": "p.In"
             }
         ],
-        "requests": [
+        "feeds": [
             {
                 "data": "RFg5i2 roomNode boekenkast JC",
                 "to": "nm.Info"
@@ -168,7 +168,7 @@
         ]
     },
     "serial": {
-        "workers": [
+        "gadgets": [
             {
                 "name": "sp",
                 "type": "SerialPort"
@@ -190,7 +190,7 @@
                 "type": "Dispatcher"
             }
         ],
-        "connections": [
+        "wires": [
             {
                 "from": "sp.From",
                 "to": "st.In"
@@ -208,7 +208,7 @@
                 "to": "d2.In"
             }
         ],
-        "requests": [
+        "feeds": [
             {
                 "data": "RFg5i3 radioBlip",
                 "to": "nm.Info"
@@ -244,13 +244,13 @@
         ]
     },
     "jeebus": {
-        "workers": [
+        "gadgets": [
             {
                 "name": "http",
                 "type": "HTTPServer"
             }
         ],
-        "requests": [
+        "feeds": [
             {
                 "tag": "/",
                 "data": "./app",
@@ -278,13 +278,13 @@
         ]
     },
     "WebSocket-jeebus": {
-        "workers": [
+        "gadgets": [
             {
                 "name": "p",
                 "type": "Pipe"
             }
         ],
-        "mappings": [
+        "labels": [
             {
                 "external": "In",
                 "internal": "p.In"
@@ -296,7 +296,7 @@
         ]
     },
     "jeeboot": {
-        "workers": [
+        "gadgets": [
             {
                 "name": "sp",
                 "type": "SerialPort"
@@ -314,7 +314,7 @@
                 "type": "JeeBoot"
             }
         ],
-        "connections": [
+        "wires": [
             {
                 "from": "sp.From",
                 "to": "rf.In"
@@ -336,7 +336,7 @@
                 "to": "sp.To"
             }
         ],
-        "requests": [
+        "feeds": [
             {
                 "data": "/dev/tty.usbserial-A901ROSM",
                 "to": "sp.Port"

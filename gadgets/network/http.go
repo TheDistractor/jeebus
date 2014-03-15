@@ -12,12 +12,12 @@ import (
 )
 
 func init() {
-	flow.Registry["HTTPServer"] = func() flow.Worker { return &HTTPServer{} }
+	flow.Registry["HTTPServer"] = func() flow.Circuitry { return &HTTPServer{} }
 }
 
-// HTTPServer is a worker which sets up an HTTP server.
+// HTTPServer is a .Feed( which sets up an HTTP server.
 type HTTPServer struct {
-	flow.Work
+	flow.Gadget
 	Handlers flow.Input
 	Start    flow.Input
 	Out      flow.Output
@@ -38,7 +38,7 @@ func (w *HTTPServer) Run() {
 	mux := http.NewServeMux() // don't use default to allow multiple instances
 	for m := range w.Handlers {
 		tag := m.(flow.Tag)
-		switch v := tag.Val.(type) {
+		switch v := tag.Msg.(type) {
 		case string:
 			h := createHandler(tag.Tag, v)
 			mux.Handle(tag.Tag, &flowHandler{h, w})
@@ -59,7 +59,7 @@ func (w *HTTPServer) Run() {
 }
 
 func createHandler(tag, s string) http.Handler {
-	// TODO: hook worker in as HTTP handler
+	// TODO: hook .Feed( in as HTTP handler
 	// if _, ok := flow.Registry[s]; ok {
 	// 	return http.Handler(reqHandler)
 	// }
@@ -85,17 +85,17 @@ func wsHandler(ws *websocket.Conn) {
 		tag = "default"
 	}
 
-	g := flow.NewGroup()
-	g.AddWorker("head", &wsHead{ws: ws})
+	g := flow.NewCircuit()
+	g.AddCircuitry("head", &wsHead{ws: ws})
 	g.Add("ws", "WebSocket-"+tag)
-	g.AddWorker("tail", &wsTail{ws: ws})
+	g.AddCircuitry("tail", &wsTail{ws: ws})
 	g.Connect("head.Out", "ws.In", 0)
 	g.Connect("ws.Out", "tail.In", 0)
 	g.Run()
 }
 
 type wsHead struct {
-	flow.Work
+	flow.Gadget
 	Out flow.Output
 
 	ws *websocket.Conn
@@ -114,7 +114,7 @@ func (w *wsHead) Run() {
 }
 
 type wsTail struct {
-	flow.Work
+	flow.Gadget
 	In flow.Input
 
 	ws *websocket.Conn

@@ -12,14 +12,14 @@ import (
 )
 
 func init() {
-	flow.Registry["Sketch-RF12demo"] = func() flow.Worker { return &RF12demo{} }
-	flow.Registry["NodeMap"] = func() flow.Worker { return &NodeMap{} }
+	flow.Registry["Sketch-RF12demo"] = func() flow.Circuitry { return &RF12demo{} }
+	flow.Registry["NodeMap"] = func() flow.Circuitry { return &NodeMap{} }
 }
 
 // RF12demo parses config and OK lines coming from the RF12demo sketch.
 // Registers as "Sketch-RF12demo".
 type RF12demo struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input  // serial input, as tex lines
 	Out flow.Output // <node> map, followed by []byte packet
 	Oob flow.Output // the same, for out-of-band packets
@@ -89,7 +89,7 @@ func convertToBytes(s string) ([]byte, int) {
 // Lookup the group/node information to determine what decoder to use.
 // Registers as "NodeMap".
 type NodeMap struct {
-	flow.Work
+	flow.Gadget
 	Info flow.Input
 	In   flow.Input
 	Out  flow.Output

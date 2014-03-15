@@ -9,13 +9,13 @@ import (
 )
 
 func init() {
-	flow.Registry["Logger"] = func() flow.Worker { return &Logger{} }
+	flow.Registry["Logger"] = func() flow.Circuitry { return &Logger{} }
 }
 
 // Logger picks up time stamps and generates log lines from text input.
 // It then saves these lines in daily logfiles. Registers as "Logger".
 type Logger struct {
-	flow.Work
+	flow.Gadget
 	Dir flow.Input
 	In  flow.Input
 

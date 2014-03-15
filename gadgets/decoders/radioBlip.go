@@ -8,12 +8,12 @@ import (
 )
 
 func init() {
-	flow.Registry["Node-radioBlip"] = func() flow.Worker { return &RadioBlip{} }
+	flow.Registry["Node-radioBlip"] = func() flow.Circuitry { return &RadioBlip{} }
 }
 
 // Decoder for the "radioBlip.ino" sketch. Registers as "Node-radioBlip".
 type RadioBlip struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }

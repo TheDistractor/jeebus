@@ -5,12 +5,12 @@ import (
 )
 
 func init() {
-	flow.Registry["Node-p1scanner"] = func() flow.Worker { return &P1scanner{} }
+	flow.Registry["Node-p1scanner"] = func() flow.Circuitry { return &P1scanner{} }
 }
 
 // Decoder for the "p1scanner.ino" sketch. Registers as "Node-p1scanner".
 type P1scanner struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }

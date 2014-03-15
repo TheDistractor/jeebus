@@ -1,8 +1,8 @@
-groups = {}
+circuits = {}
 
 # default app runs a replay simulation with dynamic decoders
-groups.main =
-  workers: [
+circuits.main =
+  gadgets: [
     { name: "lr", type: "LogReader" }
     { name: "rf", type: "Pipe" } # used to inject an "[RF12demo...]" line
     { name: "w1", type: "LogReplayer" }
@@ -15,7 +15,7 @@ groups.main =
     { name: "d2", type: "Dispatcher" }
     { name: "p", type: "Printer" }
   ]
-  connections: [
+  wires: [
     { from: "lr.Out", to: "w1.In" }
     { from: "rf.Out", to: "ts.In" }
     { from: "w1.Out", to: "ts.In" }
@@ -27,7 +27,7 @@ groups.main =
     { from: "nm.Out", to: "d2.In" }
     { from: "d2.Out", to: "p.In" }
   ]
-  requests: [
+  feeds: [
     { data: "RFg5i2 roomNode boekenkast JC",   to: "nm.Info" }
     { data: "RFg5i3 radioBlip",  to: "nm.Info" }
     { data: "RFg5i4 roomNode washok",   to: "nm.Info" }
@@ -51,21 +51,21 @@ groups.main =
   ]
 
 # serial port test
-groups.serial =
-  workers: [
+circuits.serial =
+  gadgets: [
     { name: "sp", type: "SerialPort" }
     { name: "st", type: "SketchType" }
     { name: "d1", type: "Dispatcher" }
     { name: "nm", type: "NodeMap" }
     { name: "d2", type: "Dispatcher" }
   ]
-  connections: [
+  wires: [
     { from: "sp.From", to: "st.In" }
     { from: "st.Out", to: "d1.In" }
     { from: "d1.Out", to: "nm.In" }
     { from: "nm.Out", to: "d2.In" }
   ]
-  requests: [
+  feeds: [
     { data: "RFg5i3 radioBlip",  to: "nm.Info" }
     { data: "RFg5i9 homePower",  to: "nm.Info" }
     { data: "RFg5i13 roomNode",  to: "nm.Info" }
@@ -78,11 +78,11 @@ groups.serial =
   ]
 
   # simple jeebus setup, with dummy websocket support
-groups.jeebus =
-  workers: [
+circuits.jeebus =
+  gadgets: [
     { name: "http", type: "HTTPServer" }
   ]
-  requests: [
+  feeds: [
     { tag: "/", data: "./app",  to: "http.Handlers" }
     { tag: "/base/", data: "./base",  to: "http.Handlers" }
     { tag: "/common/", data: "./common",  to: "http.Handlers" }
@@ -91,32 +91,32 @@ groups.jeebus =
   ]
 
 # define the websocket handler as just a pipe back to the browser for now
-groups["WebSocket-jeebus"] =
-  workers: [
+circuits["WebSocket-jeebus"] =
+  gadgets: [
     { name: "p", type: "Pipe" }
   ]
-  mappings: [
+  labels: [
     { external: "In", internal: "p.In" }
     { external: "Out", internal: "p.Out" }
   ]
 
 # jeeboot server test
-groups.jeeboot =
-  workers: [
+circuits.jeeboot =
+  gadgets: [
     { name: "sp", type: "SerialPort" }
     { name: "rf", type: "Sketch-RF12demo" }
     { name: "sk", type: "Sink" }
     { name: "jb", type: "JeeBoot" }
   ]
-  connections: [
+  wires: [
     { from: "sp.From", to: "rf.In" }
     { from: "rf.Out", to: "sk.In" }
     { from: "rf.Rej", to: "sk.In" }
     { from: "rf.Oob", to: "jb.In" }
     { from: "jb.Out", to: "sp.To" }
   ]
-  requests: [
+  feeds: [
     { data: "/dev/tty.usbserial-A901ROSM", to: "sp.Port" }
   ]
 
-console.log JSON.stringify groups, null, 4
+console.log JSON.stringify circuits, null, 4

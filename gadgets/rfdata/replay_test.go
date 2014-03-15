@@ -8,7 +8,7 @@ import (
 
 type MockOutput int
 
-func (c *MockOutput) Send(m flow.Memo) {
+func (c *MockOutput) Send(m flow.Message) {
 	if *c < 7 {
 		fmt.Printf("%T: %v\n", m, m)
 		(*c)++
@@ -19,7 +19,7 @@ func (c *MockOutput) Close() {}
 
 func ExampleLogReader() {
 	lr := new(LogReader)
-	name := make(chan flow.Memo, 1)
+	name := make(chan flow.Message, 1)
 	lr.Name, lr.Out = name, new(MockOutput)
 	name <- "./20121130.txt.gz"
 	lr.Run()

@@ -10,14 +10,14 @@ import (
 )
 
 func init() {
-	flow.Registry["MQTTSub"] = func() flow.Worker { return &MQTTSub{} }
-	flow.Registry["MQTTPub"] = func() flow.Worker { return &MQTTPub{} }
-	flow.Registry["MQTTServer"] = func() flow.Worker { return &MQTTServer{} }
+	flow.Registry["MQTTSub"] = func() flow.Circuitry { return &MQTTSub{} }
+	flow.Registry["MQTTPub"] = func() flow.Circuitry { return &MQTTPub{} }
+	flow.Registry["MQTTServer"] = func() flow.Circuitry { return &MQTTServer{} }
 }
 
 // MQTTSub can subscribe to MQTT. Registers as "MQTTSub".
 type MQTTSub struct {
-	flow.Work
+	flow.Gadget
 	Port  flow.Input
 	Topic flow.Input
 	Out   flow.Output
@@ -47,7 +47,7 @@ func (w *MQTTSub) Run() {
 
 // MQTTPub can publish to MQTT. Registers as "MQTTPub".
 type MQTTPub struct {
-	flow.Work
+	flow.Gadget
 	Port flow.Input
 	In   flow.Input
 }
@@ -74,7 +74,7 @@ func (w *MQTTPub) Run() {
 
 // MQTTServer is an embedded MQTT server. Registers as "MQTTServer".
 type MQTTServer struct {
-	flow.Work
+	flow.Gadget
 	Port flow.Input
 }
 

@@ -12,12 +12,12 @@ import (
 )
 
 func init() {
-	flow.Registry["JeeBoot"] = func() flow.Worker { return &JeeBoot{} }
+	flow.Registry["JeeBoot"] = func() flow.Circuitry { return &JeeBoot{} }
 }
 
 // This takes JeeBoot requests and returns the desired information as reply.
 type JeeBoot struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 
@@ -49,7 +49,7 @@ func convertReplyToCmd(reply interface{}) string {
 	return cmd[1:len(cmd)-1] + ",0s"
 }
 
-type hwIDStruct struct{ Board, Group, Node, SwID float64 }
+type hwIDStruct struct{ Board, Circuit, Node, SwID float64 }
 type swIDStruct struct{ File string }
 
 type config struct {
@@ -61,7 +61,7 @@ func (c *config) LookupHwID(hwID []byte) (board, group, node uint8) {
 	key := hex.EncodeToString(hwID)
 	if info, ok := c.HwID[key]; ok {
 		board = uint8(info.Board)
-		group = uint8(info.Group)
+		group = uint8(info.Circuit)
 		node = uint8(info.Node)
 	}
 	return
@@ -69,7 +69,7 @@ func (c *config) LookupHwID(hwID []byte) (board, group, node uint8) {
 
 func (c *config) LookupSwID(group, node uint8) uint16 {
 	for _, h := range c.HwID {
-		if group == uint8(h.Group) && node == uint8(h.Node) {
+		if group == uint8(h.Circuit) && node == uint8(h.Node) {
 			return uint16(h.SwID)
 		}
 	}
@@ -134,7 +134,7 @@ type firmware struct {
 type pairingRequest struct {
 	Variant uint8     // variant of remote node, 1..250 freely available
 	Board   uint8     // type of remote node, 100..250 freely available
-	Group   uint8     // current network group, 1..250 or 0 if unpaired
+	Circuit uint8     // current network group, 1..250 or 0 if unpaired
 	NodeID  uint8     // current node ID, 1..30 or 0 if unpaired
 	Check   uint16    // crc checksum over the current shared key
 	HwID    [16]uint8 // unique hardware ID or 0's if not available
@@ -149,7 +149,7 @@ type pairingAssign struct {
 type pairingReply struct {
 	Variant uint8     // variant of remote node, 1..250 freely available
 	Board   uint8     // type of remote node, 100..250 freely available
-	Group   uint8     // assigned network group, 1..250
+	Circuit uint8     // assigned network group, 1..250
 	NodeID  uint8     // assigned node ID, 1..30
 	ShKey   [16]uint8 // shared key or 0's if not used
 }
@@ -192,7 +192,7 @@ func (w *JeeBoot) respondToRequest(req []byte) interface{} {
 		board, group, node := w.cfg.LookupHwID(preq.HwID[:])
 		if board == preq.Board && group != 0 && node != 0 {
 			fmt.Printf("pair %x board %d hdr %08b\n", preq.HwID, board, hdr)
-			reply := pairingReply{Board: board, Group: group, NodeID: node}
+			reply := pairingReply{Board: board, Circuit: group, NodeID: node}
 			return reply
 		}
 		fmt.Printf("pair %x board %d - no entry\n", preq.HwID, board)

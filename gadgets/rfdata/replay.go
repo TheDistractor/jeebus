@@ -14,14 +14,14 @@ import (
 )
 
 func init() {
-	flow.Registry["LogReader"] = func() flow.Worker { return &LogReader{} }
-	flow.Registry["LogReplayer"] = func() flow.Worker { return &LogReplayer{} }
+	flow.Registry["LogReader"] = func() flow.Circuitry { return &LogReader{} }
+	flow.Registry["LogReplayer"] = func() flow.Circuitry { return &LogReplayer{} }
 }
 
 // LogReader opens a (possibly compressed) log file and sends out its entries.
 // Registers as "LogReader".
 type LogReader struct {
-	flow.Work
+	flow.Gadget
 	In   flow.Input
 	Name flow.Input
 	Out  flow.Output
@@ -66,7 +66,7 @@ func (w *LogReader) Run() {
 // A LogReplayer generates new entries from existing ones in simulated time.
 // Registers as "LogReplayer".
 type LogReplayer struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }

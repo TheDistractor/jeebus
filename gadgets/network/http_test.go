@@ -10,10 +10,10 @@ import (
 )
 
 func ExampleHTTPServer() {
-	g := flow.NewGroup()
+	g := flow.NewCircuit()
 	g.Add("s", "HTTPServer")
-	g.Set("s.Handlers", flow.Tag{"/blah/", "."})
-	g.Set("s.Start", ":12345")
+	g.Feed("s.Handlers", flow.Tag{"/blah/", "."})
+	g.Feed("s.Start", ":12345")
 	g.Run()
 	res, _ := http.Get("http://:12345/blah/http.go")
 	body, _ := ioutil.ReadAll(res.Body)

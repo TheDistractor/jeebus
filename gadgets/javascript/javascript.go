@@ -8,12 +8,12 @@ import (
 )
 
 func init() {
-	flow.Registry["JavaScript"] = func() flow.Worker { return &JavaScript{} }
+	flow.Registry["JavaScript"] = func() flow.Circuitry { return &JavaScript{} }
 }
 
 // JavaScript engine, using the github.com/robertkrimen/otto package.
 type JavaScript struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Cmd flow.Input
 	Out flow.Output
@@ -25,7 +25,7 @@ func (w *JavaScript) Run() {
 		// initial setup
 		engine := otto.New()
 
-		// define a callback for send memos to Out
+		// define a callback for sending messages to Out
 		engine.Set("emitOut", func(call otto.FunctionCall) otto.Value {
 			out, err := call.Argument(0).Export()
 			flow.Check(err)

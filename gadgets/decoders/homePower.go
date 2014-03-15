@@ -8,12 +8,12 @@ import (
 )
 
 func init() {
-	flow.Registry["Node-homePower"] = func() flow.Worker { return &HomePower{} }
+	flow.Registry["Node-homePower"] = func() flow.Circuitry { return &HomePower{} }
 }
 
 // Decoder for the "homePower.ino" sketch. Registers as "Node-homePower".
 type HomePower struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }

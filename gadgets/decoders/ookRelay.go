@@ -5,14 +5,14 @@ import (
 )
 
 func init() {
-	flow.Registry["Node-ookRelay"] = func() flow.Worker {
-		g := flow.NewGroup()
-		g.AddWorker("or", &OokRelay{})
+	flow.Registry["Node-ookRelay"] = func() flow.Circuitry {
+		g := flow.NewCircuit()
+		g.AddCircuitry("or", &OokRelay{})
 		g.Add("dp", "Dispatcher")
 		g.Connect("or.Out", "dp.In", 0)
-		g.Map("In", "or.In")
-		g.Map("Out", "dp.Out")
-		g.Map("Rej", "dp.Rej")
+		g.Label("In", "or.In")
+		g.Label("Out", "dp.Out")
+		g.Label("Rej", "dp.Rej")
 		return g
 	}
 }
@@ -24,7 +24,7 @@ var ookDecoders = []string{
 
 // Decoder for the "ookRelay.ino" sketch. Registers as "Node-ookRelay".
 type OokRelay struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }

@@ -5,17 +5,17 @@ import (
 )
 
 func ExampleJeeBoot() {
-	g := flow.NewGroup()
+	g := flow.NewCircuit()
 	g.Add("jb", "JeeBoot")
-	g.Set("jb.In", []byte{
+	g.Feed("jb.In", []byte{
 		224, 0, 2, 212, 17, 190, 240, 6, 48, 3,
 		1, 196, 132, 97, 174, 237, 176, 147, 81, 6,
 		25, 0, 245,
 	})
-	g.Set("jb.In", []byte{
+	g.Feed("jb.In", []byte{
 		177, 0, 2, 1, 0, 17, 0, 99, 36,
 	})
-	g.Set("jb.In", []byte{
+	g.Feed("jb.In", []byte{
 		177, 1, 0, 0, 0,
 	})
 	g.Run()

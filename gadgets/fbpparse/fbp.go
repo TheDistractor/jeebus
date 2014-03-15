@@ -8,12 +8,12 @@ import (
 )
 
 func init() {
-	flow.Registry["FbpParser"] = func() flow.Worker { return &FbpParser{} }
+	flow.Registry["FbpParser"] = func() flow.Circuitry { return &FbpParser{} }
 }
 
 // FbpParser processes a graph definition in FBP syntax.
 type FbpParser struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }

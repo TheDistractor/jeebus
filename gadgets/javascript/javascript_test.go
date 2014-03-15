@@ -6,25 +6,25 @@ import (
 )
 
 func ExampleJavaScript() {
-	g := flow.NewGroup()
+	g := flow.NewCircuit()
 	g.Add("js", "JavaScript")
-	g.Set("js.Cmd", `console.log("Hello from Otto!");`)
+	g.Feed("js.Cmd", `console.log("Hello from Otto!");`)
 	g.Run()
 	// Output:
 	// Hello from Otto!
 }
 
 func ExampleJavaScript_2() {
-	g := flow.NewGroup()
+	g := flow.NewCircuit()
 	g.Add("js", "JavaScript")
-	g.Set("js.Cmd", `
+	g.Feed("js.Cmd", `
 	  console.log("Howdy from Otto!");
 	  function onIn(v) {
 	    console.log("Got:", v);
 	    emitOut(3 * v);
 	  }
 	`)
-	g.Set("js.In", 123)
+	g.Feed("js.In", 123)
 	g.Run()
 	// Output:
 	// Howdy from Otto!

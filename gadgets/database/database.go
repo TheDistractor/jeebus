@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	flow.Registry["LevelDB"] = func() flow.Worker { return &LevelDB{} }
+	flow.Registry["LevelDB"] = func() flow.Circuitry { return &LevelDB{} }
 }
 
 var (
@@ -52,10 +52,10 @@ func openDatabase(name string) *openDb {
 	return odb
 }
 
-// LevelDB is a multi-purpose worker to get, put, and scan keys in a database.
+// LevelDB is a multi-purpose .Feed( to get, put, and scan keys in a database.
 // Acts on tags received on the input port. Registers itself as "LevelDB".
 type LevelDB struct {
-	flow.Work
+	flow.Gadget
 	Name flow.Input
 	In   flow.Input
 	Out  flow.Output
@@ -73,15 +73,15 @@ func (w *LevelDB) Run() {
 			if tag, ok := m.(flow.Tag); ok {
 				switch tag.Tag {
 				case "<get>":
-					key := tag.Val.(string)
+					key := tag.Msg.(string)
 					w.Out.Send(m)
 					w.Out.Send(w.get(key))
 				case "<keys>":
-					prefix := tag.Val.(string)
+					prefix := tag.Msg.(string)
 					w.Out.Send(m)
 					w.Out.Send(w.keys(prefix))
 				default:
-					w.put(tag.Tag, tag.Val)
+					w.put(tag.Tag, tag.Msg)
 				}
 			} else {
 				w.Out.Send(m)

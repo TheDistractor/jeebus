@@ -6,9 +6,9 @@ import (
 )
 
 func ExampleCalcCrc16() {
-	g := flow.NewGroup()
+	g := flow.NewCircuit()
 	g.Add("c", "CalcCrc16")
-	g.Set("c.In", []byte("abc"))
+	g.Feed("c.In", []byte("abc"))
 	g.Run()
 	// Output:
 	// Lost []uint8: [97 98 99]
@@ -16,11 +16,11 @@ func ExampleCalcCrc16() {
 }
 
 func ExampleReadTextFile() {
-	g := flow.NewGroup()
+	g := flow.NewCircuit()
 	g.Add("r", "ReadTextFile")
 	g.Add("c", "Counter")
 	g.Connect("r.Out", "c.In", 0)
-	g.Set("r.In", "./blinkAvr1.hex")
+	g.Feed("r.In", "./blinkAvr1.hex")
 	g.Run()
 	// Output:
 	// Lost flow.Tag: {<open> ./blinkAvr1.hex}
@@ -29,10 +29,10 @@ func ExampleReadTextFile() {
 }
 
 func ExampleIntelHexToBin() {
-	g := flow.NewGroup()
+	g := flow.NewCircuit()
 	g.Add("r", "ReadTextFile")
 	g.Add("b", "IntelHexToBin")
-	g.AddWorker("n", flow.Transformer(func(m flow.Memo) flow.Memo {
+	g.AddCircuitry("n", flow.Transformer(func(m flow.Message) flow.Message {
 		if v, ok := m.([]byte); ok {
 			m = len(v)
 		}
@@ -40,7 +40,7 @@ func ExampleIntelHexToBin() {
 	}))
 	g.Connect("r.Out", "b.In", 0)
 	g.Connect("b.Out", "n.In", 0)
-	g.Set("r.In", "./blinkAvr1.hex")
+	g.Feed("r.In", "./blinkAvr1.hex")
 	g.Run()
 	// Output:
 	// Lost flow.Tag: {<open> ./blinkAvr1.hex}
@@ -50,10 +50,10 @@ func ExampleIntelHexToBin() {
 }
 
 func ExampleBinaryFill() {
-	g := flow.NewGroup()
+	g := flow.NewCircuit()
 	g.Add("f", "BinaryFill")
-	g.Set("f.In", []byte("abcdef"))
-	g.Set("f.Len", 5)
+	g.Feed("f.In", []byte("abcdef"))
+	g.Feed("f.Len", 5)
 	g.Run()
 	// Output:
 	// Lost []uint8: [97 98 99 100 101 102 255 255 255 255]

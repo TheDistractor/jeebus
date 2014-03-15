@@ -13,14 +13,14 @@ import (
 )
 
 func init() {
-	flow.Registry["TimeStamp"] = func() flow.Worker { return &TimeStamp{} }
-	flow.Registry["SerialPort"] = func() flow.Worker { return &SerialPort{} }
-	flow.Registry["SketchType"] = func() flow.Worker { return &SketchType{} }
+	flow.Registry["TimeStamp"] = func() flow.Circuitry { return &TimeStamp{} }
+	flow.Registry["SerialPort"] = func() flow.Circuitry { return &SerialPort{} }
+	flow.Registry["SketchType"] = func() flow.Circuitry { return &SketchType{} }
 }
 
 // Insert a timestamp before each message. Registers as "TimeStamp".
 type TimeStamp struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }
@@ -35,7 +35,7 @@ func (w *TimeStamp) Run() {
 
 // Line-oriented serial port, opened once the Port input is set.
 type SerialPort struct {
-	flow.Work
+	flow.Gadget
 	Port flow.Input
 	To   flow.Input
 	From flow.Output
@@ -77,10 +77,10 @@ func (w *SerialPort) Run() {
 }
 
 // SketchType looks for lines of the form "[name...]" in the input stream.
-// These then cause a corresponding worker to be loaded dynamically.
+// These then cause a corresponding .Feed( to be loaded dynamically.
 // Registers as "SketchType".
 type SketchType struct {
-	flow.Work
+	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }
