@@ -5,8 +5,8 @@ import (
 	"path"
 	"testing"
 
-	"github.com/jcw/flow/flow"
-	_ "github.com/jcw/flow/workers"
+	"github.com/jcw/flow"
+	_ "github.com/jcw/flow/gadgets"
 )
 
 var dbPath = path.Join(os.TempDir(), "flow-test-db")

@@ -8,7 +8,7 @@ import (
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/golang/glog"
-	"github.com/jcw/flow/flow"
+	"github.com/jcw/flow"
 )
 
 func init() {

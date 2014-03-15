@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/jcw/flow/flow"
+	"github.com/jcw/flow"
 	"github.com/jcw/jeebus/gadgets"
 )
 

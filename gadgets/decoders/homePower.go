@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/jcw/flow/flow"
+	"github.com/jcw/flow"
 )
 
 func init() {

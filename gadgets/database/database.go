@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/jcw/flow/flow"
+	"github.com/jcw/flow"
 	"github.com/syndtr/goleveldb/leveldb"
 	dbutil "github.com/syndtr/goleveldb/leveldb/util"
 )

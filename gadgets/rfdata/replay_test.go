@@ -3,7 +3,7 @@ package rfdata
 import (
 	"fmt"
 
-	"github.com/jcw/flow/flow"
+	"github.com/jcw/flow"
 )
 
 type MockOutput int

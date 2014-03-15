@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/jcw/flow/flow"
+	"github.com/jcw/flow"
 )
 
 func init() {

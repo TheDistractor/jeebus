@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/chimera/rs232"
-	"github.com/jcw/flow/flow"
+	"github.com/jcw/flow"
 )
 
 func init() {

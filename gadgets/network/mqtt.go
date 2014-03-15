@@ -5,7 +5,7 @@ import (
 	"net"
 
 	proto "github.com/huin/mqtt"
-	"github.com/jcw/flow/flow"
+	"github.com/jcw/flow"
 	"github.com/jeffallen/mqtt"
 )
 

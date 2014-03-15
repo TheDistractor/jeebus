@@ -2,10 +2,11 @@
 package jeebus
 
 import (
-	_ "github.com/jcw/flow/workers"
+	_ "github.com/jcw/flow/gadgets"
 
 	_ "github.com/jcw/jeebus/gadgets/database"
 	_ "github.com/jcw/jeebus/gadgets/decoders"
+	_ "github.com/jcw/jeebus/gadgets/fbpparse"
 	_ "github.com/jcw/jeebus/gadgets/javascript"
 	_ "github.com/jcw/jeebus/gadgets/network"
 	_ "github.com/jcw/jeebus/gadgets/rfdata"

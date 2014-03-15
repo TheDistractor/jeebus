@@ -1,7 +1,7 @@
 package rfdata
 
 import (
-	"github.com/jcw/flow/flow"
+	"github.com/jcw/flow"
 )
 
 func ExampleRF12demo() {
