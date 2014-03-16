@@ -28,31 +28,30 @@ type RF12demo struct {
 
 // Start converting lines into binary packets.
 func (w *RF12demo) Run() {
-	if m, ok := <-w.In; ok {
-		// config := parseConfigLine(m.(string))
-		config := parseConfigLine("[RF12demo.12] _ i31* g5 @ 868 MHz c1 q1")
-		w.Out.Send(config)
-		for m = range w.In {
-			if s, ok := m.(string); ok {
-				if strings.HasPrefix(s, "OK ") {
-					data, rssi := convertToBytes(s)
-					info := map[string]int{"<node>": int(data[0] & 0x1F)}
-					if rssi != 0 {
-						info["rssi"] = rssi
-					}
-					if data[0]&0xA0 == 0xA0 {
-						w.Oob.Send(info)
-						w.Oob.Send(data)
-					} else {
-						w.Out.Send(info)
-						w.Out.Send(data)
-					}
-				} else {
-					w.Rej.Send(m)
-				}
-			} else {
-				w.Out.Send(m) // not a string
+	for m := range w.In {
+		s, ok := m.(string)
+		if !ok {
+			w.Out.Send(m) // not a string
+			continue
+		}
+		if strings.HasPrefix(s, "[RF12demo.") {
+			w.Out.Send(parseConfigLine(s))
+		}
+		if strings.HasPrefix(s, "OK ") {
+			data, rssi := convertToBytes(s)
+			info := map[string]int{"<node>": int(data[0] & 0x1F)}
+			if rssi != 0 {
+				info["rssi"] = rssi
 			}
+			if data[0]&0xA0 == 0xA0 {
+				w.Oob.Send(info)
+				w.Oob.Send(data)
+			} else {
+				w.Out.Send(info)
+				w.Out.Send(data)
+			}
+		} else {
+			w.Rej.Send(m)
 		}
 	}
 }

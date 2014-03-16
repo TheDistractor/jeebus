@@ -14,6 +14,7 @@ func ExampleRF12demo() {
 	g.Run()
 	// Output:
 	// Lost map[string]int: map[<RF12demo>:12 band:868 group:5 id:31]
+	// Lost string: [RF12demo.12] _ i31* g5 @ 868 MHz c1 q1
 	// Lost map[string]int: map[<node>:9 rssi:-66]
 	// Lost []uint8: [9 187 176 69 235 249 6 192 234 6 74 190 18]
 	// Lost map[string]int: map[<node>:5 rssi:-76]

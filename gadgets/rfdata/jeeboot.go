@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 
+	"github.com/golang/glog"
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/jcw/flow"
 )
@@ -19,6 +21,7 @@ func init() {
 type JeeBoot struct {
 	flow.Gadget
 	In  flow.Input
+	Cfg flow.Input
 	Out flow.Output
 
 	dev string
@@ -28,6 +31,11 @@ type JeeBoot struct {
 
 // Start decoding JeeBoot packets.
 func (w *JeeBoot) Run() {
+	if m, ok := <- w.Cfg; ok {
+		err := json.Unmarshal(m.([]byte), &w.cfg)
+		flow.Check(err)
+		glog.Infof("config: %+v", w.cfg)
+	} 
 	for m := range w.In {
 		if req, ok := m.([]byte); ok {
 			fmt.Println("JB request", len(req))
@@ -49,27 +57,26 @@ func convertReplyToCmd(reply interface{}) string {
 	return cmd[1:len(cmd)-1] + ",0s"
 }
 
-type hwIDStruct struct{ Board, Circuit, Node, SwID float64 }
-type swIDStruct struct{ File string }
+type hwIDStruct struct{ Board, Group, Node, SwID float64 }
 
 type config struct {
-	HwID map[string]hwIDStruct // map 16-byte HwID to assigned pairing info
-	SwID map[string]swIDStruct // map each SwID to a filename
+	SwIDs map[string]string		// map SwIDs to filenames
+	HwIDs map[string]hwIDStruct // map 16-byte HwIDs to assigned pairing info
 }
 
 func (c *config) LookupHwID(hwID []byte) (board, group, node uint8) {
 	key := hex.EncodeToString(hwID)
-	if info, ok := c.HwID[key]; ok {
+	if info, ok := c.HwIDs[key]; ok {
 		board = uint8(info.Board)
-		group = uint8(info.Circuit)
+		group = uint8(info.Group)
 		node = uint8(info.Node)
 	}
 	return
 }
 
 func (c *config) LookupSwID(group, node uint8) uint16 {
-	for _, h := range c.HwID {
-		if group == uint8(h.Circuit) && node == uint8(h.Node) {
+	for _, h := range c.HwIDs {
+		if group == uint8(h.Group) && node == uint8(h.Node) {
 			return uint16(h.SwID)
 		}
 	}
@@ -93,12 +100,12 @@ func (c *config) LookupSwID(group, node uint8) uint16 {
 //
 // 	fkeys, err := client.Call("db-keys", "/jeeboot/swid/")
 // 	flow.Check(err)
-// 	cfg.SwID = make(map[string]swIDStruct)
+// 	cfg.SwID = make(map[string]string)
 // 	for _, k := range fkeys.([]interface{}) {
 // 		v, err := client.Call("db-get", "/jeeboot/swid/"+k.(string))
 // 		flow.Check(err)
-// 		var ss swIDStruct
-// 		err = json.Unmarshal([]byte(v.(string)), &ss)
+// 		var ss string
+// 		err = json.Unmarshal(v, &ss)
 // 		flow.Check(err)
 // 		cfg.SwID[k.(string)] = ss
 // 	}
@@ -134,7 +141,7 @@ type firmware struct {
 type pairingRequest struct {
 	Variant uint8     // variant of remote node, 1..250 freely available
 	Board   uint8     // type of remote node, 100..250 freely available
-	Circuit uint8     // current network group, 1..250 or 0 if unpaired
+	Group   uint8     // current network group, 1..250 or 0 if unpaired
 	NodeID  uint8     // current node ID, 1..30 or 0 if unpaired
 	Check   uint16    // crc checksum over the current shared key
 	HwID    [16]uint8 // unique hardware ID or 0's if not available
@@ -149,7 +156,7 @@ type pairingAssign struct {
 type pairingReply struct {
 	Variant uint8     // variant of remote node, 1..250 freely available
 	Board   uint8     // type of remote node, 100..250 freely available
-	Circuit uint8     // assigned network group, 1..250
+	Group   uint8     // assigned network group, 1..250
 	NodeID  uint8     // assigned node ID, 1..30
 	ShKey   [16]uint8 // shared key or 0's if not used
 }
@@ -175,7 +182,7 @@ type downloadReply struct {
 }
 
 func (w *JeeBoot) respondToRequest(req []byte) interface{} {
-	// fmt.Printf("%s %X %d\n", w.dev, req, len(req))
+	// fmt.Printf("%s %x %d\n", w.dev, req, len(req))
 	switch len(req) - 1 {
 
 	case 22:
@@ -190,9 +197,10 @@ func (w *JeeBoot) respondToRequest(req []byte) interface{} {
 			return reply
 		}
 		board, group, node := w.cfg.LookupHwID(preq.HwID[:])
+		glog.Infoln("key", preq.HwID, "b/g/n", board, group, node)
 		if board == preq.Board && group != 0 && node != 0 {
 			fmt.Printf("pair %x board %d hdr %08b\n", preq.HwID, board, hdr)
-			reply := pairingReply{Board: board, Circuit: group, NodeID: node}
+			reply := pairingReply{Board: board, Group: group, NodeID: node}
 			return reply
 		}
 		fmt.Printf("pair %x board %d - no entry\n", preq.HwID, board)
@@ -240,7 +248,7 @@ func unpackReq(data []byte, req interface{}) (h uint8) {
 	flow.Check(err)
 	err = binary.Read(reader, binary.LittleEndian, req)
 	flow.Check(err)
-	fmt.Printf("%08b %X\n", h, req)
+	fmt.Printf("%08b %x\n", h, req)
 	return
 }
 

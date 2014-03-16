@@ -21,7 +21,7 @@ func ExampleJeeBoot() {
 	g.Run()
 	// Output:
 	// JB request 23
-	// 11100000 &{0 2 D4 11 F0BE 06300301C48461AEEDB09351061900F5}
+	// 11100000 &{0 2 d4 11 f0be 06300301c48461aeedb09351061900f5}
 	// pair 06300301c48461aeedb09351061900f5 board 0 - no entry
 	// JB request 9
 	// 10110001 &{0 2 1 11 2463}
