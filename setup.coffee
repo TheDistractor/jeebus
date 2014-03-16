@@ -1,6 +1,30 @@
 circuits = {}
 
-# this app runs a replay simulation with dynamic decoders
+# simple jeebus setup, with dummy websocket support
+circuits.main =
+  gadgets: [
+    { name: "http", type: "HTTPServer" }
+		{ name: "forever", type: "Forever" }
+  ]
+  feeds: [
+    { tag: "/", data: "./app",  to: "http.Handlers" }
+    { tag: "/base/", data: "./base",  to: "http.Handlers" }
+    { tag: "/common/", data: "./common",  to: "http.Handlers" }
+    { tag: "/ws", data: "<websocket>",  to: "http.Handlers" }
+    { data: ":3001",  to: "http.Start" }
+  ]
+
+# define the websocket handler as just a pipe back to the browser for now
+circuits["WebSocket-jeebus"] =
+  gadgets: [
+    { name: "p", type: "Pipe" }
+  ]
+  labels: [
+    { external: "In", internal: "p.In" }
+    { external: "Out", internal: "p.Out" }
+  ]
+
+# this app runs a replay simulation with dynamically-loaded decoders
 circuits.replay =
   gadgets: [
     { name: "lr", type: "LogReader" }
@@ -75,30 +99,6 @@ circuits.serial =
     { data: "RFg5i19 ookRelay",  to: "nm.Info" }
     
     { data: "/dev/tty.usbserial-A901ROSM", to: "sp.Port" }
-  ]
-
-# simple jeebus setup, with dummy websocket support
-circuits.main =
-  gadgets: [
-    { name: "http", type: "HTTPServer" }
-		{ name: "forever", type: "Forever" }
-  ]
-  feeds: [
-    { tag: "/", data: "./app",  to: "http.Handlers" }
-    { tag: "/base/", data: "./base",  to: "http.Handlers" }
-    { tag: "/common/", data: "./common",  to: "http.Handlers" }
-    { tag: "/ws", data: "<websocket>",  to: "http.Handlers" }
-    { data: ":3001",  to: "http.Start" }
-  ]
-
-# define the websocket handler as just a pipe back to the browser for now
-circuits["WebSocket-jeebus"] =
-  gadgets: [
-    { name: "p", type: "Pipe" }
-  ]
-  labels: [
-    { external: "In", internal: "p.In" }
-    { external: "Out", internal: "p.Out" }
   ]
 
 # jeeboot server test
