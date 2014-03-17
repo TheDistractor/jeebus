@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jcw/flow"
 )
@@ -14,6 +15,7 @@ import (
 func init() {
 	flow.Registry["Sketch-RF12demo"] = func() flow.Circuitry { return &RF12demo{} }
 	flow.Registry["NodeMap"] = func() flow.Circuitry { return &NodeMap{} }
+	flow.Registry["Readings"] = func() flow.Circuitry { return &Readings{} }
 }
 
 // RF12demo parses config and OK lines coming from the RF12demo sketch.
@@ -99,7 +101,7 @@ func (w *NodeMap) Run() {
 	nodeMap := map[string]string{}
 	locations := map[string]string{}
 	for m := range w.Info {
-		f := strings.SplitN(m.(string), " ", 3)
+		f := strings.Split(m.(string), ",")
 		nodeMap[f[0]] = f[1]
 		if len(f) > 2 {
 			locations[f[0]] = f[2]
@@ -127,5 +129,51 @@ func (w *NodeMap) Run() {
 		}
 
 		w.Out.Send(m)
+	}
+}
+
+// Re-combine decoded readings into single objects.
+type Readings struct {
+	flow.Gadget
+	In  flow.Input
+	Out flow.Output
+}
+
+// Start listening and combining readings produced by various decoders.
+func (g *Readings) Run() {
+	state := map[string]flow.Message{}
+	other := []flow.Message{}
+	for m := range g.In {
+		switch v := m.(type) {
+		case time.Time:
+			state["time"] = v
+		case map[string]int:
+			switch {
+			case v["<RF12demo>"] > 0:
+				state["rf12"] = v
+			case v["<node>"] > 0:
+				state["node"] = v
+				delete(state, "dispatch")
+				delete(state, "location")
+			case v["<reading>"] > 0:
+				state["reading"] = v
+				state["other"] = other
+				g.Out.Send(state)
+				other = []flow.Message{}
+			default:
+				other = append(other, v)
+			}
+		case flow.Tag:
+			switch v.Tag{
+			case "<dispatched>":
+				state["dispatch"] = v.Msg
+			case "<location>":
+				state["location"] = v.Msg
+			default:
+				other = append(other, v)
+			}
+		default:
+			other = append(other, v)
+		}
 	}
 }

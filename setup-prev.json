@@ -109,6 +109,10 @@
                 "type": "Dispatcher"
             },
             {
+                "name": "rd",
+                "type": "Readings"
+            },
+            {
                 "name": "pr",
                 "type": "Printer"
             }
@@ -151,73 +155,73 @@
                 "to": "d2.In"
             },
             {
-                "from": "d2.Out",
+                "from": "rd.Out",
                 "to": "pr.In"
             }
         ],
         "feeds": [
             {
-                "data": "RFg5i2 roomNode boekenkast JC",
+                "data": "RFg5i2,roomNode,boekenkast JC",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i3 radioBlip",
+                "data": "RFg5i3,radioBlip",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i4 roomNode washok",
+                "data": "RFg5i4,roomNode,washok",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i5 roomNode woonkamer",
+                "data": "RFg5i5,roomNode,woonkamer",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i6 roomNode hal vloer",
+                "data": "RFg5i6,roomNode,hal vloer",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i9 homePower",
+                "data": "RFg5i9,homePower",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i10 roomNode",
+                "data": "RFg5i10,roomNode",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i11 roomNode logeerkamer",
+                "data": "RFg5i11,roomNode,logeerkamer",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i12 roomNode boekenkast L",
+                "data": "RFg5i12,roomNode,boekenkast L",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i13 roomNode raam halfhoog",
+                "data": "RFg5i13,roomNode,raam halfhoog",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i14 otRelay",
+                "data": "RFg5i14,otRelay",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i15 smaRelay",
+                "data": "RFg5i15,smaRelay",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i18 p1scanner",
+                "data": "RFg5i18,p1scanner",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i19 ookRelay",
+                "data": "RFg5i19,ookRelay",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i23 roomNode gang boven",
+                "data": "RFg5i23,roomNode,gang boven",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i24 roomNode zolderkamer",
+                "data": "RFg5i24,roomNode,zolderkamer",
                 "to": "nm.Info"
             },
             {
@@ -255,6 +259,14 @@
             {
                 "name": "d2",
                 "type": "Dispatcher"
+            },
+            {
+                "name": "rd",
+                "type": "Readings"
+            },
+            {
+                "name": "pr",
+                "type": "Printer"
             }
         ],
         "wires": [
@@ -273,35 +285,79 @@
             {
                 "from": "nm.Out",
                 "to": "d2.In"
+            },
+            {
+                "from": "d2.Out",
+                "to": "rd.In"
+            },
+            {
+                "from": "rd.Out",
+                "to": "pr.In"
             }
         ],
         "feeds": [
             {
-                "data": "RFg5i3 radioBlip",
+                "data": "RFg5i2,roomNode,boekenkast JC",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i9 homePower",
+                "data": "RFg5i3,radioBlip",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i13 roomNode",
+                "data": "RFg5i4,roomNode,washok",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i14 otRelay",
+                "data": "RFg5i5,roomNode,woonkamer",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i15 smaRelay",
+                "data": "RFg5i6,roomNode,hal vloer",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i18 p1scanner",
+                "data": "RFg5i9,homePower",
                 "to": "nm.Info"
             },
             {
-                "data": "RFg5i19 ookRelay",
+                "data": "RFg5i10,roomNode",
+                "to": "nm.Info"
+            },
+            {
+                "data": "RFg5i11,roomNode,logeerkamer",
+                "to": "nm.Info"
+            },
+            {
+                "data": "RFg5i12,roomNode,boekenkast L",
+                "to": "nm.Info"
+            },
+            {
+                "data": "RFg5i13,roomNode,raam halfhoog",
+                "to": "nm.Info"
+            },
+            {
+                "data": "RFg5i14,otRelay",
+                "to": "nm.Info"
+            },
+            {
+                "data": "RFg5i15,smaRelay",
+                "to": "nm.Info"
+            },
+            {
+                "data": "RFg5i18,p1scanner",
+                "to": "nm.Info"
+            },
+            {
+                "data": "RFg5i19,ookRelay",
+                "to": "nm.Info"
+            },
+            {
+                "data": "RFg5i23,roomNode,gang boven",
+                "to": "nm.Info"
+            },
+            {
+                "data": "RFg5i24,roomNode,zolderkamer",
                 "to": "nm.Info"
             },
             {

@@ -1,5 +1,24 @@
 #!/usr/bin/env coffee
 
+nodemap = [
+  { data: "RFg5i2,roomNode,boekenkast JC",  to: "nm.Info" }
+  { data: "RFg5i3,radioBlip",               to: "nm.Info" }
+  { data: "RFg5i4,roomNode,washok",         to: "nm.Info" }
+  { data: "RFg5i5,roomNode,woonkamer",      to: "nm.Info" }
+  { data: "RFg5i6,roomNode,hal vloer",      to: "nm.Info" }
+  { data: "RFg5i9,homePower",               to: "nm.Info" }
+  { data: "RFg5i10,roomNode",               to: "nm.Info" }
+  { data: "RFg5i11,roomNode,logeerkamer",   to: "nm.Info" }
+  { data: "RFg5i12,roomNode,boekenkast L",  to: "nm.Info" }
+  { data: "RFg5i13,roomNode,raam halfhoog", to: "nm.Info" }
+  { data: "RFg5i14,otRelay",                to: "nm.Info" }
+  { data: "RFg5i15,smaRelay",               to: "nm.Info" }
+  { data: "RFg5i18,p1scanner",              to: "nm.Info" }
+  { data: "RFg5i19,ookRelay",               to: "nm.Info" }
+  { data: "RFg5i23,roomNode,gang boven",    to: "nm.Info" }
+  { data: "RFg5i24,roomNode,zolderkamer",   to: "nm.Info" }
+]
+
 circuits = {}
 
 # simple jeebus setup, with dummy websocket support
@@ -43,6 +62,7 @@ circuits.replay =
     { name: "d1", type: "Dispatcher" }
     { name: "nm", type: "NodeMap" }
     { name: "d2", type: "Dispatcher" }
+    { name: "rd", type: "Readings" }
     { name: "pr", type: "Printer" }
   ]
   wires: [
@@ -55,26 +75,11 @@ circuits.replay =
     { from: "st.Out", to: "d1.In" }
     { from: "d1.Out", to: "nm.In" }
     { from: "nm.Out", to: "d2.In" }
-    { from: "d2.Out", to: "pr.In" }
+    { from: "d2.Out", to: "rd.In" }
+    { from: "rd.Out", to: "pr.In" }
   ]
   feeds: [
-    { data: "RFg5i2 roomNode boekenkast JC",   to: "nm.Info" }
-    { data: "RFg5i3 radioBlip",  to: "nm.Info" }
-    { data: "RFg5i4 roomNode washok",   to: "nm.Info" }
-    { data: "RFg5i5 roomNode woonkamer",   to: "nm.Info" }
-    { data: "RFg5i6 roomNode hal vloer",   to: "nm.Info" }
-    { data: "RFg5i9 homePower",  to: "nm.Info" }
-    { data: "RFg5i10 roomNode",  to: "nm.Info" }
-    { data: "RFg5i11 roomNode logeerkamer",  to: "nm.Info" }
-    { data: "RFg5i12 roomNode boekenkast L",  to: "nm.Info" }
-    { data: "RFg5i13 roomNode raam halfhoog",  to: "nm.Info" }
-    { data: "RFg5i14 otRelay",   to: "nm.Info" }
-    { data: "RFg5i15 smaRelay",  to: "nm.Info" }
-    { data: "RFg5i18 p1scanner", to: "nm.Info" }
-    { data: "RFg5i19 ookRelay",  to: "nm.Info" }
-    { data: "RFg5i23 roomNode gang boven",  to: "nm.Info" }
-    { data: "RFg5i24 roomNode zolderkamer",  to: "nm.Info" }
-    
+    nodemap...
     { data: "[RF12demo.10] _ i31* g5 @ 868 MHz", to: "rf.In" }
     { data: "./gadgets/rfdata/20121130.txt.gz", to: "lr.Name" }
     { data: "./logger", to: "lg.Dir" }
@@ -88,22 +93,19 @@ circuits.serial =
     { name: "d1", type: "Dispatcher" }
     { name: "nm", type: "NodeMap" }
     { name: "d2", type: "Dispatcher" }
+    { name: "rd", type: "Readings" }
+    { name: "pr", type: "Printer" }
   ]
   wires: [
     { from: "sp.From", to: "st.In" }
     { from: "st.Out", to: "d1.In" }
     { from: "d1.Out", to: "nm.In" }
     { from: "nm.Out", to: "d2.In" }
+    { from: "d2.Out", to: "rd.In" }
+    { from: "rd.Out", to: "pr.In" }
   ]
   feeds: [
-    { data: "RFg5i3 radioBlip",  to: "nm.Info" }
-    { data: "RFg5i9 homePower",  to: "nm.Info" }
-    { data: "RFg5i13 roomNode",  to: "nm.Info" }
-    { data: "RFg5i14 otRelay",   to: "nm.Info" }
-    { data: "RFg5i15 smaRelay",  to: "nm.Info" }
-    { data: "RFg5i18 p1scanner", to: "nm.Info" }
-    { data: "RFg5i19 ookRelay",  to: "nm.Info" }
-    
+    nodemap...
     { data: "/dev/tty.usbserial-A901ROSN", to: "sp.Port" }
   ]
 
