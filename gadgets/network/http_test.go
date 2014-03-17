@@ -27,7 +27,7 @@ func ExampleHTTPServer() {
 
 func ExampleEnvVar() {
 	os.Setenv("FOO", "bar!")
-	
+
 	g := flow.NewCircuit()
 	g.Add("e", "EnvVar")
 	g.Feed("e.In", "FOO")

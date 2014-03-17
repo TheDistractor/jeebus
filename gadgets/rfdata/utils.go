@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jcw/flow"
 )
@@ -15,6 +17,7 @@ func init() {
 	flow.Registry["IntelHexToBin"] = func() flow.Circuitry { return &IntelHexToBin{} }
 	flow.Registry["BinaryFill"] = func() flow.Circuitry { return &BinaryFill{} }
 	flow.Registry["CalcCrc16"] = func() flow.Circuitry { return &CalcCrc16{} }
+	flow.Registry["Delay"] = func() flow.Circuitry { return &Delay{} }
 }
 
 // ReadTextFile takes strings and replaces them by the lines of that file.
@@ -129,5 +132,21 @@ func (w *CalcCrc16) Run() {
 			m = flow.Tag{"<crc16>", crc}
 		}
 		w.Out.Send(m)
+	}
+}
+
+// Send data out after a certain delay.
+type Delay struct {
+	flow.Gadget
+	In    flow.Input
+	Delay flow.Input
+	Out   flow.Output
+}
+
+func (g *Delay) Run() {
+	delay, _ := strconv.Atoi((<-g.Delay).(string))
+	for m := range g.In {
+		time.Sleep(time.Duration(delay) * time.Millisecond)
+		g.Out.Send(m)
 	}
 }

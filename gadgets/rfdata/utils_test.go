@@ -58,3 +58,16 @@ func ExampleBinaryFill() {
 	// Output:
 	// Lost []uint8: [97 98 99 100 101 102 255 255 255 255]
 }
+
+func ExampleDelay() {
+	g := flow.NewCircuit()
+	g.Add("d", "Delay")
+	g.Add("p", "Printer")
+	g.Feed("d.Delay", "10")
+	g.Feed("d.In", "abc")
+	g.Feed("p.In", "def")
+	g.Run()
+	// Output:
+	// string: def
+	// Lost string: abc
+}
