@@ -1,3 +1,5 @@
+#!/usr/bin/env coffee
+
 circuits = {}
 
 # simple jeebus setup, with dummy websocket support
@@ -120,4 +122,7 @@ circuits.jeeboot =
     { data: "/dev/tty.usbserial-A901ROSM", to: "sp.Port" }
   ]
 
-console.log JSON.stringify circuits, null, 4
+# write configuration to file, but keep a backup of the original, just in case
+fs = require('fs')
+try fs.renameSync 'setup.json', 'setup-prev.json'
+fs.writeFileSync 'setup.json', JSON.stringify circuits, null, 4

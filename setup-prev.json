@@ -1,60 +1,4 @@
 {
-    "main": {
-        "gadgets": [
-            {
-                "name": "http",
-                "type": "HTTPServer"
-            },
-            {
-                "name": "forever",
-                "type": "Forever"
-            }
-        ],
-        "feeds": [
-            {
-                "tag": "/",
-                "data": "./app",
-                "to": "http.Handlers"
-            },
-            {
-                "tag": "/base/",
-                "data": "./base",
-                "to": "http.Handlers"
-            },
-            {
-                "tag": "/common/",
-                "data": "./common",
-                "to": "http.Handlers"
-            },
-            {
-                "tag": "/ws",
-                "data": "<websocket>",
-                "to": "http.Handlers"
-            },
-            {
-                "data": ":3001",
-                "to": "http.Start"
-            }
-        ]
-    },
-    "WebSocket-jeebus": {
-        "gadgets": [
-            {
-                "name": "p",
-                "type": "Pipe"
-            }
-        ],
-        "labels": [
-            {
-                "external": "In",
-                "internal": "p.In"
-            },
-            {
-                "external": "Out",
-                "internal": "p.Out"
-            }
-        ]
-    },
     "replay": {
         "gadgets": [
             {
@@ -296,6 +240,62 @@
             {
                 "data": "/dev/tty.usbserial-A901ROSM",
                 "to": "sp.Port"
+            }
+        ]
+    },
+    "main": {
+        "gadgets": [
+            {
+                "name": "http",
+                "type": "HTTPServer"
+            },
+            {
+                "name": "forever",
+                "type": "Forever"
+            }
+        ],
+        "feeds": [
+            {
+                "tag": "/",
+                "data": "./app",
+                "to": "http.Handlers"
+            },
+            {
+                "tag": "/base/",
+                "data": "./base",
+                "to": "http.Handlers"
+            },
+            {
+                "tag": "/common/",
+                "data": "./common",
+                "to": "http.Handlers"
+            },
+            {
+                "tag": "/ws",
+                "data": "<websocket>",
+                "to": "http.Handlers"
+            },
+            {
+                "data": ":3001",
+                "to": "http.Start"
+            }
+        ]
+    },
+    "WebSocket-jeebus": {
+        "gadgets": [
+            {
+                "name": "p",
+                "type": "Pipe"
+            }
+        ],
+        "labels": [
+            {
+                "external": "In",
+                "internal": "p.In"
+            },
+            {
+                "external": "Out",
+                "internal": "p.Out"
             }
         ]
     },
