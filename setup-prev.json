@@ -44,7 +44,7 @@
             {
                 "tag": "PORT",
                 "data": "3000",
-                "to": "http.Start"
+                "to": "env.In"
             }
         ]
     },
@@ -109,7 +109,7 @@
                 "type": "Dispatcher"
             },
             {
-                "name": "p",
+                "name": "pr",
                 "type": "Printer"
             }
         ],
@@ -152,7 +152,7 @@
             },
             {
                 "from": "d2.Out",
-                "to": "p.In"
+                "to": "pr.In"
             }
         ],
         "feeds": [
@@ -305,7 +305,7 @@
                 "to": "nm.Info"
             },
             {
-                "data": "/dev/tty.usbserial-A901ROSM",
+                "data": "/dev/tty.usbserial-A901ROSN",
                 "to": "sp.Port"
             }
         ]

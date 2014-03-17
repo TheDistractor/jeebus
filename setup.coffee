@@ -43,7 +43,7 @@ circuits.replay =
     { name: "d1", type: "Dispatcher" }
     { name: "nm", type: "NodeMap" }
     { name: "d2", type: "Dispatcher" }
-    { name: "p", type: "Printer" }
+    { name: "pr", type: "Printer" }
   ]
   wires: [
     { from: "lr.Out", to: "w1.In" }
@@ -55,7 +55,7 @@ circuits.replay =
     { from: "st.Out", to: "d1.In" }
     { from: "d1.Out", to: "nm.In" }
     { from: "nm.Out", to: "d2.In" }
-    { from: "d2.Out", to: "p.In" }
+    { from: "d2.Out", to: "pr.In" }
   ]
   feeds: [
     { data: "RFg5i2 roomNode boekenkast JC",   to: "nm.Info" }
@@ -104,7 +104,7 @@ circuits.serial =
     { data: "RFg5i18 p1scanner", to: "nm.Info" }
     { data: "RFg5i19 ookRelay",  to: "nm.Info" }
     
-    { data: "/dev/tty.usbserial-A901ROSM", to: "sp.Port" }
+    { data: "/dev/tty.usbserial-A901ROSN", to: "sp.Port" }
   ]
 
 # jeeboot server test
