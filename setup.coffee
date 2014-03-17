@@ -39,15 +39,7 @@ circuits.replay =
     { name: "ts", type: "TimeStamp" }
     { name: "f1", type: "FanOut" }
     { name: "lg", type: "Logger" }
-    { name: "st", type: "SketchType" }
-    { name: "d1", type: "Dispatcher" }
-    { name: "nm", type: "nodesJeeLabs" }
-    { name: "d2", type: "Dispatcher" }
-    { name: "rd", type: "Readings" }
-    { name: "ss", type: "SensorSave" }
-    { name: "f2", type: "FanOut" }
-    { name: "sr", type: "SplitReadings" }
-    { name: "db", type: "LevelDB" }
+    { name: "db", type: "rf12toDatabase" }
   ]
   wires: [
     { from: "lr.Out", to: "w1.In" }
@@ -55,22 +47,12 @@ circuits.replay =
     { from: "w1.Out", to: "ts.In" }
     { from: "ts.Out", to: "f1.In" }
     { from: "f1.Out:lg", to: "lg.In" }
-    { from: "f1.Out:st", to: "st.In" }
-    { from: "st.Out", to: "d1.In" }
-    { from: "d1.Out", to: "nm.In" }
-    { from: "nm.Out", to: "d2.In" }
-    { from: "d2.Out", to: "rd.In" }
-    { from: "rd.Out", to: "ss.In" }
-    { from: "ss.Out", to: "f2.In" }
-    { from: "f2.Out:sr", to: "sr.In" }
-    { from: "f2.Out:db", to: "db.In" }
-    { from: "sr.Out", to: "db.In" }
+    { from: "f1.Out:db", to: "db.In" }
   ]
   feeds: [
     { data: "[RF12demo.10] _ i31* g5 @ 868 MHz", to: "rf.In" }
     { data: "./gadgets/rfdata/20121130.txt.gz", to: "lr.Name" }
     { data: "./logger", to: "lg.Dir" }
-    { data: "./db", to: "db.Name" }
   ]
   
 # the node mapping for nodes at JeeLabs, as pre-configured circuit
@@ -100,10 +82,9 @@ circuits.nodesJeeLabs =
     { external: "Out", internal: "nm.Out" }
   ]
 
-# serial port test
-circuits.serial =
+# pipeline used for decoding RF12demo data and storing it in the database
+circuits.rf12toDatabase =
   gadgets: [
-    { name: "sp", type: "SerialPort" }
     { name: "st", type: "SketchType" }
     { name: "d1", type: "Dispatcher" }
     { name: "nm", type: "nodesJeeLabs" }
@@ -115,7 +96,6 @@ circuits.serial =
     { name: "db", type: "LevelDB" }
   ]
   wires: [
-    { from: "sp.From", to: "st.In" }
     { from: "st.Out", to: "d1.In" }
     { from: "d1.Out", to: "nm.In" }
     { from: "nm.Out", to: "d2.In" }
@@ -127,8 +107,23 @@ circuits.serial =
     { from: "sr.Out", to: "db.In" }
   ]
   feeds: [
-    { data: "/dev/tty.usbserial-A901ROSN", to: "sp.Port" }
     { data: "./db", to: "db.Name" }
+  ]
+  labels: [
+    { external: "In", internal: "st.In" }
+  ]
+
+# serial port test
+circuits.serial =
+  gadgets: [
+    { name: "sp", type: "SerialPort" }
+    { name: "db", type: "rf12toDatabase" }
+  ]
+  wires: [
+    { from: "sp.From", to: "db.In" }
+  ]
+  feeds: [
+    { data: "/dev/tty.usbserial-A901ROSN", to: "sp.Port" }
   ]
 
 # jeeboot server test

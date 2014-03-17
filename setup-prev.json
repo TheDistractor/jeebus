@@ -93,40 +93,8 @@
                 "type": "Logger"
             },
             {
-                "name": "st",
-                "type": "SketchType"
-            },
-            {
-                "name": "d1",
-                "type": "Dispatcher"
-            },
-            {
-                "name": "nm",
-                "type": "nodesJeeLabs"
-            },
-            {
-                "name": "d2",
-                "type": "Dispatcher"
-            },
-            {
-                "name": "rd",
-                "type": "Readings"
-            },
-            {
-                "name": "ss",
-                "type": "SensorSave"
-            },
-            {
-                "name": "f2",
-                "type": "FanOut"
-            },
-            {
-                "name": "sr",
-                "type": "SplitReadings"
-            },
-            {
                 "name": "db",
-                "type": "LevelDB"
+                "type": "rf12toDatabase"
             }
         ],
         "wires": [
@@ -152,42 +120,6 @@
             },
             {
                 "from": "f1.Out:st",
-                "to": "st.In"
-            },
-            {
-                "from": "st.Out",
-                "to": "d1.In"
-            },
-            {
-                "from": "d1.Out",
-                "to": "nm.In"
-            },
-            {
-                "from": "nm.Out",
-                "to": "d2.In"
-            },
-            {
-                "from": "d2.Out",
-                "to": "rd.In"
-            },
-            {
-                "from": "rd.Out",
-                "to": "ss.In"
-            },
-            {
-                "from": "ss.Out",
-                "to": "f2.In"
-            },
-            {
-                "from": "f2.Out:sr",
-                "to": "sr.In"
-            },
-            {
-                "from": "f2.Out:db",
-                "to": "db.In"
-            },
-            {
-                "from": "sr.Out",
                 "to": "db.In"
             }
         ],
@@ -290,12 +222,8 @@
             }
         ]
     },
-    "serial": {
+    "rf12toDatabase": {
         "gadgets": [
-            {
-                "name": "sp",
-                "type": "SerialPort"
-            },
             {
                 "name": "st",
                 "type": "SketchType"
@@ -321,15 +249,19 @@
                 "type": "SensorSave"
             },
             {
+                "name": "f2",
+                "type": "FanOut"
+            },
+            {
+                "name": "sr",
+                "type": "SplitReadings"
+            },
+            {
                 "name": "db",
                 "type": "LevelDB"
             }
         ],
         "wires": [
-            {
-                "from": "sp.From",
-                "to": "st.In"
-            },
             {
                 "from": "st.Out",
                 "to": "d1.In"
@@ -352,6 +284,48 @@
             },
             {
                 "from": "ss.Out",
+                "to": "f2.In"
+            },
+            {
+                "from": "f2.Out:sr",
+                "to": "sr.In"
+            },
+            {
+                "from": "f2.Out:db",
+                "to": "db.In"
+            },
+            {
+                "from": "sr.Out",
+                "to": "db.In"
+            }
+        ],
+        "feeds": [
+            {
+                "data": "./db",
+                "to": "db.Name"
+            }
+        ],
+        "labels": [
+            {
+                "external": "In",
+                "internal": "st.In"
+            }
+        ]
+    },
+    "serial": {
+        "gadgets": [
+            {
+                "name": "sp",
+                "type": "SerialPort"
+            },
+            {
+                "name": "db",
+                "type": "rf12toDatabase"
+            }
+        ],
+        "wires": [
+            {
+                "from": "sp.From",
                 "to": "db.In"
             }
         ],
@@ -359,10 +333,6 @@
             {
                 "data": "/dev/tty.usbserial-A901ROSN",
                 "to": "sp.Port"
-            },
-            {
-                "data": "./db",
-                "to": "db.Name"
             }
         ]
     },
