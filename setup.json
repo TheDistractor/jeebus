@@ -113,8 +113,12 @@
                 "type": "Readings"
             },
             {
-                "name": "pr",
-                "type": "Printer"
+                "name": "ss",
+                "type": "SensorSave"
+            },
+            {
+                "name": "db",
+                "type": "LevelDB"
             }
         ],
         "wires": [
@@ -160,7 +164,11 @@
             },
             {
                 "from": "rd.Out",
-                "to": "pr.In"
+                "to": "ss.In"
+            },
+            {
+                "from": "ss.Out",
+                "to": "db.In"
             }
         ],
         "feeds": [
@@ -175,6 +183,10 @@
             {
                 "data": "./logger",
                 "to": "lg.Dir"
+            },
+            {
+                "data": "./db",
+                "to": "db.Name"
             }
         ]
     },
@@ -285,8 +297,12 @@
                 "type": "Readings"
             },
             {
-                "name": "pr",
-                "type": "Printer"
+                "name": "ss",
+                "type": "SensorSave"
+            },
+            {
+                "name": "db",
+                "type": "LevelDB"
             }
         ],
         "wires": [
@@ -312,13 +328,21 @@
             },
             {
                 "from": "rd.Out",
-                "to": "pr.In"
+                "to": "ss.In"
+            },
+            {
+                "from": "ss.Out",
+                "to": "db.In"
             }
         ],
         "feeds": [
             {
                 "data": "/dev/tty.usbserial-A901ROSN",
                 "to": "sp.Port"
+            },
+            {
+                "data": "./db",
+                "to": "db.Name"
             }
         ]
     },

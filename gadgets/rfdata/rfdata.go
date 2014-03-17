@@ -146,27 +146,29 @@ func (g *Readings) Run() {
 	for m := range g.In {
 		switch v := m.(type) {
 		case time.Time:
-			state["time"] = v
+			state["asof"] = v
 		case map[string]int:
 			switch {
 			case v["<RF12demo>"] > 0:
 				state["rf12"] = v
 			case v["<node>"] > 0:
 				state["node"] = v
-				delete(state, "dispatch")
 				delete(state, "location")
 			case v["<reading>"] > 0:
+				delete(v, "<reading>")
 				state["reading"] = v
-				state["other"] = other
+				if len(other) > 0 {
+					state["other"] = other
+					other = []flow.Message{}
+				}
 				g.Out.Send(state)
-				other = []flow.Message{}
 			default:
 				other = append(other, v)
 			}
 		case flow.Tag:
-			switch v.Tag{
+			switch v.Tag {
 			case "<dispatched>":
-				state["dispatch"] = v.Msg
+				state["decoder"] = v.Msg
 			case "<location>":
 				state["location"] = v.Msg
 			default:

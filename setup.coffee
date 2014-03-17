@@ -44,7 +44,8 @@ circuits.replay =
     { name: "nm", type: "nodesJeeLabs" }
     { name: "d2", type: "Dispatcher" }
     { name: "rd", type: "Readings" }
-    { name: "pr", type: "Printer" }
+    { name: "ss", type: "SensorSave" }
+    { name: "db", type: "LevelDB" }
   ]
   wires: [
     { from: "lr.Out", to: "w1.In" }
@@ -57,12 +58,14 @@ circuits.replay =
     { from: "d1.Out", to: "nm.In" }
     { from: "nm.Out", to: "d2.In" }
     { from: "d2.Out", to: "rd.In" }
-    { from: "rd.Out", to: "pr.In" }
+    { from: "rd.Out", to: "ss.In" }
+    { from: "ss.Out", to: "db.In" }
   ]
   feeds: [
     { data: "[RF12demo.10] _ i31* g5 @ 868 MHz", to: "rf.In" }
     { data: "./gadgets/rfdata/20121130.txt.gz", to: "lr.Name" }
     { data: "./logger", to: "lg.Dir" }
+    { data: "./db", to: "db.Name" }
   ]
   
 # the node mapping for nodes at JeeLabs, as pre-configured circuit
@@ -101,7 +104,8 @@ circuits.serial =
     { name: "nm", type: "nodesJeeLabs" }
     { name: "d2", type: "Dispatcher" }
     { name: "rd", type: "Readings" }
-    { name: "pr", type: "Printer" }
+    { name: "ss", type: "SensorSave" }
+    { name: "db", type: "LevelDB" }
   ]
   wires: [
     { from: "sp.From", to: "st.In" }
@@ -109,10 +113,12 @@ circuits.serial =
     { from: "d1.Out", to: "nm.In" }
     { from: "nm.Out", to: "d2.In" }
     { from: "d2.Out", to: "rd.In" }
-    { from: "rd.Out", to: "pr.In" }
+    { from: "rd.Out", to: "ss.In" }
+    { from: "ss.Out", to: "db.In" }
   ]
   feeds: [
     { data: "/dev/tty.usbserial-A901ROSN", to: "sp.Port" }
+    { data: "./db", to: "db.Name" }
   ]
 
 # jeeboot server test
