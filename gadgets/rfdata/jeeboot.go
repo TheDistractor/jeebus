@@ -82,7 +82,7 @@ func (w *JeeBoot) Run() {
 			reply := w.respondToRequest(req)
 			if reply != nil {
 				cmd := convertReplyToCmd(reply)
-				fmt.Println("JB reply #", len(req), "->", cmd)
+				// fmt.Println("JB reply #", len(req), "->", cmd)
 				w.Out.Send(cmd)
 			}
 		}
@@ -195,7 +195,7 @@ func (w *JeeBoot) respondToRequest(req []byte) interface{} {
 		board, group, node := w.cfg.LookupHwID(preq.HwID[:])
 		glog.Infoln("key", preq.HwID, "b/g/n", board, group, node)
 		if board == preq.Board && group != 0 && node != 0 {
-			// fmt.Printf("pair %x board %d hdr %08b\n", preq.HwID, board, hdr)
+			fmt.Printf("pair %x board %d hdr %08b\n", preq.HwID, board, hdr)
 			reply := pairingReply{Board: board, Group: group, NodeID: node}
 			return reply
 		}
@@ -211,7 +211,7 @@ func (w *JeeBoot) respondToRequest(req []byte) interface{} {
 		if fw := w.cfg.GetFirmware(reply.SwID); fw != nil {
 			reply.SwSize = uint16(len(fw.data) >> 4)
 			reply.SwCheck = fw.crc
-			// fmt.Printf("upgrade %v hdr %08b\n", reply, hdr)
+			fmt.Printf("upgrade %v hdr %08b\n", reply, hdr)
 			return reply
 		}
 

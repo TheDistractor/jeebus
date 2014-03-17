@@ -4,9 +4,21 @@ import (
 	"github.com/jcw/flow"
 )
 
+var configDemo = `{
+	"swids": {
+        "1001": "../firmware/blinkAvr1.hex"
+	},
+	"hwids": {
+	  "06300301c48461aeedb09351061900f5": {
+          "board": 2, "group": 212, "node": 17, "swid": 1001
+	  }
+	}
+}`
+
 func ExampleJeeBoot() {
 	g := flow.NewCircuit()
 	g.Add("jb", "JeeBoot")
+	g.Feed("jb.Cfg", []byte(configDemo))
 	g.Feed("jb.In", []byte{
 		224, 0, 2, 212, 17, 190, 240, 6, 48, 3,
 		1, 196, 132, 97, 174, 237, 176, 147, 81, 6,
@@ -20,18 +32,8 @@ func ExampleJeeBoot() {
 	})
 	g.Run()
 	// Output:
-	// JB request 23
-	// 11100000 &{0 2 d4 11 f0be 06300301c48461aeedb09351061900f5}
-	// pair 06300301c48461aeedb09351061900f5 board 0 - no entry
-	// JB request 9
-	// 10110001 &{0 2 1 11 2463}
-	// upgrade &{0 2 0 0 0} hdr 10110001
-	// JB reply 0,2,0,0,0,0,0,0,0s
-	// Lost *rfdata.upgradeRequest: &{0 2 0 0 0}
-	// JB request 5
-	// 10110001 &{1 0}
-	// len 0 offset 0 64
-	// no data at 0..64
-	// JB reply 1,0,0s
-	// Lost *struct { SwIDXor uint16 }: &{1}
+	// Lost string: ../firmware/blinkAvr1.hex
+	// pair 06300301c48461aeedb09351061900f5 board 2 hdr 11100000
+	// JB reply 0002d41100000000000000000000000000000000
+	// Lost string: 0,2,212,17,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81s
 }
