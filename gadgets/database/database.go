@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/golang/glog"
 	"github.com/jcw/flow"
 	"github.com/syndtr/goleveldb/leveldb"
 	dbutil "github.com/syndtr/goleveldb/leveldb/util"
@@ -91,6 +92,7 @@ func (w *LevelDB) Run() {
 }
 
 func (w *LevelDB) get(key string) (any interface{}) {
+	glog.Infoln("get", key)
 	data, err := w.odb.db.Get([]byte(key), nil)
 	if err == leveldb.ErrNotFound {
 		return nil
@@ -102,6 +104,7 @@ func (w *LevelDB) get(key string) (any interface{}) {
 }
 
 func (w *LevelDB) put(key string, value interface{}) {
+	glog.Infoln("put", key, value)
 	if value != nil {
 		data, err := json.Marshal(value)
 		flow.Check(err)
@@ -112,6 +115,7 @@ func (w *LevelDB) put(key string, value interface{}) {
 }
 
 func (w *LevelDB) keys(prefix string) (results []string) {
+	glog.Infoln("keys", prefix)
 	// TODO: decide whether this key logic is the most useful & least confusing
 	// TODO: should use skips and reverse iterators once the db gets larger!
 	skip := len(prefix)

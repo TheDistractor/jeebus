@@ -37,7 +37,7 @@ circuits.replay =
     { name: "rf", type: "Pipe" } # used to inject an "[RF12demo...]" line
     { name: "w1", type: "LogReplayer" }
     { name: "ts", type: "TimeStamp" }
-    { name: "fo", type: "FanOut" }
+    { name: "f1", type: "FanOut" }
     { name: "lg", type: "Logger" }
     { name: "st", type: "SketchType" }
     { name: "d1", type: "Dispatcher" }
@@ -45,21 +45,26 @@ circuits.replay =
     { name: "d2", type: "Dispatcher" }
     { name: "rd", type: "Readings" }
     { name: "ss", type: "SensorSave" }
+    { name: "f2", type: "FanOut" }
+    { name: "sr", type: "SplitReadings" }
     { name: "db", type: "LevelDB" }
   ]
   wires: [
     { from: "lr.Out", to: "w1.In" }
     { from: "rf.Out", to: "ts.In" }
     { from: "w1.Out", to: "ts.In" }
-    { from: "ts.Out", to: "fo.In" }
-    { from: "fo.Out:lg", to: "lg.In" }
-    { from: "fo.Out:st", to: "st.In" }
+    { from: "ts.Out", to: "f1.In" }
+    { from: "f1.Out:lg", to: "lg.In" }
+    { from: "f1.Out:st", to: "st.In" }
     { from: "st.Out", to: "d1.In" }
     { from: "d1.Out", to: "nm.In" }
     { from: "nm.Out", to: "d2.In" }
     { from: "d2.Out", to: "rd.In" }
     { from: "rd.Out", to: "ss.In" }
-    { from: "ss.Out", to: "db.In" }
+    { from: "ss.Out", to: "f2.In" }
+    { from: "f2.Out:sr", to: "sr.In" }
+    { from: "f2.Out:db", to: "db.In" }
+    { from: "sr.Out", to: "db.In" }
   ]
   feeds: [
     { data: "[RF12demo.10] _ i31* g5 @ 868 MHz", to: "rf.In" }
@@ -105,6 +110,8 @@ circuits.serial =
     { name: "d2", type: "Dispatcher" }
     { name: "rd", type: "Readings" }
     { name: "ss", type: "SensorSave" }
+    { name: "f2", type: "FanOut" }
+    { name: "sr", type: "SplitReadings" }
     { name: "db", type: "LevelDB" }
   ]
   wires: [
@@ -114,7 +121,10 @@ circuits.serial =
     { from: "nm.Out", to: "d2.In" }
     { from: "d2.Out", to: "rd.In" }
     { from: "rd.Out", to: "ss.In" }
-    { from: "ss.Out", to: "db.In" }
+    { from: "ss.Out", to: "f2.In" }
+    { from: "f2.Out:sr", to: "sr.In" }
+    { from: "f2.Out:db", to: "db.In" }
+    { from: "sr.Out", to: "db.In" }
   ]
   feeds: [
     { data: "/dev/tty.usbserial-A901ROSN", to: "sp.Port" }

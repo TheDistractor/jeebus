@@ -85,7 +85,7 @@
                 "type": "TimeStamp"
             },
             {
-                "name": "fo",
+                "name": "f1",
                 "type": "FanOut"
             },
             {
@@ -117,6 +117,14 @@
                 "type": "SensorSave"
             },
             {
+                "name": "f2",
+                "type": "FanOut"
+            },
+            {
+                "name": "sr",
+                "type": "SplitReadings"
+            },
+            {
                 "name": "db",
                 "type": "LevelDB"
             }
@@ -136,14 +144,14 @@
             },
             {
                 "from": "ts.Out",
-                "to": "fo.In"
+                "to": "f1.In"
             },
             {
-                "from": "fo.Out:lg",
+                "from": "f1.Out:lg",
                 "to": "lg.In"
             },
             {
-                "from": "fo.Out:st",
+                "from": "f1.Out:st",
                 "to": "st.In"
             },
             {
@@ -168,6 +176,18 @@
             },
             {
                 "from": "ss.Out",
+                "to": "f2.In"
+            },
+            {
+                "from": "f2.Out:sr",
+                "to": "sr.In"
+            },
+            {
+                "from": "f2.Out:db",
+                "to": "db.In"
+            },
+            {
+                "from": "sr.Out",
                 "to": "db.In"
             }
         ],
@@ -301,6 +321,14 @@
                 "type": "SensorSave"
             },
             {
+                "name": "f2",
+                "type": "FanOut"
+            },
+            {
+                "name": "sr",
+                "type": "SplitReadings"
+            },
+            {
                 "name": "db",
                 "type": "LevelDB"
             }
@@ -332,6 +360,18 @@
             },
             {
                 "from": "ss.Out",
+                "to": "f2.In"
+            },
+            {
+                "from": "f2.Out:sr",
+                "to": "sr.In"
+            },
+            {
+                "from": "f2.Out:db",
+                "to": "db.In"
+            },
+            {
+                "from": "sr.Out",
                 "to": "db.In"
             }
         ],

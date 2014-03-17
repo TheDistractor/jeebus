@@ -85,7 +85,7 @@
                 "type": "TimeStamp"
             },
             {
-                "name": "fo",
+                "name": "f1",
                 "type": "FanOut"
             },
             {
@@ -115,6 +115,18 @@
             {
                 "name": "ss",
                 "type": "SensorSave"
+            },
+            {
+                "name": "f2",
+                "type": "FanOut"
+            },
+            {
+                "name": "sr",
+                "type": "SplitReadings"
+            },
+            {
+                "name": "db",
+                "type": "LevelDB"
             }
         ],
         "wires": [
@@ -132,14 +144,14 @@
             },
             {
                 "from": "ts.Out",
-                "to": "fo.In"
+                "to": "f1.In"
             },
             {
-                "from": "fo.Out:lg",
+                "from": "f1.Out:lg",
                 "to": "lg.In"
             },
             {
-                "from": "fo.Out:st",
+                "from": "f1.Out:st",
                 "to": "st.In"
             },
             {
@@ -161,6 +173,22 @@
             {
                 "from": "rd.Out",
                 "to": "ss.In"
+            },
+            {
+                "from": "ss.Out",
+                "to": "f2.In"
+            },
+            {
+                "from": "f2.Out:sr",
+                "to": "sr.In"
+            },
+            {
+                "from": "f2.Out:db",
+                "to": "db.In"
+            },
+            {
+                "from": "sr.Out",
+                "to": "db.In"
             }
         ],
         "feeds": [
@@ -175,6 +203,10 @@
             {
                 "data": "./logger",
                 "to": "lg.Dir"
+            },
+            {
+                "data": "./db",
+                "to": "db.Name"
             }
         ]
     },
@@ -287,6 +319,10 @@
             {
                 "name": "ss",
                 "type": "SensorSave"
+            },
+            {
+                "name": "db",
+                "type": "LevelDB"
             }
         ],
         "wires": [
@@ -313,12 +349,20 @@
             {
                 "from": "rd.Out",
                 "to": "ss.In"
+            },
+            {
+                "from": "ss.Out",
+                "to": "db.In"
             }
         ],
         "feeds": [
             {
                 "data": "/dev/tty.usbserial-A901ROSN",
                 "to": "sp.Port"
+            },
+            {
+                "data": "./db",
+                "to": "db.Name"
             }
         ]
     },
