@@ -49,7 +49,13 @@ func (w *SerialPort) Run() {
 		opt := rs232.Options{BitRate: 57600, DataBits: 8, StopBits: 1}
 		dev, err := rs232.Open(port.(string), opt)
 		flow.Check(err)
-		defer dev.Close()
+
+		// try to avoid kernel panics due to that wretched buggy FTDI driver!
+		defer func() {
+			time.Sleep(time.Second)
+			dev.Close()
+		}()
+		time.Sleep(time.Second)
 
 		// separate process to copy data out to the serial port
 		go func() {

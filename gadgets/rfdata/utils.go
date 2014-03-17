@@ -61,7 +61,7 @@ func (w *IntelHexToBin) Run() {
 			// TODO: probably doesn't handle hex files over 64 KB
 			if b[3] == 0 {
 				if buf.Len() == 0 {
-					addr := int(b[1]) + int(b[2])<<8
+					addr := int(b[2]) + int(b[1])<<8
 					w.Out.Send(flow.Tag{"<addr>", addr})
 				}
 				buf.Write(b[4 : 4+b[0]])
