@@ -9,8 +9,8 @@ var configDemo = `{
         "1001": "../firmware/blinkAvr1.hex"
 	},
 	"hwids": {
-	  "06300301c48461aeedb09351061900f5": {
-          "board": 2, "group": 212, "node": 17, "swid": 1001
+		"06300301c48461aeedb09351061900f5": {
+	        "board": 2, "group": 212, "node": 17, "swid": 1001
 	  }
 	}
 }`
