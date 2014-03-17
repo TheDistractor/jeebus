@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/jcw/flow"
 	_ "github.com/jcw/flow/gadgets"
@@ -22,4 +23,19 @@ func ExampleHTTPServer() {
 	// Output:
 	// Lost *url.URL: /blah/http.go
 	// true
+}
+
+func ExampleEnvVar() {
+	os.Setenv("FOO", "bar!")
+	
+	g := flow.NewCircuit()
+	g.Add("e", "EnvVar")
+	g.Feed("e.In", "FOO")
+	g.Feed("e.In", flow.Tag{"FOO", "def"})
+	g.Feed("e.In", flow.Tag{"BLAH", "abc"})
+	g.Run()
+	// Output:
+	// Lost string: bar!
+	// Lost string: bar!
+	// Lost string: abc
 }

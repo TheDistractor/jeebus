@@ -5,15 +5,19 @@ circuits = {}
 # simple jeebus setup, with dummy websocket support
 circuits.main =
   gadgets: [
+    { name: "env", type: "EnvVar" }
     { name: "http", type: "HTTPServer" }
 		{ name: "forever", type: "Forever" }
+  ]
+  wires: [
+    { from: "env.Out", to: "http.Start" }
   ]
   feeds: [
     { tag: "/", data: "./app",  to: "http.Handlers" }
     { tag: "/base/", data: "./base",  to: "http.Handlers" }
     { tag: "/common/", data: "./common",  to: "http.Handlers" }
     { tag: "/ws", data: "<websocket>",  to: "http.Handlers" }
-    { data: ":3001",  to: "http.Start" }
+    { tag: "PORT", data: "3000",  to: "env.In" }
   ]
 
 # define the websocket handler as just a pipe back to the browser for now

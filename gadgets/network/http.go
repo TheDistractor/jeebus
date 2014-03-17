@@ -3,6 +3,8 @@ package network
 import (
 	"io"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 
 func init() {
 	flow.Registry["HTTPServer"] = func() flow.Circuitry { return &HTTPServer{} }
+	flow.Registry["EnvVar"] = func() flow.Circuitry { return &EnvVar{} }
 }
 
 // HTTPServer is a .Feed( which sets up an HTTP server.
@@ -46,11 +49,14 @@ func (w *HTTPServer) Run() {
 			mux.Handle(tag.Tag, &flowHandler{v, w})
 		}
 	}
-	m := <-w.Start
+	port := (<-w.Start).(string)
+	if _, err := strconv.Atoi(port); err == nil {
+		port = ":" + port // convert "1234" -> ":1234"
+	}
 	go func() {
 		// will stay running until an error is returned or the app ends
 		defer flow.DontPanic()
-		err := http.ListenAndServe(m.(string), mux)
+		err := http.ListenAndServe(port, mux)
 		glog.Fatal(err)
 	}()
 	// TODO: this is a hack to make sure the server is ready
@@ -124,5 +130,29 @@ func (w *wsTail) Run() {
 	for m := range w.In {
 		err := websocket.JSON.Send(w.ws, m)
 		flow.Check(err)
+	}
+}
+
+// Lookup an environment variable, with optional default.
+type EnvVar struct {
+	flow.Gadget
+	In  flow.Input
+	Out flow.Output
+}
+
+// Start lookup up environment variables.
+func (g *EnvVar) Run() {
+	for m := range g.In {
+		switch v := m.(type) {
+		case string:
+			m = os.Getenv(v)
+		case flow.Tag:
+			if s := os.Getenv(v.Tag); s != "" {
+				m = s
+			} else {
+				m = v.Msg
+			}
+		}
+		g.Out.Send(m)
 	}
 }

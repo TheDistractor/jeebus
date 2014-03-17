@@ -2,12 +2,22 @@
     "main": {
         "gadgets": [
             {
+                "name": "env",
+                "type": "EnvVar"
+            },
+            {
                 "name": "http",
                 "type": "HTTPServer"
             },
             {
                 "name": "forever",
                 "type": "Forever"
+            }
+        ],
+        "wires": [
+            {
+                "from": "env.Out",
+                "to": "http.Start"
             }
         ],
         "feeds": [
@@ -32,8 +42,9 @@
                 "to": "http.Handlers"
             },
             {
-                "data": ":3001",
-                "to": "http.Start"
+                "tag": "PORT",
+                "data": "3000",
+                "to": "env.In"
             }
         ]
     },
