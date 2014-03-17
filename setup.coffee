@@ -1,24 +1,5 @@
 #!/usr/bin/env coffee
 
-nodemap = [
-  { data: "RFg5i2,roomNode,boekenkast JC",  to: "nm.Info" }
-  { data: "RFg5i3,radioBlip",               to: "nm.Info" }
-  { data: "RFg5i4,roomNode,washok",         to: "nm.Info" }
-  { data: "RFg5i5,roomNode,woonkamer",      to: "nm.Info" }
-  { data: "RFg5i6,roomNode,hal vloer",      to: "nm.Info" }
-  { data: "RFg5i9,homePower",               to: "nm.Info" }
-  { data: "RFg5i10,roomNode",               to: "nm.Info" }
-  { data: "RFg5i11,roomNode,logeerkamer",   to: "nm.Info" }
-  { data: "RFg5i12,roomNode,boekenkast L",  to: "nm.Info" }
-  { data: "RFg5i13,roomNode,raam halfhoog", to: "nm.Info" }
-  { data: "RFg5i14,otRelay",                to: "nm.Info" }
-  { data: "RFg5i15,smaRelay",               to: "nm.Info" }
-  { data: "RFg5i18,p1scanner",              to: "nm.Info" }
-  { data: "RFg5i19,ookRelay",               to: "nm.Info" }
-  { data: "RFg5i23,roomNode,gang boven",    to: "nm.Info" }
-  { data: "RFg5i24,roomNode,zolderkamer",   to: "nm.Info" }
-]
-
 circuits = {}
 
 # simple jeebus setup, with dummy websocket support
@@ -60,7 +41,7 @@ circuits.replay =
     { name: "lg", type: "Logger" }
     { name: "st", type: "SketchType" }
     { name: "d1", type: "Dispatcher" }
-    { name: "nm", type: "NodeMap" }
+    { name: "nm", type: "nodesJeeLabs" }
     { name: "d2", type: "Dispatcher" }
     { name: "rd", type: "Readings" }
     { name: "pr", type: "Printer" }
@@ -79,10 +60,36 @@ circuits.replay =
     { from: "rd.Out", to: "pr.In" }
   ]
   feeds: [
-    nodemap...
     { data: "[RF12demo.10] _ i31* g5 @ 868 MHz", to: "rf.In" }
     { data: "./gadgets/rfdata/20121130.txt.gz", to: "lr.Name" }
     { data: "./logger", to: "lg.Dir" }
+  ]
+  
+# the node mapping for nodes at JeeLabs, as pre-configured circuit
+circuits.nodesJeeLabs =
+  gadgets: [
+    { name: "nm", type: "NodeMap" }
+  ]
+  feeds: [
+    { data: "RFg5i2,roomNode,boekenkast JC",  to: "nm.Info" }
+    { data: "RFg5i3,radioBlip,werkkamer",     to: "nm.Info" }
+    { data: "RFg5i4,roomNode,washok",         to: "nm.Info" }
+    { data: "RFg5i5,roomNode,woonkamer",      to: "nm.Info" }
+    { data: "RFg5i6,roomNode,hal vloer",      to: "nm.Info" }
+    { data: "RFg5i9,homePower,meterkast",     to: "nm.Info" }
+    { data: "RFg5i11,roomNode,logeerkamer",   to: "nm.Info" }
+    { data: "RFg5i12,roomNode,boekenkast L",  to: "nm.Info" }
+    { data: "RFg5i13,roomNode,raam halfhoog", to: "nm.Info" }
+    { data: "RFg5i14,otRelay,zolderkamer",    to: "nm.Info" }
+    { data: "RFg5i15,smaRelay,washok",        to: "nm.Info" }
+    { data: "RFg5i18,p1scanner,meterkast",    to: "nm.Info" }
+    { data: "RFg5i19,ookRelay,werkkamer",     to: "nm.Info" }
+    { data: "RFg5i23,roomNode,gang boven",    to: "nm.Info" }
+    { data: "RFg5i24,roomNode,zolderkamer",   to: "nm.Info" }
+  ]
+  labels: [
+    { external: "In", internal: "nm.In" }
+    { external: "Out", internal: "nm.Out" }
   ]
 
 # serial port test
@@ -91,7 +98,7 @@ circuits.serial =
     { name: "sp", type: "SerialPort" }
     { name: "st", type: "SketchType" }
     { name: "d1", type: "Dispatcher" }
-    { name: "nm", type: "NodeMap" }
+    { name: "nm", type: "nodesJeeLabs" }
     { name: "d2", type: "Dispatcher" }
     { name: "rd", type: "Readings" }
     { name: "pr", type: "Printer" }
@@ -105,7 +112,6 @@ circuits.serial =
     { from: "rd.Out", to: "pr.In" }
   ]
   feeds: [
-    nodemap...
     { data: "/dev/tty.usbserial-A901ROSN", to: "sp.Port" }
   ]
 
@@ -129,6 +135,6 @@ circuits.jeeboot =
   ]
 
 # write configuration to file, but keep a backup of the original, just in case
-fs = require('fs')
+fs = require 'fs'
 try fs.renameSync 'setup.json', 'setup-prev.json'
 fs.writeFileSync 'setup.json', JSON.stringify circuits, null, 4
