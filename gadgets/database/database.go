@@ -56,6 +56,10 @@ func (w *openDb) iterateOverKeys(from, to string, fun func(string, []byte)) {
 }
 
 func openDatabase(name string) *openDb {
+	if name == "" {
+		name = *dbPath
+	}
+
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
@@ -84,7 +88,7 @@ type LevelDB struct {
 // Open the database and start listening to incoming get/put/keys requests.
 func (w *LevelDB) Run() {
 	// if a name is given, use it, else use the default from the command line
-	name := *dbPath
+	name := ""
 	if m, ok := <-w.Name; ok {
 		name = m.(string)
 	}

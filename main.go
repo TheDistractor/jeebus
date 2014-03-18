@@ -30,10 +30,10 @@ func main() {
 	} else {
 		glog.Infof("JeeBus %s - starting, registry size %d, args: %v",
 			jeebus.Version, len(flow.Registry), flag.Args())
-			appMain := flag.Arg(0)
-			if appMain == "" {
-				appMain = "main"
-			}
+		appMain := flag.Arg(0)
+		if appMain == "" {
+			appMain = "main"
+		}
 		if factory, ok := flow.Registry[appMain]; ok {
 			factory().Run()
 		} else {
