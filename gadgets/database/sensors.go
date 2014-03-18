@@ -29,22 +29,21 @@ func (g *SensorSave) Run() {
 		if !ok {
 			asof = time.Now()
 		}
-		millis := asof.UnixNano() / 1000000
 		node := r["node"].(map[string]int)
 		if node["rssi"] != 0 {
 			values["rssi"] = node["rssi"]
 		}
-		location := r["location"].(string)
 		rf12 := r["rf12"].(map[string]int)
 
+		id := fmt.Sprintf("RF12:%d:%d", rf12["group"], node["<node>"])
 		data := map[string]interface{}{
-			"ms":  millis,
+			"ms":  asof.UnixNano() / 1000000,
 			"val": values,
-			"loc": location,
+			"loc": r["location"].(string),
 			"typ": r["decoder"].(string),
-			"id":  fmt.Sprintf("RF12:%d:%d", rf12["group"], node["<node>"]),
+			"id":  id,
 		}
-		g.Out.Send(flow.Tag{"/sensor", data})
+		g.Out.Send(flow.Tag{"/sensor/" + id, data})
 	}
 }
 
@@ -60,7 +59,7 @@ func (g *SplitReadings) Run() {
 	for m := range g.In {
 		data := m.(flow.Tag).Msg.(map[string]interface{})
 		for k, v := range data["val"].(map[string]int) {
-			key := fmt.Sprintf("/reading/%s/%s/%d",
+			key := fmt.Sprintf("reading/%s/%s/%d",
 				data["loc"].(string), k, data["ms"].(int64))
 			g.Out.Send(flow.Tag{key, v})
 		}
