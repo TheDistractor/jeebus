@@ -46,7 +46,7 @@ func (g *SensorSave) Run() {
 		location := r["location"].(string)
 		rf12 := r["rf12"].(map[string]int)
 
-		key := fmt.Sprintf("/sensor/%s/%d", location, millis)
+		key := fmt.Sprintf("/sensor/%s", location)
 		data := SensorData{
 			Millis:   millis,
 			Values:   values,

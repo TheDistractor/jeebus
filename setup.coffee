@@ -117,13 +117,20 @@ circuits.rf12toDatabase =
 circuits.serial =
   gadgets: [
     { name: "sp", type: "SerialPort" }
+    { name: "ts", type: "TimeStamp" }
+    { name: "f1", type: "FanOut" }
+    { name: "lg", type: "Logger" }
     { name: "db", type: "rf12toDatabase" }
   ]
   wires: [
-    { from: "sp.From", to: "db.In" }
+    { from: "sp.From", to: "ts.In" }
+    { from: "ts.Out", to: "f1.In" }
+    { from: "f1.Out:lg", to: "lg.In" }
+    { from: "f1.Out:db", to: "db.In" }
   ]
   feeds: [
     { data: "/dev/tty.usbserial-A901ROSN", to: "sp.Port" }
+    { data: "./logger", to: "lg.Dir" }
   ]
 
 # jeeboot server test
