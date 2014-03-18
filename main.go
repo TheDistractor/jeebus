@@ -12,7 +12,7 @@ import (
 
 var (
 	verbose   = flag.Bool("i", false, "show info about version and registry")
-	setupFile = flag.String("s", "setup.json", "circuitry setup file")
+	setupFile = flag.String("s", "setup.json", "name of the circuit setup file")
 )
 
 func main() {
@@ -26,7 +26,8 @@ func main() {
 	if *verbose {
 		println("JeeBus", jeebus.Version, "+ Flow", flow.Version, "\n")
 		flow.PrintRegistry()
-		println("\nDocumentation at http://godoc.org/github.com/jcw/jeebus")
+		println("\nUse 'help' for a list of commands or '-h' for a list of options.")
+		println("Documentation at http://godoc.org/github.com/jcw/jeebus")
 	} else {
 		glog.Infof("JeeBus %s - starting, registry size %d, args: %v",
 			jeebus.Version, len(flow.Registry), flag.Args())
