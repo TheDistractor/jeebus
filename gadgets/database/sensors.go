@@ -19,16 +19,7 @@ type SensorSave struct {
 	Out flow.Output
 }
 
-// The data structure used for saving readings in the database.
-type SensorData struct {
-	Millis   int64          // milliseconds, works well with JavaScript
-	Values   map[string]int // integer readings for one or more parameters
-	Location string         // the location of the sensor
-	Decoder  string         // the name of the decoder used
-	Node     string         // the identity of the node
-}
-
-// Convert each loosely structured sensor object into a struct for storage.
+// Convert each loosely structured sensor object into a strict map for storage.
 func (g *SensorSave) Run() {
 	for m := range g.In {
 		r := m.(map[string]flow.Message)
@@ -46,15 +37,14 @@ func (g *SensorSave) Run() {
 		location := r["location"].(string)
 		rf12 := r["rf12"].(map[string]int)
 
-		key := fmt.Sprintf("/sensor/%s", location)
-		data := SensorData{
-			Millis:   millis,
-			Values:   values,
-			Location: location,
-			Decoder:  r["decoder"].(string),
-			Node:     fmt.Sprintf("RF12:%d:%d", rf12["group"], node["<node>"]),
+		data := map[string]interface{}{
+			"ms":  millis,
+			"val": values,
+			"loc": location,
+			"typ": r["decoder"].(string),
+			"id":  fmt.Sprintf("RF12:%d:%d", rf12["group"], node["<node>"]),
 		}
-		g.Out.Send(flow.Tag{key, data})
+		g.Out.Send(flow.Tag{"/sensor", data})
 	}
 }
 
@@ -68,10 +58,10 @@ type SplitReadings struct {
 // Split combined measurements into individual readings, for separate storage.
 func (g *SplitReadings) Run() {
 	for m := range g.In {
-		data := m.(flow.Tag).Msg.(SensorData)
-		for k, v := range data.Values {
+		data := m.(flow.Tag).Msg.(map[string]interface{})
+		for k, v := range data["val"].(map[string]int) {
 			key := fmt.Sprintf("/reading/%s/%s/%d",
-				data.Location, k, data.Millis)
+				data["loc"].(string), k, data["ms"].(int64))
 			g.Out.Send(flow.Tag{key, v})
 		}
 	}
