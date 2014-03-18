@@ -7,7 +7,7 @@ circuits.main =
   gadgets: [
     { name: "env", type: "EnvVar" }
     { name: "http", type: "HTTPServer" }
-		{ name: "forever", type: "Forever" }
+		{ name: "replay", type: "replay" }
   ]
   wires: [
     { from: "env.Out", to: "http.Start" }

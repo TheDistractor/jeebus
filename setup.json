@@ -10,8 +10,8 @@
                 "type": "HTTPServer"
             },
             {
-                "name": "forever",
-                "type": "Forever"
+                "name": "replay",
+                "type": "replay"
             }
         ],
         "wires": [
