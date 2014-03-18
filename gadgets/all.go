@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	
+
 	"github.com/jcw/flow"
 	_ "github.com/jcw/flow/gadgets"
 
@@ -35,7 +35,7 @@ func init() {
 	helpTexts["main"] = `Run the default circuit defined in the setup file.`
 }
 
-type helpCmd struct { flow.Gadget }
+type helpCmd struct{ flow.Gadget }
 
 func (g *helpCmd) Run() {
 	if info, ok := helpTexts[flag.Arg(1)]; ok {

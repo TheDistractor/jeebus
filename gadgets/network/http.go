@@ -107,9 +107,9 @@ func createHandler(tag, s string) http.Handler {
 func wsHandler(ws *websocket.Conn) {
 	defer flow.DontPanic()
 	defer ws.Close()
-	
+
 	hdr := ws.Request().Header
-	
+
 	// keep track of connected clients for reload broadcasting
 	id := hdr.Get("Sec-Websocket-Key")
 	wsClients[id] = ws
