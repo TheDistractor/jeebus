@@ -2,6 +2,8 @@ package database
 
 import (
 	"flag"
+	"fmt"
+	
 	"github.com/jcw/flow"
 )
 
@@ -14,5 +16,8 @@ type dumpCmd struct {
 }
 
 func (g *dumpCmd) Run() {
-	println(flag.Args())
+	odb := openDatabase("./db")
+	odb.iterateOverKeys(flag.Arg(1), flag.Arg(2), func(k string, v []byte) {
+		fmt.Printf("%s = %s\n", k, v)
+	})
 }

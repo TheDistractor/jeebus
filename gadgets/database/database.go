@@ -41,6 +41,20 @@ func (odb *openDb) release() {
 	}
 }
 
+func (w *openDb) iterateOverKeys(from, to string, fun func(string, []byte)) {
+	slice := &dbutil.Range{[]byte(from), []byte(to)}
+	if len(to) == 0 {
+		slice.Limit = append(slice.Start, 0xFF)
+	}
+
+	iter := w.db.NewIterator(slice, nil)
+	defer iter.Release()
+
+	for iter.Next() {
+		fun(string(iter.Key()), iter.Value())
+	}
+}
+
 func openDatabase(name string) *openDb {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
@@ -126,7 +140,7 @@ func (w *LevelDB) keys(prefix string) (results []string) {
 	skip := len(prefix)
 	prev := "/" // impossible value, this never matches actual results
 
-	w.iterateOverKeys(prefix, "", func(k string, v []byte) {
+	w.odb.iterateOverKeys(prefix, "", func(k string, v []byte) {
 		i := strings.IndexRune(k[skip:], '/') + skip
 		if i < skip {
 			i = len(k)
@@ -138,18 +152,4 @@ func (w *LevelDB) keys(prefix string) (results []string) {
 		}
 	})
 	return
-}
-
-func (w *LevelDB) iterateOverKeys(from, to string, fun func(string, []byte)) {
-	slice := &dbutil.Range{[]byte(from), []byte(to)}
-	if len(to) == 0 {
-		slice.Limit = append(slice.Start, 0xFF)
-	}
-
-	iter := w.odb.db.NewIterator(slice, nil)
-	defer iter.Release()
-
-	for iter.Next() {
-		fun(string(iter.Key()), iter.Value())
-	}
 }

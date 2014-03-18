@@ -295,12 +295,6 @@
                 "to": "db.In"
             }
         ],
-        "feeds": [
-            {
-                "data": "./db",
-                "to": "db.Name"
-            }
-        ],
         "labels": [
             {
                 "external": "In",
