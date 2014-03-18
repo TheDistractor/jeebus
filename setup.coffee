@@ -106,9 +106,6 @@ circuits.rf12toDatabase =
     { from: "f2.Out:db", to: "db.In" }
     { from: "sr.Out", to: "db.In" }
   ]
-  feeds: [
-    { data: "./db", to: "db.Name" }
-  ]
   labels: [
     { external: "In", internal: "st.In" }
   ]

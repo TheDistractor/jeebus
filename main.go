@@ -13,7 +13,6 @@ import (
 var (
 	verbose   = flag.Bool("i", false, "show info about version and registry")
 	setupFile = flag.String("s", "setup.json", "circuitry setup file")
-	appMain   = flag.String("r", "main", "which registered circuit to run")
 )
 
 func main() {
@@ -29,12 +28,16 @@ func main() {
 		flow.PrintRegistry()
 		println("\nDocumentation at http://godoc.org/github.com/jcw/jeebus")
 	} else {
-		glog.Infof("JeeBus %s - starting, registry size %d",
-			jeebus.Version, len(flow.Registry))
-		if factory, ok := flow.Registry[*appMain]; ok {
+		glog.Infof("JeeBus %s - starting, registry size %d, args: %v",
+			jeebus.Version, len(flow.Registry), flag.Args())
+			appMain := flag.Arg(0)
+			if appMain == "" {
+				appMain = "main"
+			}
+		if factory, ok := flow.Registry[appMain]; ok {
 			factory().Run()
 		} else {
-			glog.Fatalln(*appMain, "not found in:", *setupFile)
+			glog.Fatalln(appMain, "not found in:", *setupFile)
 		}
 		glog.Infof("JeeBus %s -, normal exit", jeebus.Version)
 	}

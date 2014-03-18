@@ -3,6 +3,7 @@ package database
 
 import (
 	"encoding/json"
+	"flag"
 	"strings"
 	"sync"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	dbutil "github.com/syndtr/goleveldb/leveldb/util"
 )
+
+var dbPath = flag.String("db", "./db", "location of the LevelDB database")
 
 func init() {
 	flow.Registry["LevelDB"] = func() flow.Circuitry { return &LevelDB{} }
@@ -66,27 +69,29 @@ type LevelDB struct {
 
 // Open the database and start listening to incoming get/put/keys requests.
 func (w *LevelDB) Run() {
-	if name, ok := <-w.Name; ok {
-		w.odb = openDatabase(name.(string))
-		defer w.odb.release()
-
-		for m := range w.In {
-			if tag, ok := m.(flow.Tag); ok {
-				switch tag.Tag {
-				case "<get>":
-					key := tag.Msg.(string)
-					w.Out.Send(m)
-					w.Out.Send(w.get(key))
-				case "<keys>":
-					prefix := tag.Msg.(string)
-					w.Out.Send(m)
-					w.Out.Send(w.keys(prefix))
-				default:
-					w.put(tag.Tag, tag.Msg)
-				}
-			} else {
+	// if a name is given, use it, else use the default from the command line
+	name := *dbPath
+	if m, ok := <-w.Name; ok {
+		name = m.(string)
+	}
+	w.odb = openDatabase(name)
+	defer w.odb.release()
+	for m := range w.In {
+		if tag, ok := m.(flow.Tag); ok {
+			switch tag.Tag {
+			case "<get>":
+				key := tag.Msg.(string)
 				w.Out.Send(m)
+				w.Out.Send(w.get(key))
+			case "<keys>":
+				prefix := tag.Msg.(string)
+				w.Out.Send(m)
+				w.Out.Send(w.keys(prefix))
+			default:
+				w.put(tag.Tag, tag.Msg)
 			}
+		} else {
+			w.Out.Send(m)
 		}
 	}
 }
