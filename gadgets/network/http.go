@@ -18,6 +18,8 @@ func init() {
 	flow.Registry["EnvVar"] = func() flow.Circuitry { return &EnvVar{} }
 }
 
+var wsClients = map[string]*websocket.Conn{}
+
 // HTTPServer is a .Feed( which sets up an HTTP server.
 type HTTPServer struct {
 	flow.Gadget
@@ -39,6 +41,7 @@ func (fh *flowHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // Set up the handlers, then start the server and start processing requests.
 func (w *HTTPServer) Run() {
 	mux := http.NewServeMux() // don't use default to allow multiple instances
+	mux.HandleFunc("/reload", reloadHandler)
 	for m := range w.Handlers {
 		tag := m.(flow.Tag)
 		switch v := tag.Msg.(type) {
@@ -64,6 +67,15 @@ func (w *HTTPServer) Run() {
 	time.Sleep(10 * time.Millisecond)
 }
 
+// broadcast a reload request to each attached websocket client
+func reloadHandler(w http.ResponseWriter, req *http.Request) {
+	reload := req.URL.RawQuery == "true"
+	for _, ws := range wsClients {
+		websocket.JSON.Send(ws, reload)
+	}
+	w.Write([]byte{})
+}
+
 func createHandler(tag, s string) http.Handler {
 	// TODO: hook .Feed( in as HTTP handler
 	// if _, ok := flow.Registry[s]; ok {
@@ -85,8 +97,16 @@ func createHandler(tag, s string) http.Handler {
 func wsHandler(ws *websocket.Conn) {
 	defer flow.DontPanic()
 	defer ws.Close()
+	
+	hdr := ws.Request().Header
+	
+	// keep track of connected clients for reload broadcasting
+	id := hdr.Get("Sec-Websocket-Key")
+	wsClients[id] = ws
+	defer delete(wsClients, id)
 
-	tag := ws.Request().Header.Get("Sec-Websocket-Protocol")
+	// the protocol name is used as tag to locate the proper circuit
+	tag := hdr.Get("Sec-Websocket-Protocol")
 	if tag == "" {
 		tag = "default"
 	}
