@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -77,7 +78,7 @@ func reloadHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func createHandler(tag, s string) http.Handler {
-	// TODO: hook .Feed( in as HTTP handler
+	// TODO: hook gadget in as HTTP handler
 	// if _, ok := flow.Registry[s]; ok {
 	// 	return http.Handler(reqHandler)
 	// }
@@ -91,7 +92,16 @@ func createHandler(tag, s string) http.Handler {
 	if s != "/" {
 		h = http.StripPrefix(tag, h)
 	}
-	return h
+	if tag != "/" {
+		return h
+	}
+	// special-cased to return main page unless the URL has an extension
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if path.Ext(r.URL.Path) == "" {
+			r.URL.Path = "/"
+		}
+		h.ServeHTTP(w, r)
+	})
 }
 
 func wsHandler(ws *websocket.Conn) {
