@@ -55,6 +55,50 @@ func (w *openDb) iterateOverKeys(from, to string, fun func(string, []byte)) {
 	}
 }
 
+func (w *openDb) get(key string) (any interface{}) {
+	glog.Infoln("get", key)
+	data, err := w.db.Get([]byte(key), nil)
+	if err == leveldb.ErrNotFound {
+		return nil
+	}
+	flow.Check(err)
+	err = json.Unmarshal(data, &any)
+	flow.Check(err)
+	return
+}
+
+func (w *openDb) put(key string, value interface{}) {
+	glog.Infoln("put", key, value)
+	if value != nil {
+		data, err := json.Marshal(value)
+		flow.Check(err)
+		w.db.Put([]byte(key), data, nil)
+	} else {
+		w.db.Delete([]byte(key), nil)
+	}
+}
+
+func (w *openDb) keys(prefix string) (results []string) {
+	glog.Infoln("keys", prefix)
+	// TODO: decide whether this key logic is the most useful & least confusing
+	// TODO: should use skips and reverse iterators once the db gets larger!
+	skip := len(prefix)
+	prev := "/" // impossible value, this never matches actual results
+
+	w.iterateOverKeys(prefix, "", func(k string, v []byte) {
+		i := strings.IndexRune(k[skip:], '/') + skip
+		if i < skip {
+			i = len(k)
+		}
+		if prev != k[skip:i] {
+			// need to make a copy of the key, since it's owned by iter
+			prev = k[skip:i]
+			results = append(results, string(prev))
+		}
+	})
+	return
+}
+
 func openDatabase(name string) *openDb {
 	if name == "" {
 		name = *dbPath
@@ -100,60 +144,16 @@ func (w *LevelDB) Run() {
 			case "<get>":
 				key := tag.Msg.(string)
 				w.Out.Send(m)
-				w.Out.Send(w.get(key))
+				w.Out.Send(w.odb.get(key))
 			case "<keys>":
 				prefix := tag.Msg.(string)
 				w.Out.Send(m)
-				w.Out.Send(w.keys(prefix))
+				w.Out.Send(w.odb.keys(prefix))
 			default:
-				w.put(tag.Tag, tag.Msg)
+				w.odb.put(tag.Tag, tag.Msg)
 			}
 		} else {
 			w.Out.Send(m)
 		}
 	}
-}
-
-func (w *LevelDB) get(key string) (any interface{}) {
-	glog.Infoln("get", key)
-	data, err := w.odb.db.Get([]byte(key), nil)
-	if err == leveldb.ErrNotFound {
-		return nil
-	}
-	flow.Check(err)
-	err = json.Unmarshal(data, &any)
-	flow.Check(err)
-	return
-}
-
-func (w *LevelDB) put(key string, value interface{}) {
-	glog.Infoln("put", key, value)
-	if value != nil {
-		data, err := json.Marshal(value)
-		flow.Check(err)
-		w.odb.db.Put([]byte(key), data, nil)
-	} else {
-		w.odb.db.Delete([]byte(key), nil)
-	}
-}
-
-func (w *LevelDB) keys(prefix string) (results []string) {
-	glog.Infoln("keys", prefix)
-	// TODO: decide whether this key logic is the most useful & least confusing
-	// TODO: should use skips and reverse iterators once the db gets larger!
-	skip := len(prefix)
-	prev := "/" // impossible value, this never matches actual results
-
-	w.odb.iterateOverKeys(prefix, "", func(k string, v []byte) {
-		i := strings.IndexRune(k[skip:], '/') + skip
-		if i < skip {
-			i = len(k)
-		}
-		if prev != k[skip:i] {
-			// need to make a copy of the key, since it's owned by iter
-			prev = k[skip:i]
-			results = append(results, string(prev))
-		}
-	})
-	return
 }
