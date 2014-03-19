@@ -1,10 +1,9 @@
-# JeeBus development mode: launches "gin" and compiles CS/Jade/Stylus as needed
+# JeeBus development mode: re-compiles CS/Jade/Stylus as needed
 # -jcw, 2014-02-19
 
 fs = require 'fs'
-http = require 'http'
 path = require 'path'
-{execFile,spawn} = require 'child_process'
+{spawn} = require 'child_process'
 
 # look for modules relative to the current directory, not relative to this file
 moduleDir = (s) -> path.resolve 'node_modules', s
@@ -14,40 +13,24 @@ convert = require moduleDir 'convert-source-map'
 jade = require moduleDir 'jade'
 stylus = require moduleDir 'stylus'
 
-fatal = (s, args...) ->
+fatal = (s) ->
   console.error '\n[node] fatal error:', s
-  console.error args...  if args.length
   process.exit 1
 
-runGin = (done) ->
-  p = spawn 'gin', [], stdio: 'pipe'
-  p.on 'close', (code) ->
-    fatal 'unexpected termination of "gin", code: ' + code  if code > 0
-  p.stdout.on 'data', (data) ->
-    s = data.toString()
-    process.stdout.write s if data.length > 0
-    ready()  if /listening on port/.test s
-  p.stderr.on 'data', (data) ->
-    s = data.toString()
-    process.stderr.write s  unless /execvp\(\)/.test s
-  p
-  
-installGin = ->
-  console.log '"gin" tool not found, installing...'
-  
-  # assume "go" has been installed properly
-  execFile 'go', ['get', 'github.com/codegangsta/gin'], (err, sout, serr) ->
-    
-    # installing "go" cannot be done automatically
-    if err
-      if err.code is 'ENOENT'
-        fatal '"go" not found - please install it first, see http://golang.org/'
-      fatal 'install of "gin" failed', serr
+main = undefined
 
-    # ok, try running "gin" again
-    gin = runGin()
-    gin.on 'error', (err) ->
-      fatal 'still cannot launch "gin" - is $GOPATH/bin in your $PATH?'
+runMain = ->
+  args = ['run', ]
+  for f in fs.readdirSync '.'
+    args.push f  if path.extname(f) is '.go' and not /_test\./.test f
+  console.log '[node] go', args.join ' '
+  main = spawn 'go', args, stdio: ['ipc', process.stdout, process.stderr]
+  main.on 'close', (code) ->
+    fatal 'unexpected termination of "main", code: ' + code  if code > 0
+  main.on 'error', (err) ->
+    fatal 'cannot launch "go"'
+  main.on 'exit', ->
+    fatal 'main exited'
   
 compileCoffeeScriptWithMap = (sourceCode, filename) ->
   compiled = coffee.compile sourceCode,
@@ -96,9 +79,9 @@ compileIfNeeded = (srcFile) ->
     catch err
       console.log '[node] cannot compile', srcFile, err
   else if /\.(html|js)$/i.test srcFile
-    triggerRefresh true # request a full page reload
+    main.send true # request a full page reload
   else if /\.(css)$/i.test srcFile
-    triggerRefresh false # request a stylesheet reload
+    main.send false # request a stylesheet reload
 
 traverseDirs = (dir, cb) -> # recursive directory traversal
   stats = fs.statSync dir
@@ -127,12 +110,6 @@ createWatcher = (root) ->
         # TODO: delete compiled file
   root
 
-ready = -> # called once gin reports that it is actually listening on a port
-  console.log '[node] watching for file changes in:'
-  createWatcher settings.AppDir or './app'
-  createWatcher settings.BaseDir or './base'
-  createWatcher settings.CommonDir or './common'
-
 parseSettings = (fn) ->
   map = {}
   if fs.existsSync fn
@@ -148,39 +125,16 @@ parseSettings = (fn) ->
         map[k] = JSON.parse v
   map
 
-# debounce the refresh triggers, in case lots of them are generated at once
-reload = undefined
-timer = undefined
-
-triggerRefresh = (refresh) ->
-  reload or= refresh
-  clearTimeout timer
-  timer = setTimeout ->
-    port = settings.Port or 3000
-    # send a "GET /reload?..." to broadcast it on all connected websockets
-    http.get("http://localhost:#{port}/reload?#{reload}").on 'error', (e) ->
-      console.log "Got error: ", e.stack
-    reload = undefined
-  , 100
-
 # Start of devmode application code --------------------------------------------
 
-settings = parseSettings 'settings.txt'
+runMain()
 
-# assume "go" and "gin" have been installed properly
-gin = runGin()
+process.on 'message', (msg) ->
+  console.log 'got message:', msg
+  
+console.log '[node] watching for file changes in:'
 
-# else, try to install "gin" first
-gin.on 'error', (err) ->
-  fatal 'cannot launch "gin"', err  unless err.code is 'ENOENT'
-  installGin()
-
-# if gin goes down, then so should this node process
-gin.on 'exit', ->
-  console.error '[node] gin exited'
-  process .exit 1
-
-# if this node process goes down, then so should gin and the go application
-process.on 'uncaughtException', (err) ->
-  console.error '[node] exception:', err.stack
-  gin.kill()
+try settings = require('./setup').settings
+createWatcher settings?.AppDir or './app'
+createWatcher settings?.BaseDir or './base'
+createWatcher settings?.CommonDir or './common'
