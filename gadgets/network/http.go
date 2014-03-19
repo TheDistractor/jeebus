@@ -17,7 +17,6 @@ import (
 
 func init() {
 	flow.Registry["HTTPServer"] = func() flow.Circuitry { return &HTTPServer{} }
-	flow.Registry["EnvVar"] = func() flow.Circuitry { return &EnvVar{} }
 
 	// TODO: hack alert! special code to pick up node.js live reload triggers
 	// listen to stdin for "true" (html) and "false" (css) reload requests
@@ -169,29 +168,5 @@ func (w *wsTail) Run() {
 	for m := range w.In {
 		err := websocket.JSON.Send(w.ws, m)
 		flow.Check(err)
-	}
-}
-
-// Lookup an environment variable, with optional default.
-type EnvVar struct {
-	flow.Gadget
-	In  flow.Input
-	Out flow.Output
-}
-
-// Start lookup up environment variables.
-func (g *EnvVar) Run() {
-	for m := range g.In {
-		switch v := m.(type) {
-		case string:
-			m = os.Getenv(v)
-		case flow.Tag:
-			if s := os.Getenv(v.Tag); s != "" {
-				m = s
-			} else {
-				m = v.Msg
-			}
-		}
-		g.Out.Send(m)
 	}
 }

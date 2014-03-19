@@ -15,19 +15,6 @@ func ExampleCalcCrc16() {
 	// Lost flow.Tag: {<crc16> 22345}
 }
 
-func ExampleReadTextFile() {
-	g := flow.NewCircuit()
-	g.Add("r", "ReadTextFile")
-	g.Add("c", "Counter")
-	g.Connect("r.Out", "c.In", 0)
-	g.Feed("r.In", "./blinkAvr1.hex")
-	g.Run()
-	// Output:
-	// Lost flow.Tag: {<open> ./blinkAvr1.hex}
-	// Lost flow.Tag: {<close> ./blinkAvr1.hex}
-	// Lost int: 47
-}
-
 func ExampleIntelHexToBin() {
 	g := flow.NewCircuit()
 	g.Add("r", "ReadTextFile")

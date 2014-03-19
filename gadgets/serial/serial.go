@@ -13,24 +13,8 @@ import (
 )
 
 func init() {
-	flow.Registry["TimeStamp"] = func() flow.Circuitry { return &TimeStamp{} }
 	flow.Registry["SerialPort"] = func() flow.Circuitry { return &SerialPort{} }
 	flow.Registry["SketchType"] = func() flow.Circuitry { return &SketchType{} }
-}
-
-// Insert a timestamp before each message. Registers as "TimeStamp".
-type TimeStamp struct {
-	flow.Gadget
-	In  flow.Input
-	Out flow.Output
-}
-
-// Start inserting timestamps.
-func (w *TimeStamp) Run() {
-	for m := range w.In {
-		w.Out.Send(time.Now())
-		w.Out.Send(m)
-	}
 }
 
 // Line-oriented serial port, opened once the Port input is set.
@@ -51,11 +35,11 @@ func (w *SerialPort) Run() {
 		flow.Check(err)
 
 		// try to avoid kernel panics due to that wretched buggy FTDI driver!
-		defer func() {
-			time.Sleep(time.Second)
-			dev.Close()
-		}()
-		time.Sleep(time.Second)
+		// defer func() {
+		// 	time.Sleep(time.Second)
+		// 	dev.Close()
+		// }()
+		// time.Sleep(time.Second)
 
 		// separate process to copy data out to the serial port
 		go func() {

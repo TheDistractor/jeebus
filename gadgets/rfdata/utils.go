@@ -1,46 +1,17 @@
 package rfdata
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/hex"
-	"os"
 	"strings"
 
 	"github.com/jcw/flow"
 )
 
 func init() {
-	flow.Registry["ReadTextFile"] = func() flow.Circuitry { return &ReadTextFile{} }
 	flow.Registry["IntelHexToBin"] = func() flow.Circuitry { return &IntelHexToBin{} }
 	flow.Registry["BinaryFill"] = func() flow.Circuitry { return &BinaryFill{} }
 	flow.Registry["CalcCrc16"] = func() flow.Circuitry { return &CalcCrc16{} }
-}
-
-// ReadTextFile takes strings and replaces them by the lines of that file.
-// Inserts <open> and <close> tags before doing so. Registers as "ReadTextFile".
-type ReadTextFile struct {
-	flow.Gadget
-	In  flow.Input
-	Out flow.Output
-}
-
-// Start picking up strings and injecting the text lines instead.
-func (w *ReadTextFile) Run() {
-	for m := range w.In {
-		if name, ok := m.(string); ok {
-			file, err := os.Open(name)
-			flow.Check(err)
-			scanner := bufio.NewScanner(file)
-			w.Out.Send(flow.Tag{"<open>", name})
-			for scanner.Scan() {
-				w.Out.Send(scanner.Text())
-			}
-			w.Out.Send(flow.Tag{"<close>", name})
-		} else {
-			w.Out.Send(m)
-		}
-	}
 }
 
 // IntelHexToBin takes lines of text and converts them to a large []byte value.
