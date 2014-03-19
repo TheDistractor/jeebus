@@ -8,11 +8,6 @@ path = require 'path'
 # look for modules relative to the current directory, not relative to this file
 moduleDir = (s) -> path.resolve 'node_modules', s
 
-coffee = require moduleDir 'coffee-script'
-convert = require moduleDir 'convert-source-map'
-jade = require moduleDir 'jade'
-stylus = require moduleDir 'stylus'
-
 fatal = (s) ->
   console.error '\n[node] fatal error:', s
   process.exit 1
@@ -27,12 +22,13 @@ runMain = ->
     if /\.go$/i.test(f) and not /_test\./i.test(f)
       args.push f
       fs.watch f, recompileGoFiles
+  args = args.concat process.argv.slice(2)
   console.log '[node] go', args.join ' '
   main = spawn 'go', args, stdio: ['ipc', process.stdout, process.stderr]
   main.on 'error', (err) ->
     fatal 'cannot launch "go"'
   main.on 'message', (msg) ->
-    console.log '[node] pid message:', msg
+    console.log '[node] pid message:', msg, '\n'
     pid = msg | 0 # this is only > 0 when a plain number is received
   main.on 'close', (code) ->
     fatal 'unexpected termination of "main", code: ' + code  if code > 0
@@ -48,11 +44,13 @@ recompileGoFiles = ->
     runMain()
 
 compileCoffeeScriptWithMap = (sourceCode, filename) ->
+  coffee = require moduleDir 'coffee-script'
   compiled = coffee.compile sourceCode,
     filename: filename
     sourceMap: true
     inline: true
     literate: path.extname(filename) isnt '.coffee'
+  convert = require moduleDir 'convert-source-map'
   comment = convert
     .fromJSON(compiled.v3SourceMap)
     .setProperty('sources', [filename]) 
@@ -82,8 +80,10 @@ compileIfNeeded = (srcFile) ->
         src = fs.readFileSync srcFile, encoding: 'utf8'
         switch srcExt
           when '.jade'
+            jade = require moduleDir 'jade'
             saveResult do jade.compile src, filename: srcFile, pretty: true
           when '.styl'
+            stylus = require moduleDir 'stylus'
             stylus.render src, { filename: srcFile }, (err, css) ->
               if err
                 console.log '[node] stylus error', srcFile, err
@@ -145,8 +145,6 @@ parseSettings = (fn) ->
 
 # Start of devmode application code --------------------------------------------
 
-runMain()
-
 console.log '[node] watching for file changes in:'
 
 settings = require(path.resolve __dirname, '../setup').settings
@@ -154,3 +152,5 @@ createWatcher settings?.appDir or './app'
 createWatcher settings?.baseDir or './base'
 createWatcher settings?.commonDir or './common'
 createWatcher settings?.gadgetsDir or './gadgets'
+
+runMain()
