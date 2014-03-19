@@ -4,6 +4,7 @@ package jeebus
 import (
 	"flag"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -33,6 +34,17 @@ func init() {
 	helpTexts["put"] = `Store or delete an entry in the database.`
 	helpTexts["keys"] = `List the set of (sub-) keys in the database.`
 	helpTexts["main"] = `Run the default circuit defined in the setup file.`
+
+	// special hookup if caller is node.js, to pass the PID of this process
+	// yes, this is *writing* to stdin (which is used as IPC mechanism!)
+	if len(os.Args) == 1 {
+		// hack alert: only do this in the default case, i.e. without args
+		// TODO: need a way to detect whether node.js launched this app!
+		// perhaps check whether stdin is a pipe? is this portable?
+		// or check that the raw stdin and stdout fd's are different
+		os.Stdin.Write([]byte(fmt.Sprintf("%d\n", os.Getpid())))
+	}
+	// see the websocket code for how input from stdin is picked up
 }
 
 type helpCmd struct{ flow.Gadget }

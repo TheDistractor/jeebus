@@ -4,8 +4,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"os"
 
 	"github.com/golang/glog"
 	"github.com/jcw/flow"
@@ -20,17 +18,6 @@ var (
 func main() {
 	flag.Parse()
 
-	// special info if caller is node.js, to pass the PID of this process
-	// yes, this is *writing* to stdin (which is used as IPC mechanism!)
-	if flag.NArg() == 0 {
-		// hack alert: only do this in the default case, i.e. without args
-		// TODO: need a way to detect whether node.js launched this app!
-		// perhaps check whether stdin is a pipe? is this portable?
-		// or check that the raw stdin and stdout fd's are different
-		os.Stdin.Write([]byte(fmt.Sprintf("%d\n", os.Getpid())))
-	}
-	// see the websocket code for how input from stdin is picked up
-
 	err := flow.AddToRegistry(*setupFile)
 	if err != nil && !*verbose {
 		glog.Fatal(err)
@@ -42,7 +29,8 @@ func main() {
 		println("\nUse 'help' for a list of commands or '-h' for a list of options.")
 		println("Documentation at http://godoc.org/github.com/jcw/jeebus")
 	} else {
-		glog.Infof("JeeBus %s - starting, registry size %d, args: %v",
+		defer glog.Flush()
+		glog.Infof("JeeBus %s - starting, registry size %d, args: %q",
 			jeebus.Version, len(flow.Registry), flag.Args())
 
 		appMain := flag.Arg(0)
@@ -54,6 +42,6 @@ func main() {
 		} else {
 			glog.Fatalln(appMain, "not found in:", *setupFile)
 		}
-		glog.Infof("JeeBus %s -, normal exit", jeebus.Version)
+		glog.Infof("JeeBus %s - normal exit", jeebus.Version)
 	}
 }
