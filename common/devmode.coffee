@@ -18,17 +18,30 @@ fatal = (s) ->
   process.exit 1
 
 main = undefined
+pid = undefined
 
 runMain = ->
-  args = ['run', ]
+  args = ['run']
   for f in fs.readdirSync '.'
-    args.push f  if path.extname(f) is '.go' and not /_test\./.test f
+    if path.extname(f) is '.go' and not /_test\./.test f
+      args.push f
+      # watch and re-compile if any of the .go files change
+      fs.watch f, (event, filename) ->
+        if pid > 0
+          main.removeAllListeners() # avoid triggering on the 'exit' event
+          process.kill pid, 'SIGHUP'
+          pid = 0
+          runMain()
+      
   console.log '[node] go', args.join ' '
   main = spawn 'go', args, stdio: ['ipc', process.stdout, process.stderr]
-  main.on 'close', (code) ->
-    fatal 'unexpected termination of "main", code: ' + code  if code > 0
   main.on 'error', (err) ->
     fatal 'cannot launch "go"'
+  main.on 'message', (msg) ->
+    console.log '[node] pid message:', msg
+    pid = msg | 0 # this is only > 0 when a plain number is received
+  main.on 'close', (code) ->
+    fatal 'unexpected termination of "main", code: ' + code  if code > 0
   main.on 'exit', ->
     fatal 'main exited'
   
@@ -129,9 +142,6 @@ parseSettings = (fn) ->
 
 runMain()
 
-process.on 'message', (msg) ->
-  console.log 'got message:', msg
-  
 console.log '[node] watching for file changes in:'
 
 try settings = require('./setup').settings

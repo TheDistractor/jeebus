@@ -4,6 +4,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
 
 	"github.com/golang/glog"
 	"github.com/jcw/flow"
@@ -31,6 +33,11 @@ func main() {
 	} else {
 		glog.Infof("JeeBus %s - starting, registry size %d, args: %v",
 			jeebus.Version, len(flow.Registry), flag.Args())
+
+		// special info if caller is node.js, to pass the PID of this process
+		// yes, this is *writing* to stdin (which is used as IPC mechanism)
+		os.Stdin.Write([]byte(fmt.Sprintf("%d\n", os.Getpid())))
+
 		appMain := flag.Arg(0)
 		if appMain == "" {
 			appMain = "main"
