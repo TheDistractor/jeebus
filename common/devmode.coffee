@@ -1,4 +1,4 @@
-# JeeBus development mode: re-compiles CS/Jade/Stylus as needed
+# JeeBus development mode: re-compiles Go and CS/Jade/Stylus as needed
 # -jcw, 2014-02-19
 
 fs = require 'fs'
@@ -25,14 +25,7 @@ runMain = ->
   for f in fs.readdirSync '.'
     if path.extname(f) is '.go' and not /_test\./.test f
       args.push f
-      # watch and re-compile if any of the .go files change
-      fs.watch f, (event, filename) ->
-        if pid > 0
-          main.removeAllListeners() # avoid triggering on the 'exit' event
-          process.kill pid, 'SIGHUP'
-          pid = 0
-          runMain()
-      
+      fs.watch f, recompileGoFiles
   console.log '[node] go', args.join ' '
   main = spawn 'go', args, stdio: ['ipc', process.stdout, process.stderr]
   main.on 'error', (err) ->
@@ -44,7 +37,15 @@ runMain = ->
     fatal 'unexpected termination of "main", code: ' + code  if code > 0
   main.on 'exit', ->
     fatal 'main exited'
-  
+
+# re-compile when a .go files changes, if the running process is known
+recompileGoFiles = ->
+  if pid > 0
+    main.removeAllListeners() # prevent triggering on the 'exit' event
+    process.kill pid, 'SIGHUP'
+    pid = 0
+    runMain()
+
 compileCoffeeScriptWithMap = (sourceCode, filename) ->
   compiled = coffee.compile sourceCode,
     filename: filename
