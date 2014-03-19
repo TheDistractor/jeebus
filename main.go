@@ -37,6 +37,7 @@ func main() {
 		// special info if caller is node.js, to pass the PID of this process
 		// yes, this is *writing* to stdin (which is used as IPC mechanism)
 		os.Stdin.Write([]byte(fmt.Sprintf("%d\n", os.Getpid())))
+		// see the websocket code for how input from stdin is picked up
 
 		appMain := flag.Arg(0)
 		if appMain == "" {

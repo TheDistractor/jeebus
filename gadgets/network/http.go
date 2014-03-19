@@ -1,6 +1,7 @@
 package network
 
 import (
+	"bufio"
 	"io"
 	"net/http"
 	"os"
@@ -17,6 +18,24 @@ import (
 func init() {
 	flow.Registry["HTTPServer"] = func() flow.Circuitry { return &HTTPServer{} }
 	flow.Registry["EnvVar"] = func() flow.Circuitry { return &EnvVar{} }
+
+	// TODO: hack alert! special code to pick up node.js live reload triggers
+	// listen to stdin for "true" (html) and "false" (css) reload requests
+	// nothing bad happens if stdin is closed or no requests ever come in
+	bio := bufio.NewReader(os.Stdin)
+	go func() {
+		for {
+			line, _, err := bio.ReadLine()
+			if err != nil {
+				break
+			}
+			// broadcast a reload request to each attached websocket client
+			reload := string(line) == "true"
+			for _, ws := range wsClients {
+				websocket.JSON.Send(ws, reload)
+			}
+		}
+	}()
 }
 
 var wsClients = map[string]*websocket.Conn{}
@@ -42,7 +61,6 @@ func (fh *flowHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // Set up the handlers, then start the server and start processing requests.
 func (w *HTTPServer) Run() {
 	mux := http.NewServeMux() // don't use default to allow multiple instances
-	mux.HandleFunc("/reload", reloadHandler)
 	for m := range w.Handlers {
 		tag := m.(flow.Tag)
 		switch v := tag.Msg.(type) {
@@ -66,15 +84,6 @@ func (w *HTTPServer) Run() {
 	// TODO: this is a hack to make sure the server is ready
 	// better would be to interlock the goroutine with the listener being ready
 	time.Sleep(10 * time.Millisecond)
-}
-
-// broadcast a reload request to each attached websocket client
-func reloadHandler(w http.ResponseWriter, req *http.Request) {
-	reload := req.URL.RawQuery == "true"
-	for _, ws := range wsClients {
-		websocket.JSON.Send(ws, reload)
-	}
-	w.Write([]byte{})
 }
 
 func createHandler(tag, s string) http.Handler {

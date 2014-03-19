@@ -20,6 +20,7 @@ fatal = (s) ->
 main = undefined
 pid = undefined
 
+# launch the main app by compiling all its .go files via "go get"
 runMain = ->
   args = ['run']
   for f in fs.readdirSync '.'
