@@ -24,7 +24,7 @@ pid = undefined
 runMain = ->
   args = ['run']
   for f in fs.readdirSync '.'
-    if path.extname(f) is '.go' and not /_test\./.test f
+    if /\.go$/i.test(f) and not /_test\./i.test(f)
       args.push f
       fs.watch f, recompileGoFiles
   console.log '[node] go', args.join ' '
@@ -93,10 +93,14 @@ compileIfNeeded = (srcFile) ->
             saveResult compileCoffeeScriptWithMap src, path.basename srcFile
     catch err
       console.log '[node] cannot compile', srcFile, err
-  else if /\.(html|js)$/i.test srcFile
-    main.send true # request a full page reload
-  else if /\.(css)$/i.test srcFile
-    main.send false # request a stylesheet reload
+  else if pid > 0
+    if /\.(html|js)$/i.test srcFile
+      main.send true # request a full page reload
+    else if /\.(css)$/i.test srcFile
+      main.send false # request a stylesheet reload
+    else if /\.(go)$/i.test srcFile
+      console.log "[node] changed", srcFile
+      recompileGoFiles()
 
 traverseDirs = (dir, cb) -> # recursive directory traversal
   stats = fs.statSync dir
@@ -114,7 +118,6 @@ watchDir = (root, cb) -> # recursive directory watcher
 createWatcher = (root) ->
   console.log " ", root
   traverseDirs root, (dir) ->
-    # console.log 'd:', dir
     for f in fs.readdirSync dir
       compileIfNeeded path.join dir, f
     fs.watch dir, (event, filename) ->
@@ -150,3 +153,4 @@ try settings = require('./setup').settings
 createWatcher settings?.AppDir or './app'
 createWatcher settings?.BaseDir or './base'
 createWatcher settings?.CommonDir or './common'
+createWatcher settings?.GadgetsDir or './gadgets'
