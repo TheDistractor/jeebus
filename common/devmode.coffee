@@ -149,8 +149,8 @@ runMain()
 
 console.log '[node] watching for file changes in:'
 
-try settings = require('./setup').settings
-createWatcher settings?.AppDir or './app'
-createWatcher settings?.BaseDir or './base'
-createWatcher settings?.CommonDir or './common'
-createWatcher settings?.GadgetsDir or './gadgets'
+settings = require(path.resolve __dirname, '../setup').settings
+createWatcher settings?.appDir or './app'
+createWatcher settings?.baseDir or './base'
+createWatcher settings?.commonDir or './common'
+createWatcher settings?.gadgetsDir or './gadgets'
