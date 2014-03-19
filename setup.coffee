@@ -148,6 +148,15 @@ circuits.jeeboot =
   feeds: [
     { data: "/dev/tty.usbserial-A901ROSM", to: "sp.Port" }
   ]
+  
+# simple never-ending demo
+circuits.demo =
+  gadgets: [
+    { name: "c", type: "Clock" }
+  ]
+  feeds: [
+    { data: "1s", to: "c.Rate" }
+  ]
 
 # write configuration to file, but keep a backup of the original, just in case
 fs = require 'fs'

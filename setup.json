@@ -401,5 +401,19 @@
                 "to": "sp.Port"
             }
         ]
+    },
+    "demo": {
+        "gadgets": [
+            {
+                "name": "c",
+                "type": "Clock"
+            }
+        ],
+        "feeds": [
+            {
+                "data": "1s",
+                "to": "c.Rate"
+            }
+        ]
     }
 }
