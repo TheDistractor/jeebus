@@ -2,8 +2,10 @@
 package network
 
 import (
+	"encoding/json"
 	"net"
 
+	"github.com/golang/glog"
 	proto "github.com/huin/mqtt"
 	"github.com/jcw/flow"
 	"github.com/jeffallen/mqtt"
@@ -39,7 +41,10 @@ func (w *MQTTSub) Run() {
 		}})
 		for m := range client.Incoming {
 			payload := []byte(m.Payload.(proto.BytesPayload))
-			w.Out.Send(flow.Tag{m.TopicName, payload})
+			var any interface{}
+			err = json.Unmarshal(payload, &any)
+			flow.Check(err)
+			w.Out.Send(flow.Tag{m.TopicName, any})
 		}
 	}
 }
@@ -60,28 +65,38 @@ func (w *MQTTPub) Run() {
 	err = client.Connect("", "")
 	flow.Check(err)
 
-	if m, ok := <-w.In; ok {
-		msg := m.([]string)
+	for m := range w.In {
+		msg := m.(flow.Tag)
+		glog.Infoln("MQTT publish", msg.Tag, msg.Msg)
+		data, ok := msg.Msg.([]byte)
+		if !ok {
+			data, err = json.Marshal(msg.Msg)
+			flow.Check(err)
+		}
+		retain := len(msg.Tag) > 0 && msg.Tag[0] == '/'
 		client.Publish(&proto.Publish{
-			Header:    proto.Header{Retain: msg[0][0] == '/'},
-			TopicName: msg[0],
-			Payload:   proto.BytesPayload(msg[1]),
+			Header:    proto.Header{Retain: retain},
+			TopicName: msg.Tag,
+			Payload:   proto.BytesPayload(data),
 		})
+		glog.Infoln("MQTT publish DONE", msg.Tag, msg.Msg)
 	}
 }
 
 // MQTTServer is an embedded MQTT server. Registers as "MQTTServer".
 type MQTTServer struct {
 	flow.Gadget
-	Port flow.Input
+	Start flow.Input
 }
 
 // Start the MQTT server.
 func (w *MQTTServer) Run() {
-	port := (<-w.Port).(string)
+	port := (<-w.Start).(string)
 	listener, err := net.Listen("tcp", port)
 	flow.Check(err)
+	glog.Infoln("MQTT server started, port", port)
 	server := mqtt.NewServer(listener)
 	server.Start()
 	<-server.Done
+	glog.Infoln("MQTT server done, port", port)
 }

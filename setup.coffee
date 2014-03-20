@@ -5,19 +5,22 @@ circuits = {}
 # simple jeebus setup, with dummy websocket support
 circuits.main =
   gadgets: [
-    { name: "env", type: "EnvVar" }
     { name: "http", type: "HTTPServer" }
+    { name: "mqtt", type: "MQTTServer" }
+    { name: "pub", type: "MQTTPub" }
 		{ name: "replay", type: "replay" }
   ]
   wires: [
-    { from: "env.Out", to: "http.Start" }
+    { from: "replay.Out", to: "pub.In" }
   ]
   feeds: [
     { tag: "/", data: "./app",  to: "http.Handlers" }
     { tag: "/base/", data: "./base",  to: "http.Handlers" }
     { tag: "/common/", data: "./common",  to: "http.Handlers" }
     { tag: "/ws", data: "<websocket>",  to: "http.Handlers" }
-    { tag: "PORT", data: "3000",  to: "env.In" }
+    { data: ":3000",  to: "http.Start" }
+    { data: ":1883",  to: "mqtt.Start" }
+    { data: ":1883",  to: "pub.Port" }
   ]
 
 # define the websocket handler as just a pipe back to the browser for now
@@ -53,6 +56,9 @@ circuits.replay =
     { data: "[RF12demo.10] _ i31* g5 @ 868 MHz", to: "rf.In" }
     { data: "./gadgets/rfdata/20121130.txt.gz", to: "lr.Name" }
     { data: "./logger", to: "lg.Dir" }
+  ]
+  labels: [
+    { external: "Out", internal: "db.Out" }
   ]
   
 # the node mapping for nodes at JeeLabs, as pre-configured circuit
@@ -112,6 +118,7 @@ circuits.rf12toDatabase =
   ]
   labels: [
     { external: "In", internal: "st.In" }
+    { external: "Out", internal: "db.Mods" }
   ]
 
 # serial port test
