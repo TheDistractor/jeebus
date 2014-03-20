@@ -204,18 +204,16 @@ func (g *SensorSave) Run() {
 			values["rssi"] = node["rssi"]
 		}
 		rf12 := r["rf12"].(map[string]int)
+		location, _ := r["location"].(string)
+		decoder, _ := r["decoder"].(string)
 
 		id := fmt.Sprintf("RF12:%d:%d", rf12["group"], node["<node>"])
 		data := map[string]interface{}{
 			"ms":  asof.UnixNano() / 1000000,
 			"val": values,
+			"loc": location,
+			"typ": decoder,
 			"id":  id,
-		}
-		if location, ok := r["location"].(string); ok {
-			data["loc"] = location
-		}
-		if decoder, ok := r["decoder"].(string); ok {
-			data["typ"] = decoder
 		}
 		g.Out.Send(flow.Tag{"/sensor/" + id, data})
 	}

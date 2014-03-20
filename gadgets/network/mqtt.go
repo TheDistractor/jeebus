@@ -85,17 +85,19 @@ func (w *MQTTPub) Run() {
 // MQTTServer is an embedded MQTT server. Registers as "MQTTServer".
 type MQTTServer struct {
 	flow.Gadget
-	Start flow.Input
+	Port flow.Input
+	PortOut flow.Output
 }
 
 // Start the MQTT server.
 func (w *MQTTServer) Run() {
-	port := (<-w.Start).(string)
+	port := (<-w.Port).(string)
 	listener, err := net.Listen("tcp", port)
 	flow.Check(err)
 	glog.Infoln("MQTT server started, port", port)
 	server := mqtt.NewServer(listener)
 	server.Start()
+	w.PortOut.Send(port)
 	<-server.Done
 	glog.Infoln("MQTT server done, port", port)
 }

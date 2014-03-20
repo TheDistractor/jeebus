@@ -22,6 +22,10 @@
             {
                 "from": "replay.Out",
                 "to": "pub.In"
+            },
+            {
+                "from": "mqtt.PortOut",
+                "to": "pub.Port"
             }
         ],
         "feeds": [
@@ -51,11 +55,7 @@
             },
             {
                 "data": ":1883",
-                "to": "mqtt.Start"
-            },
-            {
-                "data": ":1883",
-                "to": "pub.Port"
+                "to": "mqtt.Port"
             }
         ]
     },

@@ -12,6 +12,7 @@ circuits.main =
   ]
   wires: [
     { from: "replay.Out", to: "pub.In" }
+    { from: "mqtt.PortOut", to: "pub.Port" }
   ]
   feeds: [
     { tag: "/", data: "./app",  to: "http.Handlers" }
@@ -19,8 +20,7 @@ circuits.main =
     { tag: "/common/", data: "./common",  to: "http.Handlers" }
     { tag: "/ws", data: "<websocket>",  to: "http.Handlers" }
     { data: ":3000",  to: "http.Start" }
-    { data: ":1883",  to: "mqtt.Start" }
-    { data: ":1883",  to: "pub.Port" }
+    { data: ":1883",  to: "mqtt.Port" }
   ]
 
 # define the websocket handler as just a pipe back to the browser for now
