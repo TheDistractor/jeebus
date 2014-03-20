@@ -106,6 +106,10 @@ circuits.rf12toDatabase =
     { from: "f2.Out:db", to: "db.In" }
     { from: "sr.Out", to: "db.In" }
   ]
+  feeds: [
+    { data: "Sketch-", to: "d1.Prefix" }
+    { data: "Node-", to: "d2.Prefix" }
+  ]
   labels: [
     { external: "In", internal: "st.In" }
   ]

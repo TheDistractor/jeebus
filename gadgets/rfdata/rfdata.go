@@ -124,7 +124,7 @@ func (w *NodeMap) Run() {
 					w.Out.Send(flow.Tag{"<location>", loc})
 				}
 				if tag, ok := nodeMap[key]; ok {
-					w.Out.Send(flow.Tag{"<dispatch>", "Node-" + tag})
+					w.Out.Send(flow.Tag{"<dispatch>", tag})
 				}
 			}
 			continue

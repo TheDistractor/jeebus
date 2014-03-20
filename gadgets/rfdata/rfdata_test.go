@@ -37,6 +37,6 @@ func ExampleNodeMap() {
 	// Lost map[string]int: map[<node>:3]
 	// Lost map[string]int: map[<node>:4]
 	// Lost flow.Tag: {<location> kitchen}
-	// Lost flow.Tag: {<dispatch> Node-roomNode}
+	// Lost flow.Tag: {<dispatch> roomNode}
 	// Lost map[string]int: map[<node>:5]
 }

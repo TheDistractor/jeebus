@@ -295,6 +295,16 @@
                 "to": "db.In"
             }
         ],
+        "feeds": [
+            {
+                "data": "Sketch-",
+                "to": "d1.Prefix"
+            },
+            {
+                "data": "Node-",
+                "to": "d2.Prefix"
+            }
+        ],
         "labels": [
             {
                 "external": "In",

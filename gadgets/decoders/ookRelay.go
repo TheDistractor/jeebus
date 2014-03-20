@@ -10,6 +10,7 @@ func init() {
 		g.AddCircuitry("or", &OokRelay{})
 		g.Add("dp", "Dispatcher")
 		g.Connect("or.Out", "dp.In", 0)
+		g.Feed("dp.Prefix", "Node-ook")
 		g.Label("In", "or.In")
 		g.Label("Out", "dp.Out")
 		g.Label("Rej", "dp.Rej")
@@ -40,7 +41,7 @@ func (w *OokRelay) Run() {
 				offset++
 
 				// insert a new decoder request
-				tag := "Node-ook" + ookDecoders[typ]
+				tag := ookDecoders[typ]
 				w.Out.Send(flow.Tag{"<dispatch>", tag})
 				w.Out.Send(v[offset : offset+size])
 
