@@ -17,7 +17,7 @@ func init() {
 	flow.Registry["MQTTServer"] = func() flow.Circuitry { return &MQTTServer{} }
 }
 
-// MQTTSub can subscribe to MQTT. Registers as "MQTTSub".
+// MQTTSub can subscribe to an MQTT topic. Registers as "MQTTSub".
 type MQTTSub struct {
 	flow.Gadget
 	Port  flow.Input
@@ -34,18 +34,18 @@ func (w *MQTTSub) Run() {
 	err = client.Connect("", "")
 	flow.Check(err)
 
-	if topic, ok := <-w.Topic; ok {
-		client.Subscribe([]proto.TopicQos{{
-			Topic: topic.(string),
-			Qos:   proto.QosAtMostOnce,
-		}})
-		for m := range client.Incoming {
-			payload := []byte(m.Payload.(proto.BytesPayload))
-			var any interface{}
-			err = json.Unmarshal(payload, &any)
-			flow.Check(err)
-			w.Out.Send(flow.Tag{m.TopicName, any})
-		}
+	topic := (<-w.Topic).(string)
+	client.Subscribe([]proto.TopicQos{{
+		Topic: topic,
+		Qos:   proto.QosAtMostOnce,
+	}})
+
+	for m := range client.Incoming {
+		payload := []byte(m.Payload.(proto.BytesPayload))
+		var any interface{}
+		err = json.Unmarshal(payload, &any)
+		flow.Check(err)
+		w.Out.Send(flow.Tag{m.TopicName, any})
 	}
 }
 
@@ -79,7 +79,6 @@ func (w *MQTTPub) Run() {
 			TopicName: msg.Tag,
 			Payload:   proto.BytesPayload(data),
 		})
-		glog.Infoln("MQTT publish DONE", msg.Tag, msg.Msg)
 	}
 }
 

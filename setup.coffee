@@ -2,7 +2,7 @@
 
 circuits = {}
 
-# simple jeebus setup, with dummy websocket support
+# jeebus setup, stores in db and publishes on mqtt (dummy websocket support)
 circuits.main =
   gadgets: [
     { name: "http", type: "HTTPServer" }
