@@ -1,11 +1,11 @@
 To download and install from source:
 
-* make sure that *Go* and *git* are installed and that *GOPATH* is set
-* download: **`go get github.com/jcw/jeebus/example`**
+* make sure that *go* and *git* are installed and that *GOPATH* is set
+* download and install: **`go get github.com/jcw/jeebus/example`**
 
 To run in normal mode:
 
-* launch installed binary: **`example`**
+* launch the installed binary: **`example`**
 
 To run in development mode:
 
