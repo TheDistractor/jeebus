@@ -1,4 +1,4 @@
 /db
 /files
 /logger
-/node_modules
+node_modules

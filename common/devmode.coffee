@@ -3,7 +3,7 @@
 
 fs = require 'fs'
 path = require 'path'
-{spawn} = require 'child_process'
+{execFile,spawn} = require 'child_process'
 
 # look for modules relative to the current directory, not relative to this file
 moduleDir = (s) -> path.resolve 'node_modules', s
@@ -116,17 +116,17 @@ watchDir = (root, cb) -> # recursive directory watcher
       cb event, file
 
 createWatcher = (root) ->
-  console.log " ", root
-  traverseDirs root, (dir) ->
-    for f in fs.readdirSync dir
-      compileIfNeeded path.join dir, f
-    fs.watch dir, (event, filename) ->
-      file = path.join dir, filename
-      if fs.existsSync file
-        compileIfNeeded file
-      else
-        # TODO: delete compiled file
-  root
+  if fs.existsSync root
+    console.log " ", root
+    traverseDirs root, (dir) ->
+      for f in fs.readdirSync dir
+        compileIfNeeded path.join dir, f
+      fs.watch dir, (event, filename) ->
+        file = path.join dir, filename
+        if fs.existsSync file
+          compileIfNeeded file
+        else
+          # TODO: delete compiled file
 
 parseSettings = (fn) ->
   map = {}
@@ -147,10 +147,18 @@ parseSettings = (fn) ->
 
 console.log '[node] watching for file changes in:'
 
-settings = require(path.resolve __dirname, '../setup').settings
+try {settings} = require(path.resolve __dirname, '../setup')
 createWatcher settings?.appDir or './app'
 createWatcher settings?.baseDir or './base'
 createWatcher settings?.commonDir or './common'
 createWatcher settings?.gadgetsDir or './gadgets'
 
-runMain()
+if fs.existsSync 'node_modules'
+  runMain()
+else
+  packages = ['coffee-script', 'convert-source-map', 'jade', 'stylus']
+  console.log '[node] installing npm packages:', packages.join ' '
+  npmstub = if process.platform == "win32" then "npm.cmd" else "npm"
+  execFile npmstub, ['install', packages...], {env:process.env}, (err, o, e) ->
+    fatal err  if err?
+    runMain()
