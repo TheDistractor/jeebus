@@ -34,6 +34,7 @@ runMain = ->
     fatal 'unexpected termination of "main", code: ' + code  if code > 0
   main.on 'exit', ->
     fatal 'main exited'
+  main.send null
 
 # re-compile when a .go files changes, if the running process is known
 recompileGoFiles = ->

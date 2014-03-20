@@ -2,6 +2,8 @@ package network
 
 import (
 	"bufio"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -17,24 +19,45 @@ import (
 
 func init() {
 	flow.Registry["HTTPServer"] = func() flow.Circuitry { return &HTTPServer{} }
-
-	// TODO: hack alert! special code to pick up node.js live reload triggers
-	// listen to stdin for "true" (html) and "false" (css) reload requests
-	// nothing bad happens if stdin is closed or no requests ever come in
-	bio := bufio.NewReader(os.Stdin)
+	
+	// use a special channel to pick up JSON "ipc" messages from stdin
+	// this is currently used to broadcast reload triggers to all websockets
 	go func() {
-		for {
-			line, _, err := bio.ReadLine()
-			if err != nil {
-				break
-			}
-			// broadcast a reload request to each attached websocket client
-			reload := string(line) == "true"
-			for _, ws := range wsClients {
-				websocket.JSON.Send(ws, reload)
+		// TODO: turn into a gadget, so that this can also be used with MQTT
+		for m := range ipcFromNodeJs() {
+			// FIXME: yuck, the JSON parsing is immediately re-encoded below!
+			// can't send a []byte, since this sends as binary msg iso JSON
+			var any interface{}
+			if err := json.Unmarshal(m, &any); err == nil {
+				for _, ws := range wsClients {
+					websocket.JSON.Send(ws, any)
+				}
 			}
 		}
 	}()
+}
+
+// hack alert! special code to pick up node.js live reload triggers
+// listens to stdin for a special "null" request and other JSON messages
+// the initial "null" triggers sending this process's PID back to node.js
+// nothing bad happens if stdin is closed or no data ever come in
+func ipcFromNodeJs() chan []byte {
+	ipc := make(chan []byte)
+	scanner := bufio.NewScanner(os.Stdin)
+	go func() {
+		if scanner.Scan() {
+			if scanner.Text() == "null" {
+				// yes, this is *writing* to stdin, i.e. used as IPC mechanism!
+				os.Stdin.Write([]byte(fmt.Sprintf("%d\n", os.Getpid())))
+			} else {
+				ipc <- scanner.Bytes()
+			}
+		}
+		for scanner.Scan() {
+			ipc <- scanner.Bytes()
+		}
+	}()
+	return ipc
 }
 
 var wsClients = map[string]*websocket.Conn{}
