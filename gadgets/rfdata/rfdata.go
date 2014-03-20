@@ -209,11 +209,13 @@ func (g *SensorSave) Run() {
 		data := map[string]interface{}{
 			"ms":  asof.UnixNano() / 1000000,
 			"val": values,
-			"typ": r["decoder"].(string),
 			"id":  id,
 		}
 		if location, ok := r["location"].(string); ok {
 			data["loc"] = location
+		}
+		if decoder, ok := r["decoder"].(string); ok {
+			data["typ"] = decoder
 		}
 		g.Out.Send(flow.Tag{"/sensor/" + id, data})
 	}
