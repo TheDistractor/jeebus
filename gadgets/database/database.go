@@ -125,6 +125,7 @@ type LevelDB struct {
 	Name flow.Input
 	In   flow.Input
 	Out  flow.Output
+	Mods flow.Output
 
 	odb *openDb
 }
@@ -151,6 +152,7 @@ func (w *LevelDB) Run() {
 				w.Out.Send(w.odb.keys(prefix))
 			default:
 				w.odb.put(tag.Tag, tag.Msg)
+				w.Mods.Send(tag)
 			}
 		} else {
 			w.Out.Send(m)

@@ -25,22 +25,21 @@ type MQTTSub struct {
 
 // Start listening and subscribing to MQTT.
 func (w *MQTTSub) Run() {
-	if port, ok := <-w.Port; ok {
-		sock, err := net.Dial("tcp", port.(string))
-		flow.Check(err)
-		client := mqtt.NewClientConn(sock)
-		err = client.Connect("", "")
-		flow.Check(err)
+	port := (<-w.Port).(string)
+	sock, err := net.Dial("tcp", port)
+	flow.Check(err)
+	client := mqtt.NewClientConn(sock)
+	err = client.Connect("", "")
+	flow.Check(err)
 
-		if topic, ok := <-w.Topic; ok {
-			client.Subscribe([]proto.TopicQos{{
-				Topic: topic.(string),
-				Qos:   proto.QosAtMostOnce,
-			}})
-			for m := range client.Incoming {
-				payload := []byte(m.Payload.(proto.BytesPayload))
-				w.Out.Send([]string{m.TopicName, string(payload)})
-			}
+	if topic, ok := <-w.Topic; ok {
+		client.Subscribe([]proto.TopicQos{{
+			Topic: topic.(string),
+			Qos:   proto.QosAtMostOnce,
+		}})
+		for m := range client.Incoming {
+			payload := []byte(m.Payload.(proto.BytesPayload))
+			w.Out.Send(flow.Tag{m.TopicName, payload})
 		}
 	}
 }
@@ -54,21 +53,20 @@ type MQTTPub struct {
 
 // Start publishing to MQTT.
 func (w *MQTTPub) Run() {
-	if port, ok := <-w.Port; ok {
-		sock, err := net.Dial("tcp", port.(string))
-		flow.Check(err)
-		client := mqtt.NewClientConn(sock)
-		err = client.Connect("", "")
-		flow.Check(err)
+	port := (<-w.Port).(string)
+	sock, err := net.Dial("tcp", port)
+	flow.Check(err)
+	client := mqtt.NewClientConn(sock)
+	err = client.Connect("", "")
+	flow.Check(err)
 
-		if m, ok := <-w.In; ok {
-			msg := m.([]string)
-			client.Publish(&proto.Publish{
-				Header:    proto.Header{Retain: msg[0][0] == '/'},
-				TopicName: msg[0],
-				Payload:   proto.BytesPayload(msg[1]),
-			})
-		}
+	if m, ok := <-w.In; ok {
+		msg := m.([]string)
+		client.Publish(&proto.Publish{
+			Header:    proto.Header{Retain: msg[0][0] == '/'},
+			TopicName: msg[0],
+			Payload:   proto.BytesPayload(msg[1]),
+		})
 	}
 }
 
@@ -80,11 +78,10 @@ type MQTTServer struct {
 
 // Start the MQTT server.
 func (w *MQTTServer) Run() {
-	if port, ok := <-w.Port; ok {
-		listener, err := net.Listen("tcp", port.(string))
-		flow.Check(err)
-		server := mqtt.NewServer(listener)
-		server.Start()
-		<-server.Done
-	}
+	port := (<-w.Port).(string)
+	listener, err := net.Listen("tcp", port)
+	flow.Check(err)
+	server := mqtt.NewServer(listener)
+	server.Start()
+	<-server.Done
 }
