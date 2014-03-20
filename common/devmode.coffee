@@ -154,7 +154,11 @@ createWatcher settings?.baseDir or './base'
 createWatcher settings?.commonDir or './common'
 createWatcher settings?.gadgetsDir or './gadgets'
 
-if fs.existsSync 'node_modules'
+# if the convert-source-map package is present, then others probably also are
+# don't load the others in yet, jade in particular takes too much time
+# packages will be loaded on first detected file change which needs them
+try ok = require 'convert-source-map'
+if ok
   runMain()
 else
   packages = ['coffee-script', 'convert-source-map', 'jade', 'stylus']

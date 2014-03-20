@@ -19,7 +19,7 @@ import (
 
 func init() {
 	flow.Registry["HTTPServer"] = func() flow.Circuitry { return &HTTPServer{} }
-	
+
 	// use a special channel to pick up JSON "ipc" messages from stdin
 	// this is currently used to broadcast reload triggers to all websockets
 	go func() {
