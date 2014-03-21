@@ -34,21 +34,22 @@ func (w *MQTTSub) Run() {
 	err = client.Connect("", "")
 	flow.Check(err)
 
-	topic := "#"
-	if t, ok := <- w.Topic; ok {
-		topic = t.(string)
+	for t := range w.Topic {
+		topic := t.(string)
+		glog.Infoln("mqtt-sub", topic)
+		client.Subscribe([]proto.TopicQos{{
+			Topic: topic,
+			Qos:   proto.QosAtMostOnce,
+		}})
 	}
-	glog.Infoln("mqtt-sub", topic)
-	client.Subscribe([]proto.TopicQos{{
-		Topic: topic,
-		Qos:   proto.QosAtMostOnce,
-	}})
 
 	for m := range client.Incoming {
 		payload := []byte(m.Payload.(proto.BytesPayload))
+		// try to decode as JSON, but leave as []byte if that fails
 		var any interface{}
-		err = json.Unmarshal(payload, &any)
-		flow.Check(err)
+		if err = json.Unmarshal(payload, &any); err != nil {
+			any = payload
+		}
 		w.Out.Send(flow.Tag{m.TopicName, any})
 	}
 }
@@ -89,7 +90,7 @@ func (w *MQTTPub) Run() {
 // MQTTServer is an embedded MQTT server. Registers as "MQTTServer".
 type MQTTServer struct {
 	flow.Gadget
-	Port flow.Input
+	Port    flow.Input
 	PortOut flow.Output
 }
 
