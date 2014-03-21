@@ -151,7 +151,6 @@ console.log '[node] watching for file changes in:'
 try {settings} = require(path.resolve __dirname, '../setup')
 createWatcher settings?.appDir or './app'
 createWatcher settings?.baseDir or './base'
-createWatcher settings?.commonDir or './common'
 createWatcher settings?.gadgetsDir or './gadgets'
 
 # if the convert-source-map package is present, then others probably also are

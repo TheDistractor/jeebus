@@ -17,7 +17,6 @@ circuits.main =
   feeds: [
     { tag: "/", data: "./app",  to: "http.Handlers" }
     { tag: "/base/", data: "./base",  to: "http.Handlers" }
-    { tag: "/common/", data: "./common",  to: "http.Handlers" }
     { tag: "/ws", data: "<websocket>",  to: "http.Handlers" }
     { data: ":3000",  to: "http.Start" }
     { data: ":1883",  to: "mqtt.Port" }

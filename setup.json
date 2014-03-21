@@ -40,11 +40,6 @@
                 "to": "http.Handlers"
             },
             {
-                "tag": "/common/",
-                "data": "./common",
-                "to": "http.Handlers"
-            },
-            {
                 "tag": "/ws",
                 "data": "<websocket>",
                 "to": "http.Handlers"
