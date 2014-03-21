@@ -34,7 +34,11 @@ func (w *MQTTSub) Run() {
 	err = client.Connect("", "")
 	flow.Check(err)
 
-	topic := (<-w.Topic).(string)
+	topic := "#"
+	if t, ok := <- w.Topic; ok {
+		topic = t.(string)
+	}
+	glog.Infoln("mqtt-sub", topic)
 	client.Subscribe([]proto.TopicQos{{
 		Topic: topic,
 		Qos:   proto.QosAtMostOnce,
@@ -67,7 +71,7 @@ func (w *MQTTPub) Run() {
 
 	for m := range w.In {
 		msg := m.(flow.Tag)
-		glog.Infoln("MQTT publish", msg.Tag, msg.Msg)
+		glog.Infoln("mqtt-pub", msg.Tag, msg.Msg)
 		data, ok := msg.Msg.([]byte)
 		if !ok {
 			data, err = json.Marshal(msg.Msg)
@@ -94,10 +98,10 @@ func (w *MQTTServer) Run() {
 	port := (<-w.Port).(string)
 	listener, err := net.Listen("tcp", port)
 	flow.Check(err)
-	glog.Infoln("MQTT server started, port", port)
+	glog.Infoln("mqtt started, port", port)
 	server := mqtt.NewServer(listener)
 	server.Start()
 	w.PortOut.Send(port)
 	<-server.Done
-	glog.Infoln("MQTT server done, port", port)
+	glog.Infoln("mqtt done, port", port)
 }
