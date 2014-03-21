@@ -23,14 +23,14 @@ circuits.main =
     { data: ":1883",  to: "mqtt.Port" }
   ]
 
-# define the websocket handler as just a pipe back to the browser for now
+# define the websocket handler using a loop in and out of RpcHandler
 circuits["WebSocket-jeebus"] =
   gadgets: [
-    { name: "p", type: "Pipe" }
+    { name: "rpc", type: "RpcHandler" }
   ]
   labels: [
-    { external: "In", internal: "p.In" }
-    { external: "Out", internal: "p.Out" }
+    { external: "In", internal: "rpc.In" }
+    { external: "Out", internal: "rpc.Out" }
   ]
 
 # this app runs a replay simulation with dynamically-loaded decoders

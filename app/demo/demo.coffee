@@ -12,13 +12,16 @@ ng.controller 'DemoCtrl', ($scope, jeebus) ->
 
   $scope.echoTest = ->
     jeebus.send "echoTest!" # send a test message to JB server's stdout
-    jeebus.rpc('echo', 'Echo', 'me!').then (r) ->
-      $scope.message = r
+    jeebus.rpc 'echo', 'Echo', 'me!'
+      .then (r) ->
+        $scope.message = r
 
   $scope.dbGetTest = ->
-    jeebus.rpc('db-get', '/jb/info').then (r) ->
-      $scope.message = r
+    jeebus.rpc 'db-get', '/jb/info'
+      .then (r) ->
+        $scope.message = r
 
   $scope.dbKeysTest = ->
-    jeebus.rpc('db-keys', '/jb/').then (r) ->
-      $scope.message = r
+    jeebus.rpc 'db-keys', '/jb/'
+      .then (r) ->
+        $scope.message = r

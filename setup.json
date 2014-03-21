@@ -62,18 +62,18 @@
     "WebSocket-jeebus": {
         "gadgets": [
             {
-                "name": "p",
-                "type": "Pipe"
+                "name": "rpc",
+                "type": "RpcHandler"
             }
         ],
         "labels": [
             {
                 "external": "In",
-                "internal": "p.In"
+                "internal": "rpc.In"
             },
             {
                 "external": "Out",
-                "internal": "p.Out"
+                "internal": "rpc.Out"
             }
         ]
     },

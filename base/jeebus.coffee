@@ -27,8 +27,9 @@ ng.factory 'jeebus', ($rootScope, $q) ->
 
   # Resolve or reject a pending rpc promise.
   processRpcReply = (err, n, result) ->
-    d = rpcPromises[n]
+    [t,d] = rpcPromises[n]
     if d
+      clearTimeout t
       if err
         console.error err
         d.reject err
@@ -104,14 +105,14 @@ ng.factory 'jeebus', ($rootScope, $q) ->
   rpc = (args...) ->
     d = $q.defer()
     n = ++seqNum
-    rpcPromises[n] = d
     ws.send angular.toJson [n, args...]
-    setTimeout ->
+    t = setTimeout ->
       console.error "RPC #{n}: no reponse", args
       delete rpcPromises[n]
       $rootScope.$apply ->
         d.reject()
     , 10000 # 10 seconds should be enough to complete any request
+    rpcPromises[n] = [t, d]
     d.promise
 
   # Attach, i.e. get corresponding data as a model which tracks all changes.

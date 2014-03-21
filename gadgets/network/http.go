@@ -19,6 +19,7 @@ import (
 
 func init() {
 	flow.Registry["HTTPServer"] = func() flow.Circuitry { return &HTTPServer{} }
+	flow.Registry["RpcHandler"] = func() flow.Circuitry { return &RpcHandler{} }
 
 	// use a special channel to pick up JSON "ipc" messages from stdin
 	// this is currently used to broadcast reload triggers to all websockets
@@ -176,7 +177,12 @@ func (w *wsHead) Run() {
 			break
 		}
 		flow.Check(err)
-		w.Out.Send(msg)
+		if s, ok := msg.(string); ok {
+			id := w.ws.Request().Header.Get("Sec-Websocket-Key")
+			fmt.Println("msg <"+id[:4]+">:", s)
+		} else {
+			w.Out.Send(msg)
+		}
 	}
 }
 
@@ -192,4 +198,51 @@ func (w *wsTail) Run() {
 		err := websocket.JSON.Send(w.ws, m)
 		flow.Check(err)
 	}
+}
+
+type RpcHandler struct {
+	flow.Gadget
+	In  flow.Input
+	Out flow.Output
+}
+
+func (g *RpcHandler) Run() {
+	for m := range g.In {
+		if rpc, ok := m.([]interface{}); ok {
+			if seq, ok := rpc[0].(float64); ok {
+				reply, errMsg := processRpcRequest(rpc[1].(string), rpc[2:])
+				if seq == 0 {
+					continue // no reply expected
+				}
+				m = []interface{}{errMsg, seq, reply}
+			}
+		}
+		g.Out.Send(m)
+	}
+}
+
+func processRpcRequest(cmd string, args []interface{}) (reply interface{}, errMsg string) {
+	defer func() {
+		switch v := recover().(type) {
+		case nil:
+			// no error
+		case string:
+			errMsg = v
+		case error:
+			errMsg = v.Error()
+		default:
+			errMsg = fmt.Sprintf("%T: %v", v, v)
+		}
+		if errMsg != "" {
+			glog.Warningln("rpc-error", cmd, args, errMsg)
+		}
+	}()
+
+	switch cmd {
+	case "echo":
+		reply = args
+	default:
+		panic(cmd + "?")
+	}
+	return
 }
