@@ -24,66 +24,67 @@ ng.factory 'jeebus', ($rootScope, $q) ->
     console.error "spurious model update", key, value  unless suffix
 
   # Resolve or reject a pending rpc promise.
-  processRpcReply = (n, result, err) ->
-    if rpcPromises[n]
-      [tid,d] = rpcPromises[n]
-      clearTimeout tid
+  processRpcReply = (err, n, result) ->
+    d = rpcPromises[n]
+    if d
       if err
         console.error err
         d.reject err
       else
         d.resolve result
     else
-      console.error "spurious rpc reply", n, result, err
+      console.error "spurious rpc reply", err, n, result
 
   # Set up a websocket connection to the JeeBus server.
   # The appTag is the default tag to use when sending requests to it.
-  connect = (appTag, port) ->
-    port ?= location.port # the default port is the same as the HTTP server
+  connect = (appTag) ->
 
     reconnect = (firstCall) ->
       # the websocket is served from the same site as the web page
-      # ws = new WebSocket "ws://#{location.host}/ws"
-      ws = new WebSocket "ws://#{location.hostname}:#{port}/ws", [appTag]
+      ws = new WebSocket "ws://#{location.host}/ws", [appTag]
 
       ws.onopen = ->
         # location.reload()  unless firstCall
         console.log 'WS Open'
+        $rootScope.$apply ->
+          $rootScope.serverStatus = 'connected'
 
       ws.onmessage = (m) ->
         if m.data instanceof ArrayBuffer
           console.log 'binary msg', m
         $rootScope.$apply ->
           data = JSON.parse(m.data)
-          if m.data[0] is '['
-            processRpcReply data...
-          else
-            switch data
-              when true # reload app
+          switch typeof data
+            when 'object'
+              if Array.isArray data
+                processRpcReply data...
+              else
+                for k, v of data
+                  processModelUpdate k, v
+            when 'boolean'
+              if data # reload app
                 window.location.reload true
-              when false # refresh stylesheets
+              else # refresh stylesheets
                 console.log "CSS Reload"
                 for e in document.getElementsByTagName 'link'
                   if e.href and /stylesheet/i.test e.rel
                     e.href = "#{e.href.replace /\?.*/, ''}?#{Date.now()}"
-              else
-                # TODO: should not write into the root scope (merge, perhaps?)
-                for k, v of data
-                  # $rootScope[k] = v
-                  processModelUpdate k, v
+            else
+              console.log 'Server msg:', data
 
       # ws.onerror = (e) ->
       #   console.log 'Error', e
 
       ws.onclose = ->
         console.log 'WS Closed'
+        $rootScope.$apply ->
+          $rootScope.serverStatus = 'disconnected'
         setTimeout reconnect, 1000
 
     reconnect true
    
   # Send a payload to the JeeBus server over the websocket connection.
   # The payload should be an object (anything but array is supported for now).
-  # This becomes an MQTT message with topic "sv/<appTag>/ip-<addr:port>".
   send = (payload) ->
     msg = angular.toJson payload
     if msg[0] is '['
@@ -92,36 +93,27 @@ ng.factory 'jeebus', ($rootScope, $q) ->
       ws.send msg
     @
 
-  # Fetch a key/value pair from the JeeBus database (key must start with "/").
-  fetch = (key) ->
-    if key[0] is '/'
-      rpc key
-    else
-      console.error 'key does not start with "/":', key
+  # Fetch a key/value pair from the server database, value returned as promise.
+  get = (key) ->
+    rpc 'get', key
       
-  # Store a key/value pair in the JeeBus database (key must start with "/").
-  store = (key, value) ->
-    msg = angular.toJson [key, value]
-    if msg.slice(0, 3) is '["/'
-      ws.send msg
-    else
-      console.error 'key does not start with "/":', key
+  # Store a key/value pair in the server database.
+  put = (key, value) ->
+    ws.send angular.toJson [0, 'put', key, value]
     @
       
   # Perform an RPC call, i.e. register result callback and return a promise.
-  # This doesn't use MQTT to avoid additional round trips for frequent calls.
   rpc = (args...) ->
     d = $q.defer()
     n = ++seqNum
+    rpcPromises[n] = d
     ws.send angular.toJson [n, args...]
-    # TODO: there's no need to remember tid, it's ok if the timer always fires
-    tid = setTimeout ->
+    setTimeout ->
       console.error "RPC #{n}: no reponse", args
       delete rpcPromises[n]
       $rootScope.$apply ->
         d.reject()
     , 10000 # 10 seconds should be enough to complete any request
-    rpcPromises[n] = [tid, d]
     d.promise
 
   # Attach, i.e. get corresponding data as a model which tracks all changes.
@@ -141,5 +133,6 @@ ng.factory 'jeebus', ($rootScope, $q) ->
       delete trackedModels[path]
       rpc 'detach', path
         .then -> console.log 'detach', path
+    @
 
-  {connect,send,fetch,store,rpc,attach,detach}
+  {connect,send,get,put,rpc,attach,detach}

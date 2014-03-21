@@ -27,11 +27,10 @@
     <div ui-view></div>
     <div class="row">
       <div class="large-3 columns">
-        <p class="secondary label">Version <span app-version></span></p>
+        <p class="secondary label">Version {{appInfo.version}}</p>
       </div>
       <div class="large-3 columns">
-        <div class="label">Conn: {{serverConnection}}</div>
-        <div class="secondary label">@ {{ serverTick | date:'HH:mm:ss' }}</div>
+        <p class="secondary label">Server {{serverStatus}}</p>
       </div>
     </div>
     <script src="/base/vendor/angular/angular.min.js"></script>

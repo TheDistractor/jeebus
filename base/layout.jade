@@ -45,12 +45,9 @@ html(lang='en')
     block footer
       .row
         .large-3.columns
-          p.secondary.label
-            | Version 
-            span(app-version)
+          p.secondary.label Version {{appInfo.version}}
         .large-3.columns
-          .label Conn: {{serverConnection}}
-          .secondary.label @ {{ serverTick | date:'HH:mm:ss' }}
+          p.secondary.label Server {{serverStatus}}
     
     //- AngularJS is always included first
     script(src='/base/vendor/angular/angular.min.js')

@@ -15,7 +15,3 @@ ng.run (jeebus) ->
 ng.run ($rootScope, appInfo) ->
   $rootScope.appInfo = appInfo
   $rootScope.shared = {}
-  
-ng.directive 'appVersion', (appInfo) ->
-  (scope, elm, attrs) ->
-    elm.text appInfo.version
