@@ -1,5 +1,7 @@
 ng = angular.module 'myApp'
 
+console.log 'NG', angular.version.full
+
 ng.config ($urlRouterProvider, $locationProvider) ->
   $urlRouterProvider.otherwise '/'
   $locationProvider.html5Mode true
@@ -53,7 +55,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
         if m.data instanceof ArrayBuffer
           console.log 'binary msg', m
         $rootScope.$apply ->
-          data = JSON.parse(m.data)
+          data = JSON.parse m.data
           switch typeof data
             when 'object'
               if Array.isArray data
@@ -86,11 +88,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
   # Send a payload to the JeeBus server over the websocket connection.
   # The payload should be an object (anything but array is supported for now).
   send = (payload) ->
-    msg = angular.toJson payload
-    if msg[0] is '['
-      console.error "payload can't be an array (#{payload.length} elements)"
-    else
-      ws.send msg
+    ws.send angular.toJson payload
     @
 
   # Fetch a key/value pair from the server database, value returned as promise.
@@ -99,7 +97,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
       
   # Store a key/value pair in the server database.
   put = (key, value) ->
-    ws.send angular.toJson [0, 'put', key, value]
+    send [0, 'put', key, value]
     @
       
   # Perform an RPC call, i.e. register result callback and return a promise.
@@ -135,4 +133,5 @@ ng.factory 'jeebus', ($rootScope, $q) ->
         .then -> console.log 'detach', path
     @
 
+  window.send = send # console access, for debugging
   {connect,send,get,put,rpc,attach,detach}
