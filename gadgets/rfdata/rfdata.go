@@ -112,9 +112,9 @@ func (w *NodeMap) Run() {
 
 	var group int
 	for m := range w.In {
-		if data, ok := m.(map[string]int); ok {
-			w.Out.Send(m)
+		w.Out.Send(m)
 
+		if data, ok := m.(map[string]int); ok {
 			switch {
 			case data["<RF12demo>"] > 0:
 				group = data["group"]
@@ -127,10 +127,7 @@ func (w *NodeMap) Run() {
 					w.Out.Send(flow.Tag{"<dispatch>", tag})
 				}
 			}
-			continue
 		}
-
-		w.Out.Send(m)
 	}
 }
 
