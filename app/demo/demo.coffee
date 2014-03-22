@@ -21,7 +21,7 @@ ng.controller 'DemoCtrl', ($scope, jeebus) ->
       .then (r) ->
         $scope.message = r
 
-  $scope.clockTest = ->
-    jeebus.gadget 'Clock', Rate: '5s'
+  $scope.mqttTest = ->
+    jeebus.gadget 'MQTTSub', Topic: '/#', Port: ':1883'
       .on 'Out', (r) ->
-        $scope.tick = r
+        $scope.message = r

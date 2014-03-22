@@ -253,6 +253,7 @@ func (g *RpcHandler) handleRpcRequest(cmd string, seq int, args []interface{}) (
 			c.Feed("x."+k, v)
 		}
 		go func() {
+			defer flow.DontPanic()
 			c.Run()
 			g.Out.Send([]interface{}{seq, false}) // end streaming
 		}()
