@@ -5,18 +5,19 @@
     <table cellpadding="10">
       <tr>
         <td>
-          <button ng-click="echoTest()">RPC Echo</button>
+          <button ng-click="echoTest()">Echo RPC</button>
         </td>
         <td>
-          <button ng-click="dbGetTest()">RPC DB Get</button>
+          <button ng-click="dbKeysTest()">DB Keys RPC</button>
         </td>
         <td>
-          <button ng-click="dbKeysTest()">RPC DB Keys</button>
+          <button ng-click="clockTest()">Clock Gadget</button>
         </td>
       </tr>
       <tr>
         <td colspan="3">{{message}} &nbsp;</td>
       </tr>
     </table>
+    <p>tick: {{tick}}</p>
   </div>
 </div>

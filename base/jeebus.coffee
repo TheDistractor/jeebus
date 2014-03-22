@@ -11,7 +11,7 @@ ng.config ($urlRouterProvider, $locationProvider) ->
 ng.factory 'jeebus', ($rootScope, $q) ->
   ws = null          # the websocket object, while open
   seqNum = 0         # unique sequence numbers for each RPC request
-  rpcPromises = {}   # maps seqNum to a pending <timerId,promise> entry
+  rpcPromises = {}   # maps seqNum to a pending <timerId,promise,emitter> entry
   trackedModels = {} # keeps track of which paths have been attached
 
   # Update one or more of the tracked models with an incoming change.
@@ -26,17 +26,35 @@ ng.factory 'jeebus', ($rootScope, $q) ->
     console.error "spurious model update", key, value  unless suffix
 
   # Resolve or reject a pending rpc promise.
-  processRpcReply = (n, err, result) ->
-    [t,d] = rpcPromises[n]
+  processRpcReply = (reply) ->
+    [n,msg,result] = reply
+    [t,d,e] = rpcPromises[n]
     if d
       clearTimeout t
-      if err
-        console.error err
-        d.reject err
-      else
+      if msg is true # start streaming
+        rpcPromises[n][1] = null
+        d.resolve (ee) ->
+          rpcPromises[n][2] = ee
+      else if msg is "" and reply.length is 3
         d.resolve result
+      else if msg isnt "" and reply.length is 2
+        console.error msg
+        d.reject msg
+      else
+        console.error "bad rpc reply", reply...
+    else if e
+      if msg is false # stop streaming
+        if reply.length > 2
+          e.emit 'error', result
+        else
+          e.emit 'close'
+        delete rpcPromises[n]
+      else if msg isnt "" and reply.length > 2
+        e.emit msg, reply.slice(2)
+      else
+        console.error "bad rpc event", reply...
     else
-      console.error "spurious rpc reply", err, n, result
+      console.error "spurious rpc reply", reply...
 
   # Set up a websocket connection to the JeeBus server.
   # The appTag is the default tag to use when sending requests to it.
@@ -60,7 +78,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
           switch typeof data
             when 'object'
               if Array.isArray data
-                processRpcReply data...
+                processRpcReply data
               else
                 for k, v of data
                   processModelUpdate k, v
@@ -112,9 +130,17 @@ ng.factory 'jeebus', ($rootScope, $q) ->
       $rootScope.$apply ->
         d.reject()
     , 10000 # 10 seconds should be enough to complete any request
-    rpcPromises[n] = [t, d]
+    rpcPromises[n] = [t, d, null]
     d.promise
 
+  # Launch a gadget on the server and return its results via events.
+  gadget = (args...) ->
+    e = new EventEmitter
+    rpc args...
+      .then (eeSetter) ->
+        eeSetter e
+    e
+  
   # Attach, i.e. get corresponding data as a model which tracks all changes.
   attach = (path) ->
     info = trackedModels[path] ?= { model: {}, count: 0 }
@@ -135,4 +161,4 @@ ng.factory 'jeebus', ($rootScope, $q) ->
     @
 
   window.send = send # console access, for debugging
-  {connect,send,get,put,rpc,attach,detach}
+  {connect,send,get,put,rpc,gadget,attach,detach}

@@ -5,11 +5,13 @@
     table(cellpadding=10)
       tr
         td
-          button(ng-click='echoTest()') RPC Echo
+          button(ng-click='echoTest()') Echo RPC
         td
-          button(ng-click='dbGetTest()') RPC DB Get
+          button(ng-click='dbKeysTest()') DB Keys RPC
         td
-          button(ng-click='dbKeysTest()') RPC DB Keys
+          button(ng-click='clockTest()') Clock Gadget
       tr
         td(colspan=3)
           | {{message}} &nbsp;
+
+    p tick: {{tick}}

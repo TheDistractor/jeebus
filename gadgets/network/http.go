@@ -211,24 +211,21 @@ type RpcHandler struct {
 func (g *RpcHandler) Run() {
 	for m := range g.In {
 		if rpc, ok := m.([]interface{}); ok && len(rpc) >= 2 {
-			if seq, ok := rpc[1].(float64); ok {
-				reply, errMsg := processRpcRequest(rpc[0].(string), rpc[2:])
-				if seq == 0 {
-					continue // no reply expected
-				}
-				m = []interface{}{seq, errMsg, reply}
+			if cmd, ok := rpc[0].(string); ok {
+				m = g.handleRpcRequest(cmd, int(rpc[1].(float64)), rpc[2:])
 			}
 		}
 		g.Out.Send(m)
 	}
 }
 
-func processRpcRequest(cmd string, args []interface{}) (reply interface{}, errMsg string) {
+func (g *RpcHandler) handleRpcRequest(cmd string, seq int, args []interface{}) (reply []interface{}) {
 	if cmd == "echo" {
-		return args, ""
+		return []interface{}{seq, "", args}
 	}
 
 	defer func() {
+		errMsg := ""
 		switch v := recover().(type) {
 		case nil:
 			// no error
@@ -241,10 +238,40 @@ func processRpcRequest(cmd string, args []interface{}) (reply interface{}, errMs
 		}
 		if errMsg != "" {
 			glog.Warningln("rpc-error", cmd, args, errMsg)
+			reply = []interface{}{seq, errMsg}
 		}
 	}()
 
-	// TODO: actual rpc calls here...
+	// if there's registered circuit for cmd, set it up and return as a stream
+	fmt.Println("RPC:", cmd, args)
+	if _, ok := flow.Registry[cmd]; ok && len(args) == 1 {
+		c := flow.NewCircuit()
+		c.Add("x", cmd)
+		c.AddCircuitry("y", &streamRpcResults{seqNum: seq, replies: g})
+		c.Connect("x.Out", "y.In", 0)
+		for k, v := range args[0].(map[string]interface{}) {
+			c.Feed("x."+k, v)
+		}
+		go func() {
+			c.Run()
+			g.Out.Send([]interface{}{seq, false}) // end streaming
+		}()
+		return []interface{}{seq, true} // start streaming
+	}
+
 	panic(cmd + "?")
-	return
+}
+
+type streamRpcResults struct {
+	flow.Gadget
+	In flow.Input
+
+	seqNum  int
+	replies *RpcHandler
+}
+
+func (g *streamRpcResults) Run() {
+	for m := range g.In {
+		g.replies.Out.Send([]interface{}{g.seqNum, "Out", m})
+	}
 }

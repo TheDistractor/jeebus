@@ -16,12 +16,12 @@ ng.controller 'DemoCtrl', ($scope, jeebus) ->
       .then (r) ->
         $scope.message = r
 
-  $scope.dbGetTest = ->
-    jeebus.rpc 'db-get', '/jb/info'
-      .then (r) ->
-        $scope.message = r
-
   $scope.dbKeysTest = ->
     jeebus.rpc 'db-keys', '/jb/'
       .then (r) ->
         $scope.message = r
+
+  $scope.clockTest = ->
+    jeebus.gadget 'Clock', Rate: '5s'
+      .on 'Out', (r) ->
+        $scope.tick = r
