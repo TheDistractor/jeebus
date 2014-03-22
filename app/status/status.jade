@@ -15,8 +15,8 @@
         th Time
         th Type
         th Id
-      tr(ng-repeat='r in readings | filter:shared.statusQuery | orderBy:"loc" track by r.id'
-         highlight-on-change='r.time')
+      tr(ng-repeat='r in readings | filter:shared.statusQuery | orderBy:"loc" \
+                    track by r.id' highlight-on-change='r.time')
         td {{r.loc}}
         td {{r.key}}
         td {{r.value}}

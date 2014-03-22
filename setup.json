@@ -183,6 +183,10 @@
                 "to": "nm.Info"
             },
             {
+                "data": "RFg5i10,roomNode,hal voor",
+                "to": "nm.Info"
+            },
+            {
                 "data": "RFg5i11,roomNode,logeerkamer",
                 "to": "nm.Info"
             },

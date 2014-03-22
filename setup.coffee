@@ -72,6 +72,7 @@ circuits.nodesJeeLabs =
     { data: "RFg5i5,roomNode,woonkamer",      to: "nm.Info" }
     { data: "RFg5i6,roomNode,hal vloer",      to: "nm.Info" }
     { data: "RFg5i9,homePower,meterkast",     to: "nm.Info" }
+    { data: "RFg5i10,roomNode,hal voor",      to: "nm.Info" }
     { data: "RFg5i11,roomNode,logeerkamer",   to: "nm.Info" }
     { data: "RFg5i12,roomNode,boekenkast L",  to: "nm.Info" }
     { data: "RFg5i13,roomNode,raam halfhoog", to: "nm.Info" }
