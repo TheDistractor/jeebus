@@ -29,7 +29,7 @@ type BootData struct {
 	In flow.Input
 }
 
-// Process data from the ReadTextFile/IntelHex/BinaryFill/CrcCalc pipeline.
+// Process data from the ReadFileText/IntelHex/BinaryFill/CrcCalc pipeline.
 func (w *BootData) Run() {
 	var name string
 	for m := range w.In {
@@ -75,7 +75,7 @@ func (w *JeeBoot) Run() {
 		for _, f := range w.cfg.SwIDs {
 			w.Files.Send(f)
 		}
-		w.Files.Close()
+		w.Files.Disconnect()
 	}
 	for m := range w.In {
 		if req, ok := m.([]byte); ok {

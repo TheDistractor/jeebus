@@ -15,7 +15,7 @@ func (c *MockOutput) Send(m flow.Message) {
 	}
 }
 
-func (c *MockOutput) Close() {}
+func (c *MockOutput) Disconnect() {}
 
 func ExampleLogReader() {
 	lr := new(LogReader)

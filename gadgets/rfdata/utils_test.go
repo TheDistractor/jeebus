@@ -17,7 +17,7 @@ func ExampleCalcCrc16() {
 
 func ExampleIntelHexToBin() {
 	g := flow.NewCircuit()
-	g.Add("r", "ReadTextFile")
+	g.Add("r", "ReadFileText")
 	g.Add("b", "IntelHexToBin")
 	g.AddCircuitry("n", flow.Transformer(func(m flow.Message) flow.Message {
 		if v, ok := m.([]byte); ok {

@@ -26,7 +26,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
     console.error "spurious model update", key, value  unless suffix
 
   # Resolve or reject a pending rpc promise.
-  processRpcReply = (err, n, result) ->
+  processRpcReply = (n, err, result) ->
     [t,d] = rpcPromises[n]
     if d
       clearTimeout t
@@ -102,10 +102,10 @@ ng.factory 'jeebus', ($rootScope, $q) ->
     @
       
   # Perform an RPC call, i.e. register result callback and return a promise.
-  rpc = (args...) ->
+  rpc = (cmd, args...) ->
     d = $q.defer()
     n = ++seqNum
-    ws.send angular.toJson [n, args...]
+    ws.send angular.toJson [cmd, n, args...]
     t = setTimeout ->
       console.error "RPC #{n}: no reponse", args
       delete rpcPromises[n]
