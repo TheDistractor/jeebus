@@ -1,17 +1,25 @@
 .row
-  .large-12.columns
+  .large-8.columns
     h3 Readings
+  .large-4.columns
+    h3
+      // for vertical alignment
+    input(type='text',ng-model='shared.statusQuery',placeholder='Search...')
 
+  .large-12.columns
     table
       tr
         th Location
         th Parameter
         th Value
         th Time
+        th Type
         th Id
-      tr(ng-repeat='r in readings | orderBy:"loc" track by r.id')
+      tr(ng-repeat='r in readings | filter:shared.statusQuery | orderBy:"loc" track by r.id'
+         highlight-on-change='r.time')
         td {{r.loc}}
         td {{r.key}}
         td {{r.value}}
-        td {{r.date}}
+        td {{r.time}}
+        td {{r.typ}}
         td {{r.id}}

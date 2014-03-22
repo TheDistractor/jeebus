@@ -1,20 +1,30 @@
 
 <div class="row">
-  <div class="large-12 columns">
+  <div class="large-8 columns">
     <h3>Readings</h3>
+  </div>
+  <div class="large-4 columns">
+    <h3>
+      <!-- for vertical alignment-->
+    </h3>
+    <input type="text" ng-model="shared.statusQuery" placeholder="Search..."/>
+  </div>
+  <div class="large-12 columns">
     <table>
       <tr>
         <th>Location</th>
         <th>Parameter</th>
         <th>Value</th>
         <th>Time</th>
+        <th>Type</th>
         <th>Id</th>
       </tr>
-      <tr ng-repeat="r in readings | orderBy:&quot;loc&quot; track by r.id">
+      <tr ng-repeat="r in readings | filter:shared.statusQuery | orderBy:&quot;loc&quot; track by r.id" highlight-on-change="r.time">
         <td>{{r.loc}}</td>
         <td>{{r.key}}</td>
         <td>{{r.value}}</td>
-        <td>{{r.date}}</td>
+        <td>{{r.time}}</td>
+        <td>{{r.typ}}</td>
         <td>{{r.id}}</td>
       </tr>
     </table>
