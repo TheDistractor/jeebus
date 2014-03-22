@@ -8,17 +8,22 @@ ng.config ($stateProvider, navbarProvider) ->
   navbarProvider.add '/status', 'Status', 30
 
 ng.controller 'StatusCtrl', ($scope, jeebus) ->
-  # TODO rewrite these example to use the "hm" service i.s.o. "jeebus"
+  readings = $scope.readings = []
+  readingsMap = {}
 
-  $scope.echoTest = ->
-    jeebus.send "Testing!" # send a test message to JB server's stdout
-    jeebus.rpc('echo', 'Echo', 'yes!').then (r) ->
-      $scope.message = r
+  # $scope.hwid = jeebus.attach '/jeeboot/hwid/'
+  # $scope.$on '$destroy', -> jeebus.detach '/jeeboot/hwid/'
 
-  $scope.dbGetTest = ->
-    jeebus.rpc('db-get', '/jb/info').then (r) ->
-      $scope.message = r
-
-  $scope.dbKeysTest = ->
-    jeebus.rpc('db-keys', '/jb/').then (r) ->
-      $scope.message = r
+  $scope.$on 'ws-open', ->
+    
+    jeebus.gadget 'MQTTSub', Topic: '/sensor/#', Port: ':1883'
+      .on 'Out', (items) ->
+        for x in items
+          {Tag,Msg:{loc,ms,val}} = x
+          tag = Tag.slice(8)
+          for k, v of val
+            i = readingsMap[k]
+            unless i?
+              i = readingsMap[k] = readings.length
+              readings.push loc: loc, key: k, val: "", ms: ms, tag: tag
+            readings[i].val = v

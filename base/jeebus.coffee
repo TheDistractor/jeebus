@@ -68,7 +68,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
         # location.reload()  unless firstCall
         console.log 'WS Open'
         $rootScope.$apply ->
-          $rootScope.serverStatus = 'connected'
+          $rootScope.$broadcast 'ws-open'
 
       ws.onmessage = (m) ->
         if m.data instanceof ArrayBuffer
@@ -97,9 +97,9 @@ ng.factory 'jeebus', ($rootScope, $q) ->
       #   console.log 'Error', e
 
       ws.onclose = ->
-        console.log 'WS Closed'
+        console.log 'WS Lost'
         $rootScope.$apply ->
-          $rootScope.serverStatus = 'disconnected'
+          $rootScope.$broadcast 'ws-lost'
         setTimeout reconnect, 1000
 
     reconnect true

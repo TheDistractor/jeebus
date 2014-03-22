@@ -250,7 +250,7 @@ func (g *RpcHandler) handleRpcRequest(cmd string, seq int, args []interface{}) (
 		c.AddCircuitry("y", &streamRpcResults{seqNum: seq, replies: g})
 		c.Connect("x.Out", "y.In", 0)
 		for k, v := range args[0].(map[string]interface{}) {
-			c.Feed("x."+k, v)
+			c.Feed("x."+k, tryToConvertToTag(v))
 		}
 		go func() {
 			defer flow.DontPanic()
@@ -261,6 +261,17 @@ func (g *RpcHandler) handleRpcRequest(cmd string, seq int, args []interface{}) (
 	}
 
 	panic(cmd + "?")
+}
+
+func tryToConvertToTag(v interface{}) interface{} {
+	if t, ok := v.(map[string]interface{}); ok && len(t) == 2 {
+		if tag, ok := t["Tag"]; ok {
+			if msg, ok := t["Msg"]; ok {
+				v = flow.Tag{tag.(string), msg}
+			}
+		}
+	}
+	return v
 }
 
 type streamRpcResults struct {

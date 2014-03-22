@@ -14,4 +14,8 @@ ng.run (jeebus) ->
 
 ng.run ($rootScope, appInfo) ->
   $rootScope.appInfo = appInfo
-  $rootScope.shared = {}
+  
+  $rootScope.$on 'ws-open', ->
+    $rootScope.serverStatus = 'connected'
+  $rootScope.$on 'ws-lost', ->
+    $rootScope.serverStatus = 'disconnected'

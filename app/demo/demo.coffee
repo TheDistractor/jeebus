@@ -8,7 +8,6 @@ ng.config ($stateProvider, navbarProvider) ->
   navbarProvider.add '/', 'Demo', 25
 
 ng.controller 'DemoCtrl', ($scope, jeebus) ->
-  # TODO rewrite these example to use the "hm" service i.s.o. "jeebus"
 
   $scope.echoTest = ->
     jeebus.send "echoTest!" # send a test message to JB server's stdout
@@ -17,11 +16,11 @@ ng.controller 'DemoCtrl', ($scope, jeebus) ->
         $scope.message = r
 
   $scope.dbKeysTest = ->
-    jeebus.rpc 'db-keys', '/jb/'
+    jeebus.rpc 'db-keys', '/sensor/'
       .then (r) ->
         $scope.message = r
 
   $scope.mqttTest = ->
-    jeebus.gadget 'MQTTSub', Topic: '/#', Port: ':1883'
+    jeebus.gadget 'MQTTSub', Topic: '/sensor/#', Port: ':1883'
       .on 'Out', (r) ->
         $scope.message = r

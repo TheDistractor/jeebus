@@ -1,21 +1,21 @@
 
 <div class="row">
   <div class="large-12 columns">
-    <h1>Status</h1>
-    <table cellpadding="10">
+    <h3>Readings</h3>
+    <table>
       <tr>
-        <td>
-          <button ng-click="echoTest()">RPC Echo</button>
-        </td>
-        <td>
-          <button ng-click="dbGetTest()">RPC DB Get</button>
-        </td>
-        <td>
-          <button ng-click="dbKeysTest()">RPC DB Keys</button>
-        </td>
+        <th>Location</th>
+        <th>Parameter</th>
+        <th>Value</th>
+        <th>Time</th>
+        <th>Tag</th>
       </tr>
-      <tr>
-        <td colspan="3">{{message}} &nbsp;</td>
+      <tr ng-repeat="r in readings | orderBy:&quot;loc&quot;">
+        <td>{{r.loc}}</td>
+        <td>{{r.key}}</td>
+        <td>{{r.val}}</td>
+        <td>{{r.ms | date:"MM-dd HH:mm:ss"}}</td>
+        <td>{{r.tag}}</td>
       </tr>
     </table>
   </div>

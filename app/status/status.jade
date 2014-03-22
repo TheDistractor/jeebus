@@ -1,15 +1,17 @@
 .row
   .large-12.columns
-    h1 Status
+    h3 Readings
 
-    table(cellpadding=10)
+    table
       tr
-        td
-          button(ng-click='echoTest()') RPC Echo
-        td
-          button(ng-click='dbGetTest()') RPC DB Get
-        td
-          button(ng-click='dbKeysTest()') RPC DB Keys
-      tr
-        td(colspan=3)
-          | {{message}} &nbsp;
+        th Location
+        th Parameter
+        th Value
+        th Time
+        th Tag
+      tr(ng-repeat='r in readings | orderBy:"loc"')
+        td {{r.loc}}
+        td {{r.key}}
+        td {{r.val}}
+        td {{r.ms | date:"MM-dd HH:mm:ss"}}
+        td {{r.tag}}
