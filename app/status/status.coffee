@@ -8,7 +8,7 @@ ng.config ($stateProvider, navbarProvider) ->
   navbarProvider.add '/status', 'Status', 30
 
 ng.controller 'StatusCtrl', ($scope, jeebus) ->
-  readings = $scope.readings = []
+  $scope.readings = []
   readingsMap = {}
 
   # $scope.hwid = jeebus.attach '/jeeboot/hwid/'
@@ -20,10 +20,11 @@ ng.controller 'StatusCtrl', ($scope, jeebus) ->
       .on 'Out', (items) ->
         for x in items
           {Tag,Msg:{loc,ms,val}} = x
-          tag = Tag.slice(8)
           for k, v of val
-            i = readingsMap[k]
-            unless i?
-              i = readingsMap[k] = readings.length
-              readings.push loc: loc, key: k, val: "", ms: ms, tag: tag
-            readings[i].val = v
+            row = readingsMap[k]
+            unless row?
+              row = loc: loc, key: k, val: "", ms: "", tag: Tag.slice(8)
+              readingsMap[k] = row
+              $scope.readings.push row
+            row.val = v
+            row.ms = ms
