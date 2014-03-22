@@ -7,7 +7,7 @@ ng.config ($stateProvider, navbarProvider) ->
     controller: 'StatusCtrl'
   navbarProvider.add '/status', 'Status', 30
 
-ng.controller 'StatusCtrl', ($scope, jeebus) ->
+ng.controller 'StatusCtrl', ($scope, $filter, jeebus) ->
   $scope.readings = []
   readingsMap = {}
 
@@ -20,11 +20,14 @@ ng.controller 'StatusCtrl', ($scope, jeebus) ->
       .on 'Out', (items) ->
         for x in items
           {Tag,Msg:{loc,ms,val}} = x
-          for k, v of val
-            row = readingsMap[k]
-            unless row?
-              row = loc: loc, key: k, val: "", ms: "", tag: Tag.slice(8)
-              readingsMap[k] = row
-              $scope.readings.push row
-            row.val = v
-            row.ms = ms
+          for key, value of val
+            id = "#{Tag.slice(8)} - #{key}"
+            i = readingsMap[id]
+            unless i?
+              i = readingsMap[id] = $scope.readings.length
+              $scope.readings.push
+                loc: loc, key: key, value: "", date: "", id: id
+            row = $scope.readings[i]
+            row.value = value
+            # converting to a string here appears to be more efficient...
+            row.date = $filter('date')(ms, "MM-dd HH:mm:ss")

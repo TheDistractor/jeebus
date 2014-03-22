@@ -8,10 +8,10 @@
         th Parameter
         th Value
         th Time
-        th Tag
-      tr(ng-repeat='r in readings | orderBy:"loc"')
+        th Id
+      tr(ng-repeat='r in readings | orderBy:"loc" track by r.id')
         td {{r.loc}}
         td {{r.key}}
-        td {{r.val}}
-        td {{r.ms | date:"MM-dd HH:mm:ss"}}
-        td {{r.tag}}
+        td {{r.value}}
+        td {{r.date}}
+        td {{r.id}}
