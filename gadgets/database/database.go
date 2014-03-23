@@ -98,6 +98,15 @@ func (w *openDb) keys(prefix string) (results []string) {
 	return
 }
 
+func (w *openDb) clear(prefix string) (results []string) {
+	glog.Infoln("clear", prefix)
+
+	w.iterateOverKeys(prefix, "", func(k string, v []byte) {
+		w.db.Delete([]byte(k), nil)
+	})
+	return
+}
+
 func openDatabase() *openDb {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
@@ -142,6 +151,9 @@ func (w *LevelDB) Run() {
 			case "<keys>":
 				w.Out.Send(m)
 				w.Out.Send(w.odb.keys(tag.Msg.(string)))
+			case "<clear>":
+				w.odb.clear(tag.Msg.(string))
+				w.Mods.Send(m)
 			default:
 				w.odb.put(tag.Tag, tag.Msg)
 				w.Mods.Send(m)

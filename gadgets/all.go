@@ -2,14 +2,11 @@
 package jeebus
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/jcw/flow"
 	_ "github.com/jcw/flow/gadgets"
 
@@ -23,8 +20,6 @@ import (
 )
 
 var Version = "0.9.0"
-
-var Config = map[string]string{} // see LoadConfig below
 
 var Help = map[string]string{}
 
@@ -70,41 +65,4 @@ func (g *helpCmd) Run() {
 		fmt.Printf("  %-*s  %s\n", max, name, strings.SplitN(info, "\n", 2)[0])
 	}
 	fmt.Println("\nUse 'help <name>' for more info or '-h' for debug options.")
-}
-
-// loadConfig parses a configuration file, if it exists, to set up some basic
-// application settings, such as where the app/ and data/ directories are.
-// Settings can be overridden through environment variables with the same name.
-func LoadConfig(defaults, filename string) map[string]string {
-	parseSettingsLine := func(line string) {
-		line = strings.TrimSpace(line)
-		if line != "" && !strings.HasPrefix(line, "#") {
-			fields := strings.SplitN(line, "=", 2)
-			if len(fields) != 2 {
-				panic(fmt.Errorf("cannot parse configuration: %s", line))
-			}
-			key := strings.TrimSpace(fields[0])
-			value := strings.TrimSpace(fields[1])
-			env := os.Getenv(key)
-			if env != "" {
-				value = env
-			}
-			glog.Infoln("config", key, "=", value)
-			Config[key] = value
-		}
-	}
-
-	for _, s := range strings.Split(defaults, "\n") {
-		parseSettingsLine(s)
-	}
-
-	if fd, err := os.Open(filename); err == nil {
-		defer fd.Close()
-		scanner := bufio.NewScanner(fd)
-		for scanner.Scan() {
-			parseSettingsLine(scanner.Text())
-		}
-	}
-
-	return Config
 }
