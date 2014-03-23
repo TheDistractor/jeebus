@@ -15,6 +15,10 @@ var (
 	setupFile = flag.String("s", "setup.json", "name of the circuit setup file")
 )
 
+func init() {
+	jeebus.Help["main"] = `Run the default circuit defined in the setup file.`
+}
+
 func main() {
 	flag.Parse()
 

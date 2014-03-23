@@ -21,6 +21,9 @@ func init() {
 	flow.Registry["HTTPServer"] = func() flow.Circuitry { return &HTTPServer{} }
 	flow.Registry["RpcHandler"] = func() flow.Circuitry { return &RpcHandler{} }
 
+	// websockets without Sec-Websocket-Protocol are connected in loopback mode
+	flow.Registry["WebSocket-default"] = flow.Registry["Pipe"]
+
 	// use a special channel to pick up JSON "ipc" messages from stdin
 	// this is currently used to broadcast reload triggers to all websockets
 	go func() {

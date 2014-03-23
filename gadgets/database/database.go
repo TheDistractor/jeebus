@@ -3,7 +3,6 @@ package database
 
 import (
 	"encoding/json"
-	"flag"
 	"strings"
 	"sync"
 
@@ -13,7 +12,7 @@ import (
 	dbutil "github.com/syndtr/goleveldb/leveldb/util"
 )
 
-var dbPath = flag.String("db", "./data", "location of the LevelDB database")
+var dbPath = "./data"
 
 func init() {
 	flow.Registry["LevelDB"] = func() flow.Circuitry { return &LevelDB{} }
@@ -99,20 +98,16 @@ func (w *openDb) keys(prefix string) (results []string) {
 	return
 }
 
-func openDatabase(name string) *openDb {
-	if name == "" {
-		name = *dbPath
-	}
-
+func openDatabase() *openDb {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
-	odb, ok := dbMap[name]
+	odb, ok := dbMap[dbPath]
 	if !ok {
-		db, err := leveldb.OpenFile(name, nil)
+		db, err := leveldb.OpenFile(dbPath, nil)
 		flow.Check(err)
-		odb = &openDb{name, db, 0}
-		dbMap[name] = odb
+		odb = &openDb{dbPath, db, 0}
+		dbMap[dbPath] = odb
 	}
 	odb.refs++
 	return odb
@@ -133,26 +128,23 @@ type LevelDB struct {
 // Open the database and start listening to incoming get/put/keys requests.
 func (w *LevelDB) Run() {
 	// if a name is given, use it, else use the default from the command line
-	name := ""
 	if m, ok := <-w.Name; ok {
-		name = m.(string)
+		dbPath = m.(string)
 	}
-	w.odb = openDatabase(name)
+	w.odb = openDatabase()
 	defer w.odb.release()
 	for m := range w.In {
 		if tag, ok := m.(flow.Tag); ok {
 			switch tag.Tag {
 			case "<get>":
-				key := tag.Msg.(string)
 				w.Out.Send(m)
-				w.Out.Send(w.odb.get(key))
+				w.Out.Send(w.odb.get(tag.Msg.(string)))
 			case "<keys>":
-				prefix := tag.Msg.(string)
 				w.Out.Send(m)
-				w.Out.Send(w.odb.keys(prefix))
+				w.Out.Send(w.odb.keys(tag.Msg.(string)))
 			default:
 				w.odb.put(tag.Tag, tag.Msg)
-				w.Mods.Send(tag)
+				w.Mods.Send(m)
 			}
 		} else {
 			w.Out.Send(m)

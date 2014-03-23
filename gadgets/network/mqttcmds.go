@@ -5,8 +5,8 @@ import (
 )
 
 func init() {
-	flow.Registry["sub"] = func() flow.Circuitry { return &subCmd{} }
-	flow.Registry["pub"] = func() flow.Circuitry { return &pubCmd{} }
+	flow.Registry["mqttsub"] = func() flow.Circuitry { return &subCmd{} }
+	flow.Registry["mqttpub"] = func() flow.Circuitry { return &pubCmd{} }
 }
 
 type subCmd struct{ flow.Gadget }
