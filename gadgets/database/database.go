@@ -13,7 +13,7 @@ import (
 	dbutil "github.com/syndtr/goleveldb/leveldb/util"
 )
 
-var dbPath = flag.String("db", "./db", "location of the LevelDB database")
+var dbPath = flag.String("db", "./data", "location of the LevelDB database")
 
 func init() {
 	flow.Registry["LevelDB"] = func() flow.Circuitry { return &LevelDB{} }
