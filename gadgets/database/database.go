@@ -12,7 +12,7 @@ import (
 	dbutil "github.com/syndtr/goleveldb/leveldb/util"
 )
 
-var dbPath = "./data"
+var dbPath = ""
 
 func init() {
 	flow.Registry["LevelDB"] = func() flow.Circuitry { return &LevelDB{} }
@@ -108,6 +108,13 @@ func (w *openDb) clear(prefix string) (results []string) {
 }
 
 func openDatabase() *openDb {
+	if dbPath == "" {
+		dbPath = flow.Config["DATA_DIR"]
+		if dbPath == "" {
+			glog.Fatalln("cannot open database, DATA_DIR not set")
+		}
+	}
+	
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
@@ -136,10 +143,8 @@ type LevelDB struct {
 
 // Open the database and start listening to incoming get/put/keys requests.
 func (w *LevelDB) Run() {
-	// if a name is given, use it, else use the default from the command line
-	if m, ok := <-w.Name; ok {
-		dbPath = m.(string)
-	}
+	// if a name is given, use it, else use the default from the configuration
+	dbPath = (<-w.Name).(string)
 	w.odb = openDatabase()
 	defer w.odb.release()
 	for m := range w.In {
