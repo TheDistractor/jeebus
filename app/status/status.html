@@ -19,11 +19,11 @@
         <th>Type</th>
         <th>Id</th>
       </tr>
-      <tr ng-repeat="r in readings | filter:shared.statusQuery | orderBy:&quot;loc&quot;                     track by r.id" highlight-on-change="r.time">
+      <tr ng-repeat="r in readings | filter:shared.statusQuery | orderBy:&quot;loc&quot;                     track by r.id" highlight-on-change="r.ms">
         <td>{{r.loc}}</td>
         <td>{{r.key}}</td>
         <td>{{r.value}}</td>
-        <td>{{r.time}}</td>
+        <td>{{r.ms | date:"MM-dd HH:mm:ss"}}</td>
         <td>{{r.typ}}</td>
         <td>{{r.id}}</td>
       </tr>

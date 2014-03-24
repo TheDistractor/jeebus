@@ -7,26 +7,53 @@ ng.config ($stateProvider, navbarProvider) ->
     controller: 'StatusCtrl'
   navbarProvider.add '/status', 'Status', 30
 
-ng.controller 'StatusCtrl', ($scope, $filter, jeebus) ->
+ng.controller 'StatusCtrl', ($scope, jeebus) ->
   $scope.readings = []
   readingsMap = {}
 
-  # $scope.hwid = jeebus.attach '/jeeboot/hwid/'
-  # $scope.$on '$destroy', -> jeebus.detach '/jeeboot/hwid/'
+  # $scope.readings = jeebus.attach '/sensor/'
+  # $scope.$on '$destroy', -> jeebus.detach '/sensor/'
 
-  $scope.$on 'ws-open', ->
+  attach = ->
+    vec = $scope.readings
+    map = readingsMap
     
-    jeebus.gadget 'MQTTSub', Topic: '/sensor/#', Port: ':1883'
+    jeebus.gadget 'MQTTSub', Topic: '/sensor/#'
       .on 'Out', (msg) ->
         {Tag,Msg:{loc,ms,val,typ}} = msg
         for key, value of val
           id = "#{Tag.slice(8)} - #{key}"
-          i = readingsMap[id]
-          unless i?
-            i = readingsMap[id] = $scope.readings.length
-            $scope.readings.push
-              loc: loc, key: key, value: "", date: "", typ: typ, id: id
-          row = $scope.readings[i]
-          row.value = value
-          # converting to a string here appears to be more efficient...
-          row.time = $filter('date')(ms, "MM-dd HH:mm:ss")
+          map[id] ?= vec.length
+          vec[map[id]] = {loc,key,value,ms,typ,id}
+          # unless map[id]?
+          #   map[id] = vec.length
+          #   vec.push {loc,key,value,ms,typ,id}
+          # row = vec[map[id]]
+          # row.value = value
+          # row.ms = ms
+
+  attach()  if $scope.serverStatus is 'connected'
+  $scope.$on 'ws-open', -> attach()
+
+# # TODO: quick test to see how it could work, this belongs in jeebus.coffee
+# attach = (scope, name, prefix) ->
+#   vec = scope[name] ?= []
+#   map = scope[name+'Map'] ?= {}
+# 
+#   scope.$on 'ws-open', ->
+#   
+#     jeebus.gadget 'MQTTSub', Topic: prefix + '#'
+#       .on 'Out', (msg) ->
+#         {Tag,Msg:{loc,ms,val,typ}} = msg
+#         for key, value of val
+#           id = "#{Tag.slice(prefix.length)} - #{key}"
+#           i = map[id]
+#           unless i?
+#             i = map[id] = vec.length
+#             vec.push
+#               loc: loc, key: key, value: "", date: "", typ: typ, id: id
+#           row = vec[i]
+#           row.value = value
+#           row.time = ms
+#   
+# attach $scope, 'readings', '/sensor/'
