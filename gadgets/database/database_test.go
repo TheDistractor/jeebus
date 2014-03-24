@@ -22,6 +22,7 @@ func ExampleLevelDB() {
 	g.Feed("db.In", flow.Tag{"a/b", "123"})
 	g.Feed("db.In", flow.Tag{"a/c", "456"})
 	g.Feed("db.In", flow.Tag{"<get>", "a/b"})
+	g.Feed("db.In", flow.Tag{"<range>", "a/"})
 	g.Feed("db.In", flow.Tag{"<keys>", "a/"})
 	g.Feed("db.In", flow.Tag{"a/b", nil})
 	g.Feed("db.In", flow.Tag{"<get>", "a/b"})
@@ -33,6 +34,9 @@ func ExampleLevelDB() {
 	// Lost flow.Tag: {a/c 456}
 	// Lost flow.Tag: {<get> a/b}
 	// Lost string: 123
+	// Lost flow.Tag: {<range> a/}
+	// Lost flow.Tag: {a/b 123}
+	// Lost flow.Tag: {a/c 456}
 	// Lost flow.Tag: {<keys> a/}
 	// Lost string: b
 	// Lost string: c

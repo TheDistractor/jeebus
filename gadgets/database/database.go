@@ -103,13 +103,6 @@ func (w *openDb) keys(prefix string) (results []string) {
 	return
 }
 
-func (w *openDb) clear(prefix string) {
-	glog.V(2).Infoln("clear", prefix)
-	w.iterateOverKeys(prefix, "", func(k string, v []byte) {
-		w.db.Delete([]byte(k), nil)
-	})
-}
-
 func (w *openDb) register(key string) {
 	data, err := w.db.Get([]byte(key), nil)
 	if err == leveldb.ErrNotFound {
@@ -180,8 +173,22 @@ func (w *LevelDB) Run() {
 					w.Out.Send(s)
 				}
 			case "<clear>":
-				w.odb.clear(tag.Msg.(string))
+				prefix := tag.Msg.(string)
+				glog.V(2).Infoln("clear", prefix)
+				w.odb.iterateOverKeys(prefix, "", func (k string, v []byte) {
+					w.odb.db.Delete([]byte(k), nil)
+				})
 				w.Mods.Send(m)
+			case "<range>":
+				prefix := tag.Msg.(string)
+				glog.V(3).Infoln("range", prefix)
+				w.Out.Send(m)
+				w.odb.iterateOverKeys(prefix, "", func (k string, v []byte) {
+					var any interface{}
+					err := json.Unmarshal(v, &any)
+					flow.Check(err)
+					w.Mods.Send(flow.Tag{k, any})
+				})
 			case "<register>":
 				w.odb.register(tag.Msg.(string))
 				w.Mods.Send(m)
