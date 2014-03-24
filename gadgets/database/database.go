@@ -144,7 +144,9 @@ type LevelDB struct {
 // Open the database and start listening to incoming get/put/keys requests.
 func (w *LevelDB) Run() {
 	// if a name is given, use it, else use the default from the configuration
-	dbPath = (<-w.Name).(string)
+	if m, ok := <-w.Name; ok {
+		dbPath = m.(string)
+	}
 	w.odb = openDatabase()
 	defer w.odb.release()
 	for m := range w.In {

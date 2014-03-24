@@ -64,5 +64,5 @@ func (g *helpCmd) Run() {
 		info := Help[name]
 		fmt.Printf("  %-*s  %s\n", max, name, strings.SplitN(info, "\n", 2)[0])
 	}
-	fmt.Println("\nUse 'help <name>' for more info or '-h' for debug options.")
+	fmt.Println("\nUse 'help <cmd>' for more information or '-h' for debug options.")
 }
