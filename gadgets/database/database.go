@@ -116,7 +116,8 @@ func (w *openDb) register(key string) {
 		glog.Warningln("cannot register:", key)
 		return
 	}
-	glog.V(1).Infof("register %s: %d bytes", key, len(data))	
+	name := key[strings.LastIndex(key, "/")+1:]
+	glog.V(1).Infof("register %s: %d bytes (%s)", name, len(data), key)
 	flow.Registry[key] = func() flow.Circuitry {
 		c := flow.NewCircuit()
 		c.LoadJSON(data)
@@ -175,7 +176,9 @@ func (w *LevelDB) Run() {
 				w.Out.Send(w.odb.get(tag.Msg.(string)))
 			case "<keys>":
 				w.Out.Send(m)
-				w.Out.Send(w.odb.keys(tag.Msg.(string)))
+				for _, s := range w.odb.keys(tag.Msg.(string)) {
+					w.Out.Send(s)
+				}
 			case "<clear>":
 				w.odb.clear(tag.Msg.(string))
 				w.Mods.Send(m)

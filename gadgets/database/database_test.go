@@ -34,12 +34,13 @@ func ExampleLevelDB() {
 	// Lost flow.Tag: {<get> a/b}
 	// Lost string: 123
 	// Lost flow.Tag: {<keys> a/}
-	// Lost []string: [b c]
+	// Lost string: b
+	// Lost string: c
 	// Lost flow.Tag: {a/b <nil>}
 	// Lost flow.Tag: {<get> a/b}
 	// Lost <nil>: <nil>
 	// Lost flow.Tag: {<keys> a/}
-	// Lost []string: [c]
+	// Lost string: c
 	// Lost flow.Tag: {a/c <nil>}
 }
 
