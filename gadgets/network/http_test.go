@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/jcw/flow"
 	_ "github.com/jcw/flow/gadgets"
