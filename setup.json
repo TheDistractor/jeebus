@@ -618,7 +618,7 @@
                 "tag": "/driver/homePower/p2",
                 "to": "db.In",
                 "data": {
-                    "name": "Usage solar",
+                    "name": "Production solar",
                     "unit": "W",
                     "scale": 1
                 }

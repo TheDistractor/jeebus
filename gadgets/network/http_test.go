@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/jcw/flow"
 	_ "github.com/jcw/flow/gadgets"
@@ -15,6 +16,7 @@ func ExampleHTTPServer() {
 	g.Feed("s.Handlers", flow.Tag{"/blah/", "."})
 	g.Feed("s.Port", ":12345")
 	g.Run()
+	// time.Sleep(50 * time.Millisecond)
 	res, _ := http.Get("http://:12345/blah/http.go")
 	body, _ := ioutil.ReadAll(res.Body)
 	data, _ := ioutil.ReadFile("http.go")

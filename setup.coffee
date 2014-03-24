@@ -222,7 +222,7 @@ circuits.driverFill =
     { tag: "/driver/homePower/c2", to: "db.In", \
       data: { name: "Counter solar", unit: "kWh", factor: 0.5, scale: 3 } }
     { tag: "/driver/homePower/p2", to: "db.In", \
-      data: { name: "Usage solar", unit: "W", scale: 1 } }
+      data: { name: "Production solar", unit: "W", scale: 1 } }
     { tag: "/driver/homePower/c3", to: "db.In", \
       data: { name: "Counter house", unit: "kWh", factor: 0.5, scale: 3 } }
     { tag: "/driver/homePower/p3", to: "db.In", \

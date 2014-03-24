@@ -107,7 +107,7 @@ func (w *HTTPServer) Run() {
 	}()
 	// TODO: this is a hack to make sure the server is ready
 	// better would be to interlock the goroutine with the listener being ready
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 }
 
 func createHandler(tag, s string) http.Handler {
