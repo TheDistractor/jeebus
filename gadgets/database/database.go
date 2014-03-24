@@ -114,7 +114,7 @@ func openDatabase() *openDb {
 			glog.Fatalln("cannot open database, DATA_DIR not set")
 		}
 	}
-	
+
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 

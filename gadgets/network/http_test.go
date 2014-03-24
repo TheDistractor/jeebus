@@ -13,7 +13,7 @@ func ExampleHTTPServer() {
 	g := flow.NewCircuit()
 	g.Add("s", "HTTPServer")
 	g.Feed("s.Handlers", flow.Tag{"/blah/", "."})
-	g.Feed("s.Start", ":12345")
+	g.Feed("s.Port", ":12345")
 	g.Run()
 	res, _ := http.Get("http://:12345/blah/http.go")
 	body, _ := ioutil.ReadAll(res.Body)

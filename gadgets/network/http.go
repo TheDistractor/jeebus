@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
@@ -70,7 +69,7 @@ var wsClients = map[string]*websocket.Conn{}
 type HTTPServer struct {
 	flow.Gadget
 	Handlers flow.Input
-	Start    flow.Input
+	Port     flow.Input
 	Out      flow.Output
 }
 
@@ -97,10 +96,8 @@ func (w *HTTPServer) Run() {
 			mux.Handle(tag.Tag, &flowHandler{v, w})
 		}
 	}
-	port := (<-w.Start).(string)
-	if _, err := strconv.Atoi(port); err == nil {
-		port = ":" + port // convert "1234" -> ":1234"
-	}
+
+	port := getInputOrConfig(w.Port, "HTTP_PORT")
 	go func() {
 		// will stay running until an error is returned or the app ends
 		defer flow.DontPanic()

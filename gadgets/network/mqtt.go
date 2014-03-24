@@ -17,6 +17,18 @@ func init() {
 	flow.Registry["MQTTServer"] = func() flow.Circuitry { return &MQTTServer{} }
 }
 
+func getInputOrConfig(vin flow.Input, vname string) string {
+	// if a port is given, use it, else use the default from the configuration
+	value := flow.Config[vname]
+	if m := <-vin; m != nil {
+		value = m.(string)
+	}
+	if value == "" {
+		glog.Errorln("no value given for:", vname)
+	}
+	return value
+}
+
 // MQTTSub can subscribe to an MQTT topic. Registers as "MQTTSub".
 type MQTTSub struct {
 	flow.Gadget
@@ -27,7 +39,7 @@ type MQTTSub struct {
 
 // Start listening and subscribing to MQTT.
 func (w *MQTTSub) Run() {
-	port := (<-w.Port).(string)
+	port := getInputOrConfig(w.Port, "MQTT_PORT")
 	sock, err := net.Dial("tcp", port)
 	flow.Check(err)
 	client := mqtt.NewClientConn(sock)
@@ -63,7 +75,7 @@ type MQTTPub struct {
 
 // Start publishing to MQTT.
 func (w *MQTTPub) Run() {
-	port := (<-w.Port).(string)
+	port := getInputOrConfig(w.Port, "MQTT_PORT")
 	sock, err := net.Dial("tcp", port)
 	flow.Check(err)
 	client := mqtt.NewClientConn(sock)
@@ -96,7 +108,7 @@ type MQTTServer struct {
 
 // Start the MQTT server.
 func (w *MQTTServer) Run() {
-	port := (<-w.Port).(string)
+	port := getInputOrConfig(w.Port, "MQTT_PORT")
 	listener, err := net.Listen("tcp", port)
 	flow.Check(err)
 	glog.Infoln("mqtt started, port", port)

@@ -46,7 +46,7 @@
             },
             {
                 "data": ":3000",
-                "to": "http.Start"
+                "to": "http.Port"
             },
             {
                 "data": ":1883",
@@ -312,6 +312,10 @@
             }
         ],
         "feeds": [
+            {
+                "data": "./data",
+                "to": "db.Name"
+            },
             {
                 "data": "Sketch-",
                 "to": "d1.Prefix"

@@ -18,7 +18,7 @@ circuits.main =
     { tag: "/", data: "./app",  to: "http.Handlers" }
     { tag: "/base/", data: "./base",  to: "http.Handlers" }
     { tag: "/ws", data: "<websocket>",  to: "http.Handlers" }
-    { data: ":3000",  to: "http.Start" }
+    { data: ":3000",  to: "http.Port" }
     { data: ":1883",  to: "mqtt.Port" }
   ]
 
@@ -113,6 +113,7 @@ circuits.rf12toDatabase =
     { from: "sr.Out", to: "db.In" }
   ]
   feeds: [
+    { data: "./data", to: "db.Name" }
     { data: "Sketch-", to: "d1.Prefix" }
     { data: "Node-", to: "d2.Prefix" }
   ]
