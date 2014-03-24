@@ -26,6 +26,10 @@ var Help = map[string]string{}
 func init() {
 	flow.Registry["help"] = func() flow.Circuitry { return &helpCmd{} }
 	Help["help"] = `Show this help text with a list of commands.`
+
+	flow.Registry["info"] = func() flow.Circuitry { return &infoCmd{} }
+	Help["info"] = `Show the list of registered gadgets and circuits.`
+
 	// database
 	Help["dbdump"] = `Dump (part of) the contents of the database to stdout.`
 	Help["dbexport"] = `Export (part of) the database as JSON to stdout.`
@@ -65,4 +69,16 @@ func (g *helpCmd) Run() {
 		fmt.Printf("  %-*s  %s\n", max, name, strings.SplitN(info, "\n", 2)[0])
 	}
 	fmt.Println("\nUse 'help <cmd>' for more information or '-h' for debug options.")
+}
+
+// This example illustrates how to define a new gadget. It has no input or
+// output ports, is registered using a lowercase name, and has a help entry.
+// This is only useful from the command line, i.e. "housemon info".
+
+type infoCmd struct{ flow.Gadget }
+
+func (g *infoCmd) Run() {
+	fmt.Println("Registered gadgets and circuits:\n")
+	flow.PrintRegistry()
+	fmt.Println()
 }
