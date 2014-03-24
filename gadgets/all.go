@@ -24,6 +24,18 @@ var Version = "0.9.0"
 var Help = map[string]string{}
 
 func init() {
+	// Waiter can be defined in terms of other gadgets, but where to put this?
+	flow.Registry["Waiter"] = func() flow.Circuitry {
+		c := flow.NewCircuit()
+		c.Add("s", "Sink")
+		c.Add("c", "Concat3")
+		c.Connect("s.Out", "c.In1", 0)
+		c.Label("Gate", "s.In")
+		c.Label("In", "c.In2")
+		c.Label("Out", "c.Out")
+		return c
+	}
+
 	flow.Registry["help"] = func() flow.Circuitry { return &helpCmd{} }
 	Help["help"] = `Show this help text with a list of commands.`
 

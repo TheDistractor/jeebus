@@ -12,7 +12,7 @@ const demo = `{
 		{ "name": "p", "type": "Printer" }
 	],
 	"wires": [{ "from": "c.Out", "to": "p.In" }],
-	"feeds": [{ "data": "1s", "to": "c.Rate" }]
+	"feeds": [{ "data": "1s", "to": "c.In" }]
 }`
 
 func main() {
