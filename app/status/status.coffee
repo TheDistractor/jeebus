@@ -14,7 +14,7 @@ ng.controller 'StatusCtrl', ($scope, jeebus) ->
   unitMap = {}
 
   attach = ->
-    jeebus.gadget 'MQTTSub', Topic: '/sensor/#'
+    jeebus.gadget 'Attach', In: '/sensor/'
       .on 'Out', (msg) ->
         # loc: ... val: [c1:12,c2:34,...]
         {Tag:dev,Msg:{loc,ms,val,typ}} = msg

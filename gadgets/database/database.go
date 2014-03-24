@@ -175,7 +175,7 @@ func (w *LevelDB) Run() {
 			case "<clear>":
 				prefix := tag.Msg.(string)
 				glog.V(2).Infoln("clear", prefix)
-				w.odb.iterateOverKeys(prefix, "", func (k string, v []byte) {
+				w.odb.iterateOverKeys(prefix, "", func(k string, v []byte) {
 					w.odb.db.Delete([]byte(k), nil)
 				})
 				w.Mods.Send(m)
@@ -183,7 +183,7 @@ func (w *LevelDB) Run() {
 				prefix := tag.Msg.(string)
 				glog.V(3).Infoln("range", prefix)
 				w.Out.Send(m)
-				w.odb.iterateOverKeys(prefix, "", func (k string, v []byte) {
+				w.odb.iterateOverKeys(prefix, "", func(k string, v []byte) {
 					var any interface{}
 					err := json.Unmarshal(v, &any)
 					flow.Check(err)

@@ -35,6 +35,24 @@ func init() {
 		c.Label("Out", "c.Out")
 		return c
 	}
+	// Attach returns items from a database range and follows up with updates.
+	flow.Registry["Attach"] = func() flow.Circuitry {
+		c := flow.NewCircuit()
+		c.Add("fan", "FanOut")
+		c.Add("sub", "MQTTSub")
+		c.Add("tag", "AddTag")
+		c.Add("db", "LevelDB")
+		c.Add("cat", "Concat3")
+		c.Connect("fan.Out:sub", "sub.Topic", 0)
+		c.Connect("fan.Out:tag", "tag.In", 0)
+		c.Connect("tag.Out", "db.In", 0)
+		c.Connect("db.Out", "cat.In1", 0)
+		c.Connect("sub.Out", "cat.In2", 100) // with buffering
+		c.Feed("tag.Tag", "<range>")
+		c.Label("In", "fan.In")
+		c.Label("Out", "cat.Out")
+		return c
+	}
 
 	flow.Registry["help"] = func() flow.Circuitry { return &helpCmd{} }
 	Help["help"] = `Show this help text with a list of commands.`

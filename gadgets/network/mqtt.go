@@ -8,6 +8,7 @@ package network
 import (
 	"encoding/json"
 	"net"
+	"strings"
 
 	"github.com/golang/glog"
 	proto "github.com/huin/mqtt"
@@ -52,6 +53,9 @@ func (w *MQTTSub) Run() {
 
 	for t := range w.Topic {
 		topic := t.(string)
+		if strings.HasSuffix(topic, "/") {
+			topic += "#"
+		}
 		glog.V(2).Infoln("mqtt-sub", topic)
 		client.Subscribe([]proto.TopicQos{{
 			Topic: topic,
