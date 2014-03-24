@@ -187,7 +187,7 @@ func (w *LevelDB) Run() {
 					var any interface{}
 					err := json.Unmarshal(v, &any)
 					flow.Check(err)
-					w.Mods.Send(flow.Tag{k, any})
+					w.Out.Send(flow.Tag{k, any})
 				})
 			case "<register>":
 				w.odb.register(tag.Msg.(string))

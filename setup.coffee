@@ -183,6 +183,15 @@ circuits.demo =
     { data: "1s", to: "c.Rate" }
   ]
 
+circuits.t1 =
+  gadgets: [
+    { name: "db", type: "LevelDB" }
+  ]
+  feeds: [
+    { data: "./data", to: "db.Name" }
+    { tag: "<range>", data: "/sensor/", to: "db.In" }
+  ]
+
 # write configuration to file, but keep a backup of the original, just in case
 fs = require 'fs'
 try fs.renameSync 'setup.json', 'setup-prev.json'

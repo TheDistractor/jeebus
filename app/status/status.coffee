@@ -19,12 +19,12 @@ ng.controller 'StatusCtrl', ($scope, jeebus) ->
         # loc: ... val: [c1:12,c2:34,...]
         {Tag:dev,Msg:{loc,ms,val,typ}} = msg
         for key, raw of val
-          did = "#{dev.slice(8)}/#{key}" # device id
-          tid = "#{typ}/#{key}"          # type id
+          did = "#{dev.slice(8)} - #{key}" # device id
+          tid = "#{typ} - #{key}"          # type id
           readingMap[did] ?= readingVec.length
           readingVec[readingMap[did]] = update {loc,key,raw,ms,typ,did,tid}
           
-    jeebus.gadget 'MQTTSub', Topic: '/driver/#'
+    jeebus.gadget 'Attach', Topic: '/driver/'
       .on 'Out', (msg) ->
         # name: unit: scale: ...
         {Tag:tag,Msg:info} = msg

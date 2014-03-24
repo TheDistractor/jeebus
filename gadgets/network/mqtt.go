@@ -53,10 +53,10 @@ func (w *MQTTSub) Run() {
 
 	for t := range w.Topic {
 		topic := t.(string)
-		if strings.HasSuffix(topic, "/") {
-			topic += "#"
-		}
 		glog.V(2).Infoln("mqtt-sub", topic)
+		if strings.HasSuffix(topic, "/") {
+			topic += "#" // if it looks like a prefix, append "#" for MQTT
+		}
 		client.Subscribe([]proto.TopicQos{{
 			Topic: topic,
 			Qos:   proto.QosAtMostOnce,

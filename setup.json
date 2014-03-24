@@ -473,5 +473,24 @@
                 "to": "c.Rate"
             }
         ]
+    },
+    "t1": {
+        "gadgets": [
+            {
+                "name": "db",
+                "type": "LevelDB"
+            }
+        ],
+        "feeds": [
+            {
+                "data": "./data",
+                "to": "db.Name"
+            },
+            {
+                "tag": "<range>",
+                "data": "/sensor/",
+                "to": "db.In"
+            }
+        ]
     }
 }
