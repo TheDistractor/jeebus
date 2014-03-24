@@ -22,6 +22,7 @@ circuits.init =
 		{ name: "replay", type: "replay" }
     { name: "pub", type: "MQTTPub" }
     { name: "dummy", type: "Pipe" } # needed for dispatcher in HouseMon
+    { name: "fill", type: "driverFill" }
   ]
   wires: [
     { from: "replay.Out", to: "pub.In" }
@@ -181,6 +182,51 @@ circuits.demo =
   ]
   feeds: [
     { data: "1s", to: "c.Rate" }
+  ]
+  
+# pre-load some driver info into the database
+circuits.driverFill =
+  gadgets: [
+    { name: "db", type: "LevelDB" }
+  ]
+  feeds: [
+    { data: "./data", to: "db.Name" }
+    { tag: "/driver/roomNode/temp", to: "db.In", \
+      data: { name: "Temperature", unit: "°C", scale: 1 } }
+    { tag: "/driver/roomNode/humi", to: "db.In", \
+      data: { name: "Humidity", unit: "%" } }
+    { tag: "/driver/roomNode/light", to: "db.In", \
+      data: { name: "Light intensity", unit: "%", factor: 100 / 255, scale: 0 } }
+    { tag: "/driver/roomNode/moved", to: "db.In", \
+      data: { name: "Motion", unit: "(0/1)" } }
+      
+    { tag: "/driver/smaRelay/yield", to: "db.In", \
+      data: { name: "PV daily yield", unit: "kWh", scale: 3 } }
+    { tag: "/driver/smaRelay/dcv1", to: "db.In", \
+      data: { name: "PV level east", unit: "V", scale: 2 } }
+    { tag: "/driver/smaRelay/dcv2", to: "db.In", \
+      data: { name: "PV level west", unit: "V", scale: 2 } }
+    { tag: "/driver/smaRelay/acw", to: "db.In", \
+      data: { name: "PV power AC", unit: "W" } }
+    { tag: "/driver/smaRelay/dcw1", to: "db.In", \
+      data: { name: "PV power east", unit: "W" } }
+    { tag: "/driver/smaRelay/dcw2", to: "db.In", \
+      data: { name: "PV power west", unit: "W" } }
+    { tag: "/driver/smaRelay/total", to: "db.In", \
+      data: { name: "PV total", unit: "MWh", scale: 3 } }
+      
+    { tag: "/driver/homePower/c1", to: "db.In", \
+      data: { name: "Counter stove", unit: "kWh", factor: 0.5, scale: 3 } }
+    { tag: "/driver/homePower/p1", to: "db.In", \
+      data: { name: "Usage stove", unit: "W", scale: 1 } }
+    { tag: "/driver/homePower/c2", to: "db.In", \
+      data: { name: "Counter solar", unit: "kWh", factor: 0.5, scale: 3 } }
+    { tag: "/driver/homePower/p2", to: "db.In", \
+      data: { name: "Usage solar", unit: "W", scale: 1 } }
+    { tag: "/driver/homePower/c3", to: "db.In", \
+      data: { name: "Counter house", unit: "kWh", factor: 0.5, scale: 3 } }
+    { tag: "/driver/homePower/p3", to: "db.In", \
+      data: { name: "Usage house", unit: "W", scale: 1 } }
   ]
 
 circuits.t1 =

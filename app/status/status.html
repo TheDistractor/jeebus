@@ -21,9 +21,9 @@
         <th>Id</th>
       </tr>
       <tr ng-repeat="r in readings | filter:shared.statusQuery | orderBy:&quot;loc&quot;                     track by r.did" highlight-on-change="r.ms">
-        <td>{{r.loc}}</td>
+        <td align="right">{{r.loc}}</td>
         <td>{{r.key}}</td>
-        <td>{{r.value}}</td>
+        <td align="right">{{r.value}}</td>
         <td>{{r.unit}}</td>
         <td>{{r.ms | date:"MM-dd HH:mm:ss"}}</td>
         <td>{{r.typ}}</td>

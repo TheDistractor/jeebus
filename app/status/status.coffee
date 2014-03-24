@@ -18,17 +18,19 @@ ng.controller 'StatusCtrl', ($scope, jeebus) ->
       .on 'Out', (msg) ->
         # loc: ... val: [c1:12,c2:34,...]
         {Tag:dev,Msg:{loc,ms,val,typ}} = msg
+        return  if dev is '<range>'
         for key, raw of val
           did = "#{dev.slice(8)} - #{key}" # device id
-          tid = "#{typ} - #{key}"          # type id
+          tid = "#{typ}/#{key}"            # type id
           readingMap[did] ?= readingVec.length
           readingVec[readingMap[did]] = update {loc,key,raw,ms,typ,did,tid}
           
-    jeebus.gadget 'Attach', Topic: '/driver/'
+    jeebus.gadget 'Attach', In: '/driver/'
       .on 'Out', (msg) ->
         # name: unit: scale: ...
         {Tag:tag,Msg:info} = msg
-        tid = "#{Tag.slice(8)} - #{key}"
+        return  if tag is '<range>'
+        tid = tag.slice(8)
         unitMap[tid] ?= unitVec.length
         unitVec[unitMap[tid]] = info
         # update existing readings
@@ -36,10 +38,19 @@ ng.controller 'StatusCtrl', ($scope, jeebus) ->
 
   update = (row) ->
     info = unitVec[unitMap[row.tid]]
-    if info?
-      row.name = info.name
-      row.unit = info.unit
     row.value = row.raw
+    if info?
+      row.key = info.name
+      row.unit = info.unit
+
+      if info.factor
+        row.value *= info.factor
+      if info.scale < 0
+        row.value *= Math.pow 10, -info.scale
+      else if info.scale >= 0
+        row.value /= Math.pow 10, info.scale
+        row.value = row.value.toFixed info.scale
+
     row
 
   attach()  if $scope.serverStatus is 'connected'
