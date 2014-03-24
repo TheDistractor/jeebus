@@ -1,6 +1,10 @@
 // Interface to MQTT as client and as server.
 package network
 
+// glog levels:
+//	1 = publish
+//  2 = subscribe
+
 import (
 	"encoding/json"
 	"net"
@@ -48,7 +52,7 @@ func (w *MQTTSub) Run() {
 
 	for t := range w.Topic {
 		topic := t.(string)
-		glog.Infoln("mqtt-sub", topic)
+		glog.V(2).Infoln("mqtt-sub", topic)
 		client.Subscribe([]proto.TopicQos{{
 			Topic: topic,
 			Qos:   proto.QosAtMostOnce,
@@ -84,7 +88,7 @@ func (w *MQTTPub) Run() {
 
 	for m := range w.In {
 		msg := m.(flow.Tag)
-		glog.Infoln("mqtt-pub", msg.Tag, msg.Msg)
+		glog.V(1).Infoln("mqtt-pub", msg.Tag, msg.Msg)
 		data, ok := msg.Msg.([]byte)
 		if !ok {
 			data, err = json.Marshal(msg.Msg)

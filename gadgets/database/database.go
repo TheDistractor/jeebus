@@ -1,6 +1,11 @@
 // Interface to the LevelDB database.
 package database
 
+// glog levels:
+//	1 = changes to registry
+//  2 = changes to database
+//  3 = database access
+
 import (
 	"encoding/json"
 	"strings"
@@ -55,7 +60,7 @@ func (w *openDb) iterateOverKeys(from, to string, fun func(string, []byte)) {
 }
 
 func (w *openDb) get(key string) (any interface{}) {
-	glog.Infoln("get", key)
+	glog.V(3).Infoln("get", key)
 	data, err := w.db.Get([]byte(key), nil)
 	if err == leveldb.ErrNotFound {
 		return nil
@@ -67,7 +72,7 @@ func (w *openDb) get(key string) (any interface{}) {
 }
 
 func (w *openDb) put(key string, value interface{}) {
-	glog.Infoln("put", key, value)
+	glog.V(2).Infoln("put", key, value)
 	if value != nil {
 		data, err := json.Marshal(value)
 		flow.Check(err)
@@ -78,7 +83,7 @@ func (w *openDb) put(key string, value interface{}) {
 }
 
 func (w *openDb) keys(prefix string) (results []string) {
-	glog.Infoln("keys", prefix)
+	glog.V(3).Infoln("keys", prefix)
 	// TODO: decide whether this key logic is the most useful & least confusing
 	// TODO: should use skips and reverse iterators once the db gets larger!
 	skip := len(prefix)
@@ -98,20 +103,33 @@ func (w *openDb) keys(prefix string) (results []string) {
 	return
 }
 
-func (w *openDb) clear(prefix string) (results []string) {
-	glog.Infoln("clear", prefix)
-
+func (w *openDb) clear(prefix string) {
+	glog.V(2).Infoln("clear", prefix)
 	w.iterateOverKeys(prefix, "", func(k string, v []byte) {
 		w.db.Delete([]byte(k), nil)
 	})
-	return
+}
+
+func (w *openDb) register(key string) {
+	data, err := w.db.Get([]byte(key), nil)
+	if err == leveldb.ErrNotFound {
+		glog.Warningln("cannot register:", key)
+		return
+	}
+	glog.V(1).Infof("register %s: %d bytes", key, len(data))	
+	flow.Registry[key] = func() flow.Circuitry {
+		c := flow.NewCircuit()
+		c.LoadJSON(data)
+		return c
+	}
 }
 
 func openDatabase() *openDb {
 	if dbPath == "" {
 		dbPath = flow.Config["DATA_DIR"]
 		if dbPath == "" {
-			glog.Fatalln("cannot open database, DATA_DIR not set")
+			glog.Errorln("cannot open database, DATA_DIR not set")
+			return nil
 		}
 	}
 
@@ -161,9 +179,16 @@ func (w *LevelDB) Run() {
 			case "<clear>":
 				w.odb.clear(tag.Msg.(string))
 				w.Mods.Send(m)
-			default:
-				w.odb.put(tag.Tag, tag.Msg)
+			case "<register>":
+				w.odb.register(tag.Msg.(string))
 				w.Mods.Send(m)
+			default:
+				if strings.HasPrefix(tag.Tag, "<") {
+					w.Out.Send(m) // pass on other tags without processing
+				} else {
+					w.odb.put(tag.Tag, tag.Msg)
+					w.Mods.Send(m)
+				}
 			}
 		} else {
 			w.Out.Send(m)

@@ -101,6 +101,7 @@ func (w *HTTPServer) Run() {
 	go func() {
 		// will stay running until an error is returned or the app ends
 		defer flow.DontPanic()
+		glog.Infoln("http started on", port)
 		err := http.ListenAndServe(port, mux)
 		glog.Fatal(err)
 	}()
