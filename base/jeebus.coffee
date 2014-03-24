@@ -49,8 +49,8 @@ ng.factory 'jeebus', ($rootScope, $q) ->
         else
           e.emit 'close'
         delete rpcPromises[n]
-      else if msg isnt "" and reply.length > 2
-        e.emit msg, reply.slice(2)
+      else if msg isnt "" and reply.length is 3
+        e.emit msg, result
       else
         console.error "bad rpc event", reply...
     else

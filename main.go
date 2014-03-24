@@ -14,11 +14,12 @@ var config = flag.String("c", "./config.txt", "name of configuration file to use
 
 // defaults can also be overridden through environment variables
 const defaults = `
-APP_DIR   = ./app
-BASE_DIR  = ./base
-DATA_DIR  = ./data
-HTTP_PORT = :3000
-MQTT_PORT = :1883
+APP_DIR    = ./app
+BASE_DIR   = ./base
+DATA_DIR   = ./data
+HTTP_PORT  = :3000
+MQTT_PORT  = :1883
+SETUP_FILE = ./setup.json
 `
 
 func main() {
@@ -26,9 +27,11 @@ func main() {
 	flow.LoadConfig(defaults, *config)
 	flow.DontPanic()
 
-	// register more definitions from a JSON-formatted init file
-	if err := flow.AddToRegistry("./setup.json"); err != nil {
-		panic(err)
+	// register more definitions from a JSON-formatted setup file, if specified
+	if s := flow.Config["SETUP_FILE"]; s != "" {
+		if err := flow.AddToRegistry(s); err != nil {
+			panic(err)
+		}
 	}
 
 	// if a registered circuit name is given on the command line, run it
