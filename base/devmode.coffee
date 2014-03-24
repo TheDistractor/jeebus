@@ -100,7 +100,7 @@ compileIfNeeded = (srcFile) ->
     else if /\.(css)$/i.test srcFile
       main.send false # request a stylesheet reload
     else if /\.(go)$/i.test srcFile
-      console.log "[node] changed", srcFile
+      console.log '[node] changed', srcFile
       recompileGoFiles()
 
 traverseDirs = (dir, cb) -> # recursive directory traversal
@@ -118,7 +118,7 @@ watchDir = (root, cb) -> # recursive directory watcher
 
 createWatcher = (root) ->
   if fs.existsSync root
-    console.log " ", root
+    console.log ' ', root
     traverseDirs root, (dir) ->
       for f in fs.readdirSync dir
         compileIfNeeded path.join dir, f
@@ -129,29 +129,25 @@ createWatcher = (root) ->
         else
           # TODO: delete compiled file
 
-parseSettings = (fn) ->
+parseConfig = (fn) ->
   map = {}
   if fs.existsSync fn
     for line in fs.readFileSync(fn, 'utf8').split '\n'
-      line = line.trim()
       i = line.indexOf('=')
-      if line[0] != '#' and i > 0
-        x = []
-        for s in line.slice(0, i).trim().split '_'
-          x.push s.slice(0, 1).toUpperCase() + s.slice(1).toLowerCase()
-        k = x.join ""
+      if i > 0 and line.trim()[0] isnt '#'
+        k = line.slice(0, i).trim()
         v = line.slice(i+1).trim()
-        map[k] = JSON.parse v
+        map[k] = v
   map
 
 # Start of devmode application code --------------------------------------------
 
 console.log '[node] watching for file changes in:'
 
-try {settings} = require(path.resolve __dirname, '../setup')
-createWatcher settings?.appDir or './app'
-createWatcher settings?.baseDir or './base'
-createWatcher settings?.gadgetsDir or './gadgets'
+config = parseConfig './config.txt'
+createWatcher process.env.APP_DIR or config.APP_DIR or './app'
+createWatcher process.env.BASE_DIR or config.BASE_DIR or './base'
+createWatcher process.env.GADGETS_DIR or config.GADGETS_DIR or './gadgets'
 
 # if the convert-source-map package is present, then others probably also are
 # don't load the others in yet, jade in particular takes too much time
@@ -161,8 +157,8 @@ if ok
   runMain()
 else
   packages = ['coffee-script', 'convert-source-map', 'jade', 'stylus']
-  console.log '[node] installing npm packages:', packages.join ' '
-  npmstub = if process.platform == "win32" then "npm.cmd" else "npm"
-  execFile npmstub, ['install', packages...], {env:process.env}, (err, o, e) ->
+  console.log '[node] installing npm packages:', packages.join ', '
+  npmExe = if process.platform == 'win32' then 'npm.cmd' else 'npm'
+  execFile npmExe, ['install', packages...], {env:process.env}, (err, o, e) ->
     fatal err  if err?
     runMain()
