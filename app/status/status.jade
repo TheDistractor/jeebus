@@ -12,14 +12,16 @@
         th Location
         th Parameter
         th Value
+        th Unit
         th Time
         th Type
         th Id
       tr(ng-repeat='r in readings | filter:shared.statusQuery | orderBy:"loc" \
-                    track by r.id' highlight-on-change='r.ms')
+                    track by r.did' highlight-on-change='r.ms')
         td {{r.loc}}
         td {{r.key}}
         td {{r.value}}
+        td {{r.unit}}
         td {{r.ms | date:"MM-dd HH:mm:ss"}}
         td {{r.typ}}
-        td {{r.id}}
+        td {{r.did}}

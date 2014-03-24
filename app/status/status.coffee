@@ -8,17 +8,39 @@ ng.config ($stateProvider, navbarProvider) ->
   navbarProvider.add '/status', 'Status', 30
 
 ng.controller 'StatusCtrl', ($scope, jeebus) ->
-  vec = $scope.readings = []
-  map = {}
+  readingVec = $scope.readings = []
+  readingMap = {}
+  unitVec = $scope.units = []
+  unitMap = {}
 
   attach = ->
     jeebus.gadget 'MQTTSub', Topic: '/sensor/#'
       .on 'Out', (msg) ->
-        {Tag,Msg:{loc,ms,val,typ}} = msg
-        for key, value of val
-          id = "#{Tag.slice(8)} - #{key}"
-          map[id] ?= vec.length
-          vec[map[id]] = {loc,key,value,ms,typ,id}
+        # loc: ... val: [c1:12,c2:34,...]
+        {Tag:dev,Msg:{loc,ms,val,typ}} = msg
+        for key, raw of val
+          did = "#{dev.slice(8)}/#{key}" # device id
+          tid = "#{typ}/#{key}"          # type id
+          readingMap[did] ?= readingVec.length
+          readingVec[readingMap[did]] = update {loc,key,raw,ms,typ,did,tid}
+          
+    jeebus.gadget 'MQTTSub', Topic: '/driver/#'
+      .on 'Out', (msg) ->
+        # name: unit: scale: ...
+        {Tag:tag,Msg:info} = msg
+        tid = "#{Tag.slice(8)} - #{key}"
+        unitMap[tid] ?= unitVec.length
+        unitVec[unitMap[tid]] = info
+        # update existing readings
+        update row  for row in readingVec
+
+  update = (row) ->
+    info = unitVec[unitMap[row.tid]]
+    if info?
+      row.name = info.name
+      row.unit = info.unit
+    row.value = row.raw
+    row
 
   attach()  if $scope.serverStatus is 'connected'
   $scope.$on 'ws-open', -> attach()
