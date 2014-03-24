@@ -6,26 +6,8 @@
                 "type": "HTTPServer"
             },
             {
-                "name": "mqtt",
-                "type": "MQTTServer"
-            },
-            {
-                "name": "pub",
-                "type": "MQTTPub"
-            },
-            {
-                "name": "replay",
-                "type": "replay"
-            }
-        ],
-        "wires": [
-            {
-                "from": "replay.Out",
-                "to": "pub.In"
-            },
-            {
-                "from": "mqtt.PortOut",
-                "to": "pub.Port"
+                "name": "init",
+                "type": "init"
             }
         ],
         "feeds": [
@@ -47,10 +29,52 @@
             {
                 "data": ":3000",
                 "to": "http.Port"
+            }
+        ]
+    },
+    "init": {
+        "gadgets": [
+            {
+                "name": "mqtt",
+                "type": "MQTTServer"
             },
+            {
+                "name": "replay",
+                "type": "replay"
+            },
+            {
+                "name": "pub",
+                "type": "MQTTPub"
+            },
+            {
+                "name": "dummy",
+                "type": "Pipe"
+            }
+        ],
+        "wires": [
+            {
+                "from": "replay.Out",
+                "to": "pub.In"
+            },
+            {
+                "from": "mqtt.PortOut",
+                "to": "pub.Port"
+            }
+        ],
+        "feeds": [
             {
                 "data": ":1883",
                 "to": "mqtt.Port"
+            }
+        ],
+        "labels": [
+            {
+                "external": "In",
+                "internal": "dummy.In"
+            },
+            {
+                "external": "Out",
+                "internal": "dummy.Out"
             }
         ]
     },

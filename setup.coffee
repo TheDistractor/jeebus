@@ -6,20 +6,33 @@ circuits = {}
 circuits.main =
   gadgets: [
     { name: "http", type: "HTTPServer" }
-    { name: "mqtt", type: "MQTTServer" }
-    { name: "pub", type: "MQTTPub" }
-		{ name: "replay", type: "replay" }
-  ]
-  wires: [
-    { from: "replay.Out", to: "pub.In" }
-    { from: "mqtt.PortOut", to: "pub.Port" }
+    { name: "init", type: "init" }
   ]
   feeds: [
     { tag: "/", data: "./app",  to: "http.Handlers" }
     { tag: "/base/", data: "./base",  to: "http.Handlers" }
     { tag: "/ws", data: "<websocket>",  to: "http.Handlers" }
     { data: ":3000",  to: "http.Port" }
+  ]
+
+# init circuit for HouseMon, which starts its own http server.
+circuits.init =
+  gadgets: [
+    { name: "mqtt", type: "MQTTServer" }
+		{ name: "replay", type: "replay" }
+    { name: "pub", type: "MQTTPub" }
+    { name: "dummy", type: "Pipe" } # needed for dispatcher in HouseMon
+  ]
+  wires: [
+    { from: "replay.Out", to: "pub.In" }
+    { from: "mqtt.PortOut", to: "pub.Port" }
+  ]
+  feeds: [
     { data: ":1883",  to: "mqtt.Port" }
+  ]
+  labels: [
+    { external: "In", internal: "dummy.In" }
+    { external: "Out", internal: "dummy.Out" }
   ]
 
 # define the websocket handler using a loop in and out of RpcHandler
