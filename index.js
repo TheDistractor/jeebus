@@ -1,1 +1,1 @@
-require('./common/devmode');
+require('./base/devmode');
