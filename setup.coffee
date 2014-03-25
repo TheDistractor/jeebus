@@ -196,7 +196,7 @@ circuits.driverFill =
     { tag: "/driver/roomNode/humi", to: "db.In", \
       data: { name: "Humidity", unit: "%" } }
     { tag: "/driver/roomNode/light", to: "db.In", \
-      data: { name: "Light intensity", unit: "%", factor: 100 / 255, scale: 0 } }
+      data: { name: "Light intensity", unit: "%", factor: 0.392, scale: 0 } }
     { tag: "/driver/roomNode/moved", to: "db.In", \
       data: { name: "Motion", unit: "(0/1)" } }
       

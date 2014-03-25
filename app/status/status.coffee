@@ -20,9 +20,8 @@ ng.controller 'StatusCtrl', ($scope, jeebus) ->
     {loc,ms,val,typ} = msg
     for key, raw of val
       id = "#{tag} - #{key}" # device id
-      tid = "#{typ}/#{key}"  # type id
       readingMap[id] ?= readingVec.length
-      readingVec[readingMap[id]] = adjust {loc,key,raw,ms,typ,id,tid}
+      readingVec[readingMap[id]] = adjust {loc,key,raw,ms,typ,id}
 
   unitHandler = (tag, msg) ->
     msg.id = tag
@@ -34,7 +33,8 @@ ng.controller 'StatusCtrl', ($scope, jeebus) ->
     
   adjust = (row) ->
     row.value = row.raw
-    info = unitVec[unitMap[row.tid]]
+    tid = "#{row.typ}/#{row.key}"
+    info = unitVec[unitMap[tid]]
     if info?
       row.key = info.name
       row.unit = info.unit

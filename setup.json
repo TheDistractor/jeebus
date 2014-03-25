@@ -513,7 +513,7 @@
                 "data": {
                     "name": "Light intensity",
                     "unit": "%",
-                    "factor": 0.39215686274509803,
+                    "factor": 0.392,
                     "scale": 0
                 }
             },

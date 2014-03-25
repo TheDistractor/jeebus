@@ -1,0 +1,42 @@
+
+<div class="row">
+  <div class="large-6 columns">
+    <h3>Data</h3>
+  </div>
+  <div class="large-2 columns">
+    <h3>
+      <!-- for vertical alignment-->
+    </h3>
+    <input type="text" ng-model="query" placeholder="Search..."/>
+  </div>
+  <div class="large-4 columns"></div>
+  <div class="large-8 columns">
+    <table width="100%">
+      <tr>
+        <th ng-repeat="c in columns">{{c.name}}</th>
+      </tr>
+      <tr ng-repeat="r in rows | filter:query | orderBy:&quot;id&quot;" ng-click="editRow(r)">
+        <td ng-repeat="c in columns">{{r[c.id]}}</td>
+      </tr>
+    </table>
+  </div>
+  <div class="large-4 columns">
+    <form>
+      <div ng-repeat="c in columns" class="row">
+        <div class="large-4 columns">
+          <label class="right inline">{{c.name}}</label>
+        </div>
+        <div class="large-8 columns">
+          <input type="text" ng-model="cursor[c.id]"/>
+        </div>
+      </div>
+      <div class="row">
+        <div class="large-4 columns">
+          <p></p>
+        </div>
+        <div class="large-4 columns"><a ng-click="editRow()">Clear</a></div>
+        <div class="large-4 columns"><a ng-click="deleteRow()" class="right">Delete</a></div>
+      </div>
+    </form>
+  </div>
+</div>
