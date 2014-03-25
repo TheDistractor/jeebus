@@ -1,6 +1,6 @@
 .row
   .large-6.columns
-    h3 Data
+    h3 {{table}}
   .large-2.columns
     h3: // for vertical alignment
     input(type='text',ng-model='query',placeholder='Search...')
@@ -10,7 +10,7 @@
     table(width='100%')
       tr
         th(ng-repeat='c in columns') {{c.name}}
-      tr(ng-repeat='r in rows | filter:query | orderBy:"id"'
+      tr.hover(ng-repeat='r in rows | filter:query | orderBy:"id"'
           ng-click='editRow(r)')
         td(ng-repeat='c in columns') {{r[c.id]}}
 

@@ -1,3 +1,6 @@
+.hover:hover {
+  background: #d3d3d3;
+}
 .highlight-add {
   -webkit-transition: 1s linear all;
   -moz-transition: 1s linear all;

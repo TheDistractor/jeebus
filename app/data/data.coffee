@@ -22,25 +22,25 @@ ng.controller 'DataCtrl', ($scope, jeebus) ->
     sensor: [
       { id: "id", name: "Id" }
       { id: "loc", name: "Location" }
-      { id: "val", name: "Values" }
+      # { id: "val", name: "Values" }
       { id: "ms", name: "Timestamp" }
       { id: "typ", name: "Type" }
     ]
   
   $scope.columns = $scope.info[$scope.table]
 
-  dataHandler = (tag, msg) ->
-    msg.id = tag
-    dataMap[msg.id] ?= dataVec.length
-    dataVec[dataMap[msg.id]] = msg
-  
   $scope.editRow = (row) ->
     $scope.cursor = row ? {}
     
-  dataVec = $scope.rows = []
-  dataMap = {}
-
   attach = ->
+    dataVec = $scope.rows = []
+    dataMap = {}
+
+    dataHandler = (tag, msg) ->
+      msg.id = tag
+      dataMap[msg.id] ?= dataVec.length
+      dataVec[dataMap[msg.id]] = msg
+  
     jeebus.gadget 'Attach', In: "/#{$scope.table}/"
       .on 'Out', (m) ->
         if m.Tag[0] isnt '<'
