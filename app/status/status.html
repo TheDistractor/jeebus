@@ -20,14 +20,14 @@
         <th>Type</th>
         <th>Id</th>
       </tr>
-      <tr ng-repeat="r in readings | filter:shared.statusQuery | orderBy:&quot;loc&quot;                     track by r.did" highlight-on-change="r.ms">
+      <tr ng-repeat="r in readings | filter:shared.statusQuery | orderBy:&quot;loc&quot;                     track by r.id" highlight-on-change="r.ms">
         <td align="right">{{r.loc}}</td>
         <td>{{r.key}}</td>
         <td align="right">{{r.value}}</td>
         <td>{{r.unit}}</td>
         <td>{{r.ms | date:"MM-dd HH:mm:ss"}}</td>
         <td>{{r.typ}}</td>
-        <td>{{r.did}}</td>
+        <td>{{r.id}}</td>
       </tr>
     </table>
   </div>

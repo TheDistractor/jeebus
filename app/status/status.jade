@@ -2,8 +2,7 @@
   .large-8.columns
     h3 Readings
   .large-4.columns
-    h3
-      // for vertical alignment
+    h3: // for vertical alignment
     input(type='text',ng-model='shared.statusQuery',placeholder='Search...')
 
   .large-12.columns
@@ -17,11 +16,11 @@
         th Type
         th Id
       tr(ng-repeat='r in readings | filter:shared.statusQuery | orderBy:"loc" \
-                    track by r.did' highlight-on-change='r.ms')
+                    track by r.id' highlight-on-change='r.ms')
         td(align='right') {{r.loc}}
         td {{r.key}}
         td(align='right') {{r.value}}
         td {{r.unit}}
         td {{r.ms | date:"MM-dd HH:mm:ss"}}
         td {{r.typ}}
-        td {{r.did}}
+        td {{r.id}}
