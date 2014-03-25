@@ -47,8 +47,9 @@ func init() {
 		c.Connect("fan.Out:tag", "tag.In", 0)
 		c.Connect("tag.Out", "db.In", 0)
 		c.Connect("db.Out", "cat.In1", 0)
-		c.Connect("sub.Out", "cat.In2", 100) // with buffering
+		c.Connect("sub.Out", "cat.In3", 100) // with buffering
 		c.Feed("tag.Tag", "<range>")
+		c.Feed("cat.In2", flow.Tag{"<sync>","attach"})
 		c.Label("In", "fan.In")
 		c.Label("Out", "cat.Out")
 		return c

@@ -25,8 +25,8 @@ ng.factory 'jeebus', ($rootScope, $q) ->
         return
       if msg is "" and reply.length
         deferred.resolve reply[0]
-      else if msg isnt "" and reply.length == 0
-        console.error "reject reply", msg
+      else if msg and reply.length == 0
+        console.error msg
         deferred.reject msg
       else
         console.error "bad rpc reply", n, msg, reply...

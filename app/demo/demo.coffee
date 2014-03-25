@@ -4,10 +4,10 @@ ng.config ($stateProvider, navbarProvider) ->
   $stateProvider.state 'demo',
     url: '/'
     templateUrl: 'demo/demo.html'
-    controller: 'DemoCtrl'
+    controller: demoCtrl
   navbarProvider.add '/', 'Demo', 25
 
-ng.controller 'DemoCtrl', ($scope, jeebus) ->
+demoCtrl = ($scope, jeebus) ->
 
   $scope.echoTest = ->
     jeebus.send "echoTest!" # send a test message to JB server's stdout

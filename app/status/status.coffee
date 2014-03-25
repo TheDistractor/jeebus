@@ -4,10 +4,10 @@ ng.config ($stateProvider, navbarProvider) ->
   $stateProvider.state 'status',
     url: '/status'
     templateUrl: 'status/status.html'
-    controller: 'StatusCtrl'
+    controller: statusCtrl
   navbarProvider.add '/status', 'Status', 30
 
-ng.controller 'StatusCtrl', ($scope, jeebus) ->
+statusCtrl = ($scope, jeebus) ->
   # jeebus.attach 'sensor', (key, row) -> ...
   #
   # $scope.models.attach 'sensor', (key, row) -> ...

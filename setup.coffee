@@ -22,7 +22,8 @@ circuits.init =
 		{ name: "replay", type: "replay" }
     { name: "pub", type: "MQTTPub" }
     { name: "dummy", type: "Pipe" } # needed for dispatcher in HouseMon
-    { name: "fill", type: "driverFill" }
+    { name: "driverFill", type: "driverFill" } # pre-load the database
+    { name: "tableFill", type: "tableFill" }   # pre-load the database
   ]
   wires: [
     { from: "replay.Out", to: "pub.In" }
@@ -191,45 +192,75 @@ circuits.driverFill =
   ]
   feeds: [
     { data: "./data", to: "db.Name" }
-    { tag: "/driver/roomNode/temp", to: "db.In", \
+    { to: "db.In", tag: "/driver/roomNode/temp", \
       data: { name: "Temperature", unit: "°C", scale: 1 } }
-    { tag: "/driver/roomNode/humi", to: "db.In", \
+    { to: "db.In", tag: "/driver/roomNode/humi", \
       data: { name: "Humidity", unit: "%" } }
-    { tag: "/driver/roomNode/light", to: "db.In", \
+    { to: "db.In", tag: "/driver/roomNode/light", \
       data: { name: "Light intensity", unit: "%", factor: 0.392, scale: 0 } }
-    { tag: "/driver/roomNode/moved", to: "db.In", \
+    { to: "db.In", tag: "/driver/roomNode/moved", \
       data: { name: "Motion", unit: "(0/1)" } }
       
-    { tag: "/driver/smaRelay/yield", to: "db.In", \
+    { to: "db.In", tag: "/driver/smaRelay/yield", \
       data: { name: "PV daily yield", unit: "kWh", scale: 3 } }
-    { tag: "/driver/smaRelay/dcv1", to: "db.In", \
+    { to: "db.In", tag: "/driver/smaRelay/dcv1", \
       data: { name: "PV level east", unit: "V", scale: 2 } }
-    { tag: "/driver/smaRelay/dcv2", to: "db.In", \
+    { to: "db.In", tag: "/driver/smaRelay/dcv2", \
       data: { name: "PV level west", unit: "V", scale: 2 } }
-    { tag: "/driver/smaRelay/acw", to: "db.In", \
+    { to: "db.In", tag: "/driver/smaRelay/acw", \
       data: { name: "PV power AC", unit: "W" } }
-    { tag: "/driver/smaRelay/dcw1", to: "db.In", \
+    { to: "db.In", tag: "/driver/smaRelay/dcw1", \
       data: { name: "PV power east", unit: "W" } }
-    { tag: "/driver/smaRelay/dcw2", to: "db.In", \
+    { to: "db.In", tag: "/driver/smaRelay/dcw2", \
       data: { name: "PV power west", unit: "W" } }
-    { tag: "/driver/smaRelay/total", to: "db.In", \
+    { to: "db.In", tag: "/driver/smaRelay/total", \
       data: { name: "PV total", unit: "MWh", scale: 3 } }
       
-    { tag: "/driver/homePower/c1", to: "db.In", \
+    { to: "db.In", tag: "/driver/homePower/c1", \
       data: { name: "Counter stove", unit: "kWh", factor: 0.5, scale: 3 } }
-    { tag: "/driver/homePower/p1", to: "db.In", \
+    { to: "db.In", tag: "/driver/homePower/p1", \
       data: { name: "Usage stove", unit: "W", scale: 1 } }
-    { tag: "/driver/homePower/c2", to: "db.In", \
+    { to: "db.In", tag: "/driver/homePower/c2", \
       data: { name: "Counter solar", unit: "kWh", factor: 0.5, scale: 3 } }
-    { tag: "/driver/homePower/p2", to: "db.In", \
+    { to: "db.In", tag: "/driver/homePower/p2", \
       data: { name: "Production solar", unit: "W", scale: 1 } }
-    { tag: "/driver/homePower/c3", to: "db.In", \
+    { to: "db.In", tag: "/driver/homePower/c3", \
       data: { name: "Counter house", unit: "kWh", factor: 0.5, scale: 3 } }
-    { tag: "/driver/homePower/p3", to: "db.In", \
+    { to: "db.In", tag: "/driver/homePower/p3", \
       data: { name: "Usage house", unit: "W", scale: 1 } }
   ]
+  
+# pre-load some table info into the database
+circuits.tableFill =
+  gadgets: [
+    { name: "db", type: "LevelDB" }
+  ]
+  feeds: [
+    { data: "./data", to: "db.Name" }
 
-circuits.t1 =
+    { to: "db.In", tag: "/table/table", data: { attr: "id attr" } }
+
+    { to: "db.In", tag: "/table/column", data: { attr: "id name" } }
+    { to: "db.In", tag: "/column/table/id", data: { name: "Ident" } }
+    { to: "db.In", tag: "/column/table/name", data: { name: "Name" } }
+
+    { to: "db.In", tag: "/table/driver", data: { attr: "id name unit factor scale" } }
+    { to: "db.In", tag: "/column/driver/id", data: { name: "Parameter" } }
+    { to: "db.In", tag: "/column/driver/name", data: { name: "Name" } }
+    { to: "db.In", tag: "/column/driver/unit", data: { name: "Unit" } }
+    { to: "db.In", tag: "/column/driver/factor", data: { name: "Factor" } }
+    { to: "db.In", tag: "/column/driver/scale", data: { name: "Scale" } }
+
+    { to: "db.In", tag: "/table/sensor", data: { attr: "id loc val ms typ" } }
+    { to: "db.In", tag: "/column/sensor/id", data: { name: "Ident" } }
+    { to: "db.In", tag: "/column/sensor/loc", data: { name: "Location" } }
+    { to: "db.In", tag: "/column/sensor/val", data: { name: "Values" } }
+    { to: "db.In", tag: "/column/sensor/ms", data: { name: "Timestamp" } }
+    { to: "db.In", tag: "/column/sensor/typ", data: { name: "Type" } }
+  ]
+
+# trial circuit
+circuits.try1 =
   gadgets: [
     { name: "db", type: "LevelDB" }
   ]
