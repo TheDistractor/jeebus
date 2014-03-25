@@ -1,27 +1,30 @@
 .row
-  .large-6.columns
-    h3 {{table}}
+  .large-4.columns
+    h3 Data for: {{table}}
+  .large-2.columns
+    h3: // for vertical alignment
+    select(ng-model="table" ng-options="k as k for (k,v) in tables.keys"
+            ng-change='changeTable()')
   .large-2.columns
     h3: // for vertical alignment
     input(type='text',ng-model='query',placeholder='Search...')
   .large-4.columns
 
+.row
   .large-8.columns
-    table(width='100%')
+    table
       tr
-        th(ng-repeat='c in columns') {{c.name}}
-      tr.hover(ng-repeat='r in rows | filter:query | orderBy:"id"'
-          ng-click='editRow(r)')
-        td(ng-repeat='c in columns') {{r[c.id]}}
+        th(ng-repeat='c in colInfo') {{columns.get(c).name}}
+      tr.hover(ng-repeat='r in data.rows | filter:query',ng-click='editRow(r)')
+        td(ng-repeat='c in colInfo') {{r[c]}}
 
   .large-4.columns
     form(ng-show='cursor')
-      .row(ng-repeat='c in columns')
+      .row(ng-repeat='c in colInfo')
         .large-4.columns
-          label.right.inline {{c.name}}
+          label.right.inline {{columns.get(c).name}}
         .large-8.columns
-          //- input(type='text',ng-model='cursor[c.id]',ng-disabled='$first')
-          input(type='text',ng-model='cursor[c.id]')
+          input(type='text',ng-model='cursor[c]')
       .row
         .large-4.columns: p
         .large-4.columns

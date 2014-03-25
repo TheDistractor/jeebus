@@ -239,10 +239,12 @@ circuits.tableFill =
     { data: "./data", to: "db.Name" }
 
     { to: "db.In", tag: "/table/table", data: { attr: "id attr" } }
+    { to: "db.In", tag: "/column/table/id", data: { name: "Ident" } }
+    { to: "db.In", tag: "/column/table/attr", data: { name: "Attributes" } }
 
     { to: "db.In", tag: "/table/column", data: { attr: "id name" } }
-    { to: "db.In", tag: "/column/table/id", data: { name: "Ident" } }
-    { to: "db.In", tag: "/column/table/name", data: { name: "Name" } }
+    { to: "db.In", tag: "/column/column/id", data: { name: "Ident" } }
+    { to: "db.In", tag: "/column/column/name", data: { name: "Name" } }
 
     { to: "db.In", tag: "/table/driver", data: { attr: "id name unit factor scale" } }
     { to: "db.In", tag: "/column/driver/id", data: { name: "Parameter" } }
