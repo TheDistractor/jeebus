@@ -9,6 +9,11 @@ ng.config ($stateProvider, navbarProvider) ->
 
 ng.controller 'StatusCtrl', ($scope, jeebus) ->
   # jeebus.attach 'sensor', (key, row) -> ...
+  #
+  # $scope.models.attach 'sensor', (key, row) -> ...
+  #
+  # $scope.sensor = jeebus.attach 'sensor', (key, row) -> ...
+  # $scope.$on '$destroy' jeebus.detach 'sensor'
   
   readingHandler = (tag, msg) ->
     # loc: ... val: [c1:12,c2:34,...]
@@ -28,8 +33,8 @@ ng.controller 'StatusCtrl', ($scope, jeebus) ->
     adjust r  for r in readingVec
     
   adjust = (row) ->
-    info = unitVec[unitMap[row.tid]]
     row.value = row.raw
+    info = unitVec[unitMap[row.tid]]
     if info?
       row.key = info.name
       row.unit = info.unit

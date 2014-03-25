@@ -11,50 +11,34 @@ ng.config ($urlRouterProvider, $locationProvider) ->
 ng.factory 'jeebus', ($rootScope, $q) ->
   ws = null          # the websocket object, while open
   seqNum = 0         # unique sequence numbers for each RPC request
-  rpcPromises = {}   # maps seqNum to a pending <timerId,promise,emitter> entry
-  trackedModels = {} # keeps track of which paths have been attached
+  rpcPromises = {}   # maps seqNum to a pending {timer,deferred,emitter} entry
 
-  # Update one or more of the tracked models with an incoming change.
-  processModelUpdate = (key, value) ->
-    for k, info of trackedModels
-      if k is key.slice(0, k.length)
-        suffix = key.slice(k.length)
-        if value
-          info.model[suffix] = value
-        else
-          delete info.model[suffix]
-    console.error "spurious model update", key, value  unless suffix
-
-  # Resolve or reject a pending rpc promise.
-  processRpcReply = (reply) ->
-    [n,msg,result] = reply
-    [t,d,e] = rpcPromises[n]
-    if d
-      clearTimeout t
+  # Resolve or reject a pending rpc promise. Also handle streamed results.
+  processRpcReply = (n, msg, reply...) ->
+    {timer,deferred,emitter} = rpcPromises[n]
+    if deferred
+      clearTimeout timer
       if msg is true # start streaming
-        rpcPromises[n][1] = null
-        d.resolve (ee) ->
-          rpcPromises[n][2] = ee
-      else if msg is "" and reply.length is 3
-        d.resolve result
-      else if msg isnt "" and reply.length is 2
-        console.error msg
-        d.reject msg
+        rpcPromises[n].deferred = null
+        deferred.resolve (ee) ->
+          rpcPromises[n].emitter = ee
+        return
+      if msg is "" and reply.length
+        deferred.resolve reply[0]
+      else if msg isnt "" and reply.length == 0
+        console.error "reject reply", msg
+        deferred.reject msg
       else
-        console.error "bad rpc reply", reply...
-    else if e
-      if msg is false # stop streaming
-        if reply.length > 2
-          e.emit 'error', result
-        else
-          e.emit 'close'
-        delete rpcPromises[n]
-      else if msg isnt "" and reply.length is 3
-        e.emit msg, result
+        console.error "bad rpc reply", n, msg, reply...
+      delete rpcPromises[n]
+    else if emitter
+      if msg and reply.length
+        emitter.emit msg, reply[0]
       else
-        console.error "bad rpc event", reply...
+        delete rpcPromises[n] # stop streaming
+        emitter.emit 'close', reply[0]
     else
-      console.error "spurious rpc reply", reply...
+      console.error "spurious rpc reply", n, msg, reply...
 
   # Set up a websocket connection to the JeeBus server.
   # The appTag is the default tag to use when sending requests to it.
@@ -78,10 +62,9 @@ ng.factory 'jeebus', ($rootScope, $q) ->
           switch typeof data
             when 'object'
               if Array.isArray data
-                processRpcReply data
+                processRpcReply data...
               else
-                for k, v of data
-                  processModelUpdate k, v
+                console.log "spurious object received": m
             when 'boolean'
               if data # reload app
                 window.location.reload true
@@ -130,7 +113,7 @@ ng.factory 'jeebus', ($rootScope, $q) ->
       $rootScope.$apply ->
         d.reject()
     , 10000 # 10 seconds should be enough to complete any request
-    rpcPromises[n] = [t, d, null]
+    rpcPromises[n] = timer: t, deferred: d
     d.promise
 
   # Launch a gadget on the server and return its results via events.
@@ -141,24 +124,5 @@ ng.factory 'jeebus', ($rootScope, $q) ->
         eeSetter e
     e
   
-  # Attach, i.e. get corresponding data as a model which tracks all changes.
-  attach = (path) ->
-    info = trackedModels[path] ?= { model: {}, count: 0 }
-    if info.count++ is 0
-      rpc 'attach', path
-        .then (r) ->
-          for k, v of r
-            processModelUpdate k, v
-          console.log 'attach', path
-    info.model
-
-  # Undo the effects of attaching, i.e. stop following changes.
-  detach = (path) ->
-    if trackedModels[path] && --trackedModels[path].count <= 0
-      delete trackedModels[path]
-      rpc 'detach', path
-        .then -> console.log 'detach', path
-    @
-
   window.send = send # console access, for debugging
-  {connect,send,get,put,rpc,gadget,attach,detach}
+  {connect,send,get,put,rpc,gadget}
