@@ -16,63 +16,24 @@ dataCtrl = ($scope, jeebus) ->
       { id: "factor", name: "Factor" }
       { id: "scale", name: "Scale" }
     ]
-    sensor: [
-      { id: "id", name: "Id" }
-      { id: "loc", name: "Location" }
-      # { id: "val", name: "Values" }
-      { id: "ms", name: "Timestamp" }
-      { id: "typ", name: "Type" }
-    ]
   
-  $scope.tables = Object.keys $scope.info
-  console.log 'ta', $scope.tables
-  $scope.table = 'driver'
-  # $scope.table = 'sensor'
-  
+  $scope.table = 'driver'  
   $scope.columns = $scope.info[$scope.table]
+  $scope.allowDelete = false
+
+  $scope.deleteRow = ->
+    if $scope.allowDelete and $scope.cursor?
+      $scope.allowDelete = false
+      console.log 'DELETE', $scope.cursor
 
   $scope.editRow = (row) ->
-    $scope.cursor = row ? {}
+    $scope.cursor = row
     
-  jeebus.attach = (table, rowHandler) ->
-    g = jeebus.gadget 'Attach', In: "/#{table}/"
-
-    g.store = (key, row) ->
-      row.id = key
-      @keys[row.id] ?= @rows.length
-      @rows[@keys[row.id]] = row
-
-    g.on 'Out', (m) ->
-      switch m.Tag
-        when '<range>' then @emit 'init', table
-        when '<sync>' then @emit 'sync', table
-        else @emit 'data', m.Tag.slice(2 + table.length), m.Msg
-    g.on 'data', rowHandler ? g.store
-
-    g.rows = []
-    g.keys = {}
-    g
-    
-  attach = ->
+  setup = ->
     jeebus.attach 'table'
-      .on 'sync', ->
-        console.log @rows
+      .on 'sync', -> console.log @keys
+    jeebus.attach 'driver'
+      .on 'init', -> $scope.rows = @rows
       
-    dataVec = $scope.rows = []
-    dataMap = {}
-
-    dataHandler = (tag, msg) ->
-      msg.id = tag
-      dataMap[msg.id] ?= dataVec.length
-      dataVec[dataMap[msg.id]] = msg
-  
-    jeebus.gadget 'Attach', In: "/#{$scope.table}/"
-      .on 'Out', (m) ->
-        switch m.Tag
-          when '<range>' then @emit 'init'
-          when '<sync>' then @emit 'sync'
-          else @emit 'data', m.Tag.slice(2 + $scope.table.length), m.Msg
-      .on 'data', dataHandler
-
-  attach()  if $scope.serverStatus is 'connected'
-  $scope.$on 'ws-open', -> attach()
+  setup()  if $scope.serverStatus is 'connected'
+  $scope.$on 'ws-open', setup

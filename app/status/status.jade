@@ -18,7 +18,7 @@
       tr(ng-repeat='r in readings | filter:shared.statusQuery | orderBy:"loc" \
                     track by r.id' highlight-on-change='r.ms')
         td(align='right') {{r.loc}}
-        td {{r.key}}
+        td {{r.param}}
         td(align='right') {{r.value}}
         td {{r.unit}}
         td {{r.ms | date:"MM-dd HH:mm:ss"}}

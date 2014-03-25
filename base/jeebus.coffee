@@ -124,5 +124,27 @@ ng.factory 'jeebus', ($rootScope, $q) ->
         eeSetter e
     e
   
+  attach = (table, rowHandler) ->
+    g = gadget 'Attach', In: "/#{table}/"
+
+    g.get = (key) ->
+      @rows[@keys[key]]
+      
+    g.put = (key, row) ->
+      row.id = key
+      @keys[row.id] ?= @rows.length
+      @rows[@keys[row.id]] = row
+
+    g.on 'Out', (m) ->
+      switch m.Tag
+        when '<range>' then @emit 'init', table
+        when '<sync>' then @emit 'sync', table
+        else @emit 'data', m.Tag.slice(2 + table.length), m.Msg
+    g.on 'data', rowHandler ? g.put
+
+    g.rows = []
+    g.keys = {}
+    g
+    
   window.send = send # console access, for debugging
-  {connect,send,get,put,rpc,gadget}
+  {connect,send,get,put,rpc,gadget,attach}

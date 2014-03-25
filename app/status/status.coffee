@@ -8,35 +8,20 @@ ng.config ($stateProvider, navbarProvider) ->
   navbarProvider.add '/status', 'Status', 30
 
 statusCtrl = ($scope, jeebus) ->
-  # jeebus.attach 'sensor', (key, row) -> ...
-  #
-  # $scope.models.attach 'sensor', (key, row) -> ...
-  #
-  # $scope.sensor = jeebus.attach 'sensor', (key, row) -> ...
-  # $scope.$on '$destroy' jeebus.detach 'sensor'
+  drivers = {}
   
-  readingHandler = (tag, msg) ->
+  rowHandler = (key, row) ->
     # loc: ... val: [c1:12,c2:34,...]
-    {loc,ms,val,typ} = msg
-    for key, raw of val
-      id = "#{tag} - #{key}" # device id
-      readingMap[id] ?= readingVec.length
-      readingVec[readingMap[id]] = adjust {loc,key,raw,ms,typ,id}
+    {loc,ms,val,typ} = row
+    for param, raw of val
+      id = "#{key} - #{param}" # device id
+      @put id, adjust {loc,param,raw,ms,typ}
 
-  unitHandler = (tag, msg) ->
-    msg.id = tag
-    # name: unit: scale: ...
-    unitMap[msg.id] ?= unitVec.length
-    unitVec[unitMap[msg.id]] = msg
-    # update existing readings
-    adjust r  for r in readingVec
-    
   adjust = (row) ->
     row.value = row.raw
-    tid = "#{row.typ}/#{row.key}"
-    info = unitVec[unitMap[tid]]
+    info = drivers.get "#{row.typ}/#{row.param}"
     if info?
-      row.key = info.name
+      row.param = info.name
       row.unit = info.unit
       # apply some scaling and formatting
       if info.factor
@@ -48,21 +33,12 @@ statusCtrl = ($scope, jeebus) ->
         row.value = row.value.toFixed info.scale
     row
 
-  lookupMaps = {}
-  readingVec = $scope.readings = []
-  readingMap = {}
-  unitVec = $scope.units = []
-  unitMap = {}
-
-  attach = ->
-    jeebus.gadget 'Attach', In: '/sensor/'
-      .on 'Out', (m) ->
-        if m.Tag[0] isnt '<'
-          readingHandler m.Tag.slice(8), m.Msg
-    jeebus.gadget 'Attach', In: '/driver/'
-      .on 'Out', (m) ->
-        if m.Tag[0] isnt '<'
-          unitHandler m.Tag.slice(8), m.Msg
-
-  attach()  if $scope.serverStatus is 'connected'
-  $scope.$on 'ws-open', -> attach()
+  setup = ->
+    drivers = jeebus.attach 'driver'
+      .on 'sync', ->
+        jeebus.attach 'sensor', rowHandler
+          .on 'init', ->
+            $scope.readings = @rows
+      
+  setup()  if $scope.serverStatus is 'connected'
+  $scope.$on 'ws-open', setup
