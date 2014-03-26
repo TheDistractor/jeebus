@@ -4,7 +4,7 @@
   .large-2.columns
     h3: // for vertical alignment
     select(ng-model="table" ng-options="k as k for (k,v) in tables.keys"
-            ng-change='changeTable()')
+            ng-change='changeTable(table)')
   .large-2.columns
     h3: // for vertical alignment
     input(type='text',ng-model='query',placeholder='Search...')

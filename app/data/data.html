@@ -7,7 +7,7 @@
     <h3>
       <!-- for vertical alignment-->
     </h3>
-    <select ng-model="table" ng-options="k as k for (k,v) in tables.keys" ng-change="changeTable()"></select>
+    <select ng-model="table" ng-options="k as k for (k,v) in tables.keys" ng-change="changeTable(table)"></select>
   </div>
   <div class="large-2 columns">
     <h3>

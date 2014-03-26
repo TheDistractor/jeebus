@@ -3,7 +3,7 @@ ng = angular.module 'myApp'
 ng.config ($stateProvider, navbarProvider) ->
   $stateProvider.state 'status',
     url: '/status'
-    templateUrl: 'status/status.html'
+    templateUrl: '/status/status.html'
     controller: statusCtrl
   navbarProvider.add '/status', 'Status', 30
 
