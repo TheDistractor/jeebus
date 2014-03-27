@@ -4,7 +4,6 @@
     "angular-animate": "*",
     "angular-foundation": "*",
     "bower-foundation-css": "*",
-    "raphael": "*",
     "d3": "*"
   }
 }
