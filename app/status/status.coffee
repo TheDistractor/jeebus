@@ -36,7 +36,7 @@ statusCtrl = ($scope, jeebus) ->
   setup = ->
     drivers = jeebus.attach 'driver'
       .on 'sync', ->
-        jeebus.attach 'sensor', rowHandler
+        jeebus.attach 'reading', rowHandler
           .on 'init', ->
             $scope.readings = @rows
       

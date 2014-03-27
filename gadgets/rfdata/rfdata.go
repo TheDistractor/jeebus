@@ -16,7 +16,7 @@ func init() {
 	flow.Registry["Sketch-RF12demo"] = func() flow.Circuitry { return &RF12demo{} }
 	flow.Registry["NodeMap"] = func() flow.Circuitry { return &NodeMap{} }
 	flow.Registry["Readings"] = func() flow.Circuitry { return &Readings{} }
-	flow.Registry["SensorSave"] = func() flow.Circuitry { return &SensorSave{} }
+	flow.Registry["PutReadings"] = func() flow.Circuitry { return &PutReadings{} }
 	flow.Registry["SplitReadings"] = func() flow.Circuitry { return &SplitReadings{} }
 }
 
@@ -180,14 +180,14 @@ func (g *Readings) Run() {
 }
 
 // Save readings in database.
-type SensorSave struct {
+type PutReadings struct {
 	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }
 
-// Convert each loosely structured sensor object into a strict map for storage.
-func (g *SensorSave) Run() {
+// Convert each loosely structured reading object into a strict map for storage.
+func (g *PutReadings) Run() {
 	for m := range g.In {
 		r := m.(map[string]flow.Message)
 
@@ -212,23 +212,23 @@ func (g *SensorSave) Run() {
 			"typ": decoder,
 			"id":  id,
 		}
-		g.Out.Send(flow.Tag{"/sensor/" + id, data})
+		g.Out.Send(flow.Tag{"/reading/" + id, data})
 	}
 }
 
-// Split sensor data into individual values.
+// Split reading data into individual values.
 type SplitReadings struct {
 	flow.Gadget
 	In  flow.Input
 	Out flow.Output
 }
 
-// Split combined measurements into individual readings, for separate storage.
+// Split combined readings into separate sensor values, for separate storage.
 func (g *SplitReadings) Run() {
 	for m := range g.In {
 		data := m.(flow.Tag).Msg.(map[string]interface{})
 		for k, v := range data["val"].(map[string]int) {
-			key := fmt.Sprintf("reading/%s/%s/%d",
+			key := fmt.Sprintf("sensor/%s/%s/%d",
 				data["loc"].(string), k, data["ms"].(int64))
 			g.Out.Send(flow.Tag{key, v})
 		}

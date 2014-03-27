@@ -290,7 +290,7 @@
             },
             {
                 "name": "ss",
-                "type": "SensorSave"
+                "type": "PutReadings"
             },
             {
                 "name": "f2",
@@ -746,42 +746,42 @@
             },
             {
                 "to": "db.In",
-                "tag": "/table/sensor",
+                "tag": "/table/reading",
                 "data": {
                     "attr": "id loc val ms typ"
                 }
             },
             {
                 "to": "db.In",
-                "tag": "/column/sensor/id",
+                "tag": "/column/reading/id",
                 "data": {
                     "name": "Ident"
                 }
             },
             {
                 "to": "db.In",
-                "tag": "/column/sensor/loc",
+                "tag": "/column/reading/loc",
                 "data": {
                     "name": "Location"
                 }
             },
             {
                 "to": "db.In",
-                "tag": "/column/sensor/val",
+                "tag": "/column/reading/val",
                 "data": {
                     "name": "Values"
                 }
             },
             {
                 "to": "db.In",
-                "tag": "/column/sensor/ms",
+                "tag": "/column/reading/ms",
                 "data": {
                     "name": "Timestamp"
                 }
             },
             {
                 "to": "db.In",
-                "tag": "/column/sensor/typ",
+                "tag": "/column/reading/typ",
                 "data": {
                     "name": "Type"
                 }
@@ -802,7 +802,7 @@
             },
             {
                 "tag": "<range>",
-                "data": "/sensor/",
+                "data": "/reading/",
                 "to": "db.In"
             }
         ]

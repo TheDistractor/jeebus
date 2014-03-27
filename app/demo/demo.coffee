@@ -16,11 +16,11 @@ demoCtrl = ($scope, jeebus) ->
         $scope.message = r
 
   $scope.dbKeysTest = ->
-    jeebus.rpc 'db-keys', '/sensor/'
+    jeebus.rpc 'db-keys', '/reading/'
       .then (r) ->
         $scope.message = r
 
   $scope.mqttTest = ->
-    jeebus.gadget 'MQTTSub', Topic: '/sensor/#', Port: ':1883'
+    jeebus.gadget 'MQTTSub', Topic: '/reading/#', Port: ':1883'
       .on 'Out', (r) ->
         $scope.message = r
