@@ -4,6 +4,7 @@
     "angular-animate": "*",
     "angular-foundation": "*",
     "bower-foundation-css": "*",
-    "d3": "*"
+    "d3": "*",
+    "fontawesome-clean": "*"
   }
 }
