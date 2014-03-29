@@ -11,11 +11,9 @@ import (
 	_ "github.com/jcw/flow/gadgets"
 
 	_ "github.com/jcw/jeebus/gadgets/database"
-	_ "github.com/jcw/jeebus/gadgets/decoders"
 	_ "github.com/jcw/jeebus/gadgets/fbpparse"
 	_ "github.com/jcw/jeebus/gadgets/javascript"
 	_ "github.com/jcw/jeebus/gadgets/network"
-	_ "github.com/jcw/jeebus/gadgets/rfdata"
 	_ "github.com/jcw/jeebus/gadgets/serial"
 )
 
@@ -49,7 +47,7 @@ func init() {
 		c.Connect("db.Out", "cat.In1", 0)
 		c.Connect("sub.Out", "cat.In3", 100) // with buffering
 		c.Feed("tag.Tag", "<range>")
-		c.Feed("cat.In2", flow.Tag{"<sync>","attach"})
+		c.Feed("cat.In2", flow.Tag{"<sync>", "attach"})
 		c.Label("In", "fan.In")
 		c.Label("Out", "cat.Out")
 		return c

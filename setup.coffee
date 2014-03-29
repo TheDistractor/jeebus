@@ -18,19 +18,13 @@ circuits.main =
 # init circuit for HouseMon, which starts its own http server.
 circuits.init =
   gadgets: [
-    { name: "mqtt", type: "MQTTServer" }
-		{ name: "replay", type: "replay" }
-    { name: "pub", type: "MQTTPub" }
     { name: "dummy", type: "Pipe" } # needed for dispatcher in HouseMon
     { name: "driverFill", type: "driverFill" } # pre-load the database
     { name: "tableFill", type: "tableFill" }   # pre-load the database
   ]
   wires: [
-    { from: "replay.Out", to: "pub.In" }
-    { from: "mqtt.PortOut", to: "pub.Port" }
   ]
   feeds: [
-    { data: ":1883",  to: "mqtt.Port" }
   ]
   labels: [
     { external: "In", internal: "dummy.In" }

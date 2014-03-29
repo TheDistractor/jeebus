@@ -14,12 +14,13 @@ var config = flag.String("c", "./config.txt", "name of configuration file to use
 
 // defaults can also be overridden through environment variables
 const defaults = `
-APP_DIR    = ./app
-BASE_DIR   = ./base
-DATA_DIR   = ./data
-HTTP_PORT  = :3000
-MQTT_PORT  = :1883
-SETUP_FILE = ./setup.json
+APP_DIR     = ./app
+BASE_DIR    = ./base
+DATA_DIR    = ./data
+GADGETS_DIR = ./gadgets
+HTTP_PORT   = :3000
+MQTT_PORT   = :1883
+SETUP_FILE  = ./setup.json
 `
 
 func main() {

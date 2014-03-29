@@ -35,18 +35,6 @@
     "init": {
         "gadgets": [
             {
-                "name": "mqtt",
-                "type": "MQTTServer"
-            },
-            {
-                "name": "replay",
-                "type": "replay"
-            },
-            {
-                "name": "pub",
-                "type": "MQTTPub"
-            },
-            {
                 "name": "dummy",
                 "type": "Pipe"
             },
@@ -59,22 +47,8 @@
                 "type": "tableFill"
             }
         ],
-        "wires": [
-            {
-                "from": "replay.Out",
-                "to": "pub.In"
-            },
-            {
-                "from": "mqtt.PortOut",
-                "to": "pub.Port"
-            }
-        ],
-        "feeds": [
-            {
-                "data": ":1883",
-                "to": "mqtt.Port"
-            }
-        ],
+        "wires": [],
+        "feeds": [],
         "labels": [
             {
                 "external": "In",

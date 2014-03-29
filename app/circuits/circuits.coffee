@@ -39,10 +39,10 @@ circuitsCtrl = ($scope, jeebus) ->
     labels:
       "In": "g2.In"
   
-  setup = ->
-    jeebus.attach 'circuit'
-      .on 'sync', ->
-        $scope.circuits = @rows
-      
-  setup()  if $scope.serverStatus is 'connected'
-  $scope.$on 'ws-open', setup
+  # setup = ->
+  #   jeebus.attach 'circuit'
+  #     .on 'sync', ->
+  #       $scope.circuits = @rows
+  #     
+  # setup()  if $scope.serverStatus is 'connected'
+  # $scope.$on 'ws-open', setup
