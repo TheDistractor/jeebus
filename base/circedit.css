@@ -1,0 +1,37 @@
+circuit-editor>svg {
+  border: 1px solid #d3d3d3;
+}
+.iconfont {
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-family: FontAwesome;
+  font-size: 15px;
+}
+.gadget {
+  font-size: 12px;
+}
+.gadget .outline {
+  stroke: #00f;
+  stroke-width: 1px;
+  fill: #ffffe0;
+  fill-opacity: 0.85;
+}
+.gadget .title {
+  fill: #808080;
+  text-anchor: middle;
+}
+.gadget .type {
+  fill: #00f;
+  text-anchor: middle;
+}
+.gadget .in {
+  text-anchor: start;
+}
+.gadget .out {
+  text-anchor: end;
+}
+.wire {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1px;
+}
