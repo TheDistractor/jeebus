@@ -7,16 +7,13 @@ ng.directive 'circuitEditor', ->
     defs: '='
     data: '='
     
-  link: (scope, elem, attr) ->
-    prepareData scope.defs, scope.data
-    
+  link: (scope, elem, attr) ->    
     svg = d3.select(elem[0]).append 'svg'
       .attr height: "60%"
-    gadgets = svg.selectAll('.gadget').data scope.data.gadgets, (d) -> d.id
-    wires = svg.selectAll('.wire').data scope.data.wires
-
     diag = d3.svg.diagonal()
       .projection (d) -> [d.y, d.x] # undo the x/y reversal from findPin
+    
+    lastg = gadgets = wires = null
     
     gadgetDrag = d3.behavior.drag()
       .origin Object
@@ -36,49 +33,58 @@ ng.directive 'circuitEditor', ->
       .on 'dragend', (d) ->
         console.log 'save gadget', d # TODO: save to server
 
-    g = gadgets.enter().append('g').call(gadgetDrag)
-      .attr class: 'gadget'
-    g.append('rect')
-      .each (d) ->
-        d3.select(@).attr
-          class: 'outline'
-          # 1px lines render sharply when on a 0.5px offset
-          x: 0.5 - d.hw, y: 0.5 - d.hh
-          width: 2 * d.hw, height: 2 * d.hh
-      .style fill: (d) -> d.def.shade
-    g.append('text').text (d) -> d.title
-      .attr class: 'title', y: (d) -> 12 - d.hh
-    g.append('text').text (d) -> d.def.name
-      .attr class: 'type', y: (d) -> -4 + d.hh
-    g.append('text').text (d) -> d.def.icon
-      .attr class: 'iconfont', x: 0, y: 0
-    gadgets.exit().remove()
+    redraw = ->
+      lastg = prepareData scope.defs, scope.data
+      gadgets = svg.selectAll('.gadget').data scope.data.gadgets, (d) -> d.id
+      wires = svg.selectAll('.wire').data scope.data.wires
+
+      g = gadgets.enter().append('g').call(gadgetDrag)
+        .attr class: 'gadget'
+      g.append('rect')
+        .each (d) ->
+          d.def = scope.defs[d.type]
+          d.hw = d.def.width / 2
+          d.hh = d.def.height / 2
+          d3.select(@).attr
+            class: 'outline'
+            # 1px lines render sharply when on a 0.5px offset
+            x: 0.5 - d.hw, y: 0.5 - d.hh
+            width: 2 * d.hw, height: 2 * d.hh
+        .style fill: (d) -> d.def.shade
+      g.append('text').text (d) -> d.title
+        .attr class: 'title', y: (d) -> 12 - d.hh
+      g.append('text').text (d) -> d.def.name
+        .attr class: 'type', y: (d) -> -4 + d.hh
+      g.append('text').text (d) -> d.def.icon
+        .attr class: 'iconfont', x: 0, y: 0
+      gadgets.exit().remove()
         
-    pins = gadgets.selectAll('rect .pin').data (d) -> d.def.pins
-    p = pins.enter()
-    p.append('circle')
-      .attr class: 'pin', cx: ((d) -> d.x+.5), cy: ((d) -> d.y+.5), r: 3
-      .on 'mousedown', (d) ->
-        console.log 'c1', d
-    p.append('text').text (d) -> d.name
-      .attr
-        class: (d) -> d.dir
-        x: (d) -> if d.dir is 'in' then d.x + 7 else d.x - 7
-        y: (d) -> d.y + 5
+      pins = gadgets.selectAll('rect .pin').data (d) -> d.def.pins
+      p = pins.enter()
+      p.append('circle')
+        .attr class: 'pin', cx: ((d) -> d.x+.5), cy: ((d) -> d.y+.5), r: 3
+        .on 'mousedown', (d) ->
+          console.log 'c1', d
+      p.append('text').text (d) -> d.name
+        .attr
+          class: (d) -> d.dir
+          x: (d) -> if d.dir is 'in' then d.x + 7 else d.x - 7
+          y: (d) -> d.y + 5
 
-    wires.enter().insert('path', 'g') # uses insert to move to back right away
-      .attr class: 'wire', d: diag
-    wires.exit().remove()
+      wires.enter().insert('path', 'g') # uses insert to move to back right away
+        .attr class: 'wire', d: diag
+      wires.exit().remove()
 
-    gadgets.attr transform: (d) -> "translate(#{d.x},#{d.y})"
+      gadgets.attr transform: (d) -> "translate(#{d.x},#{d.y})"
+    
+    redraw()
     
     svg.on 'mousedown', ->
       # return  if d3.event.defaultPrevented
-      console.log 'click!', d3.mouse @
-
-    # svg.on 'contextmenu', ->
-    #   d3.event.preventDefault(); # prevent browser's contextual menu
-    #   console.log 'right click!', d3.event
+      [x,y] = d3.mouse @
+      scope.data.gadgets.push
+        id: "g#{++lastg}", x: x|0, y: y|0, title: 'Gadget Two', type: 'Pipe'
+      redraw()
 
 findPin = (name, gdata) ->
   [gid,pname] = name.split '.'
@@ -110,7 +116,9 @@ prepareData = (gdefs, gdata) ->
         yOut += step
     d.height = 30 + step * (if ins > outs then ins else outs)
 
+  seq = ''
   for d in gdata.gadgets
+    seq = d.id  if d.id > seq
     d.def = gdefs[d.type]
     d.hw = d.def.width / 2
     d.hh = d.def.height / 2
@@ -118,3 +126,5 @@ prepareData = (gdefs, gdata) ->
   for d in gdata.wires
     d.source = findPin d.from, gdata.gadgets
     d.target = findPin d.to, gdata.gadgets
+    
+  return seq.slice(1) | 0 # drop the leading "g", return as int
