@@ -35,3 +35,7 @@ circuit-editor>svg {
   stroke: #000;
   stroke-width: 1px;
 }
+.drag {
+  fill: none;
+  stroke-width: 1px;
+}

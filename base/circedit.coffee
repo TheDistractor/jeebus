@@ -33,6 +33,33 @@ ng.directive 'circuitEditor', ->
       .on 'dragend', (d) ->
         console.log 'save gadget', d # TODO: save to server
 
+    dragInfo = {}
+    dragWire = svg.append('path').datum(dragInfo).attr class: 'drag'
+    dragDest = null
+
+    pinDrag = d3.behavior.drag()
+      .origin Object
+      .on 'dragstart', (d) ->
+        console.log 'ds', d
+        @parentNode.appendChild @ # move to front
+        d3.event.sourceEvent.stopPropagation()
+        dragInfo.from = d.pin
+        dragInfo.source = findPin d.pin, scope.data.gadgets
+      .on 'drag', (d) ->
+        [mx,my] = d3.mouse(@)
+        orig = dragInfo.source
+        dragInfo.target = x: orig.x+my-d.y, y: orig.y+mx-d.x # flipped
+        console.log 'od', mx, my, orig
+        dragWire.style stroke: 'red'
+        dragWire.attr d: diag
+      .on 'dragend', (d) ->
+        dragWire.style stroke: 'none'
+        if dragInfo.to
+          console.log 'add wire', dragInfo, dragDest # TODO: save to server
+          scope.data.wires.push from: dragInfo.from, to: dragInfo.to
+          delete dragInfo.to
+          redraw()
+
     redraw = ->
       lastg = prepareData scope.defs, scope.data
       gadgets = svg.selectAll('.gadget').data scope.data.gadgets, (d) -> d.id
@@ -59,17 +86,19 @@ ng.directive 'circuitEditor', ->
         .attr class: 'iconfont', x: 0, y: 0
       gadgets.exit().remove()
         
-      pins = gadgets.selectAll('rect .pin').data (d) -> d.def.pins
+      pins = gadgets.selectAll('.pin').data (d) ->
+        for p in d.def.pins
+          x: p.x, y: p.y, name: p.name, dir: p.dir, pin: "#{d.id}.#{p.name}"
       p = pins.enter()
-      p.append('circle')
+      p.append('circle').call(pinDrag)
         .attr class: 'pin', cx: ((d) -> d.x+.5), cy: ((d) -> d.y+.5), r: 3
-        .on 'mousedown', (d) ->
-          console.log 'c1', d
+        .on 'mouseup', (d) -> dragInfo.to = d.pin
       p.append('text').text (d) -> d.name
         .attr
           class: (d) -> d.dir
           x: (d) -> if d.dir is 'in' then d.x + 7 else d.x - 7
           y: (d) -> d.y + 5
+      pins.exit().remove()
 
       wires.enter().insert('path', 'g') # uses insert to move to back right away
         .attr class: 'wire', d: diag
@@ -116,9 +145,9 @@ prepareData = (gdefs, gdata) ->
         yOut += step
     d.height = 30 + step * (if ins > outs then ins else outs)
 
-  seq = ''
+  seq = '' # find the largest "g<n>" id to help generate the next one
   for d in gdata.gadgets
-    seq = d.id  if d.id > seq
+    seq = d.id  if /^g\d+$/.test(d.id) and d.id > seq
     d.def = gdefs[d.type]
     d.hw = d.def.width / 2
     d.hh = d.def.height / 2
