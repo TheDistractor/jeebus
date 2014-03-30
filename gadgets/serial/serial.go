@@ -13,8 +13,8 @@ import (
 )
 
 func init() {
-	flow.Registry["SerialPort"] = func() flow.Circuitry { return &SerialPort{} }
-	flow.Registry["SketchType"] = func() flow.Circuitry { return &SketchType{} }
+	flow.Registry["SerialPort"] = func() flow.Circuitry { return new(SerialPort) }
+	flow.Registry["SketchType"] = func() flow.Circuitry { return new(SketchType) }
 }
 
 // Line-oriented serial port, opened once the Port input is set.

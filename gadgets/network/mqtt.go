@@ -17,9 +17,9 @@ import (
 )
 
 func init() {
-	flow.Registry["MQTTSub"] = func() flow.Circuitry { return &MQTTSub{} }
-	flow.Registry["MQTTPub"] = func() flow.Circuitry { return &MQTTPub{} }
-	flow.Registry["MQTTServer"] = func() flow.Circuitry { return &MQTTServer{} }
+	flow.Registry["MQTTSub"] = func() flow.Circuitry { return new(MQTTSub) }
+	flow.Registry["MQTTPub"] = func() flow.Circuitry { return new(MQTTPub) }
+	flow.Registry["MQTTServer"] = func() flow.Circuitry { return new(MQTTServer) }
 }
 
 func getInputOrConfig(vin flow.Input, vname string) string {

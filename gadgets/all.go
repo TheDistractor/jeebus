@@ -53,10 +53,10 @@ func init() {
 		return c
 	}
 
-	flow.Registry["help"] = func() flow.Circuitry { return &helpCmd{} }
+	flow.Registry["help"] = func() flow.Circuitry { return new(helpCmd) }
 	Help["help"] = `Show this help text with a list of commands.`
 
-	flow.Registry["info"] = func() flow.Circuitry { return &infoCmd{} }
+	flow.Registry["info"] = func() flow.Circuitry { return new(infoCmd) }
 	Help["info"] = `Show the list of registered gadgets and circuits.`
 
 	// database

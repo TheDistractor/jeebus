@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	flow.Registry["JavaScript"] = func() flow.Circuitry { return &JavaScript{} }
+	flow.Registry["JavaScript"] = func() flow.Circuitry { return new(JavaScript) }
 }
 
 // JavaScript engine, using the github.com/robertkrimen/otto package.

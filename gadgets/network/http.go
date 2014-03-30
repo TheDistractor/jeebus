@@ -17,8 +17,8 @@ import (
 )
 
 func init() {
-	flow.Registry["HTTPServer"] = func() flow.Circuitry { return &HTTPServer{} }
-	flow.Registry["RpcHandler"] = func() flow.Circuitry { return &RpcHandler{} }
+	flow.Registry["HTTPServer"] = func() flow.Circuitry { return new(HTTPServer) }
+	flow.Registry["RpcHandler"] = func() flow.Circuitry { return new(RpcHandler) }
 
 	// websockets without Sec-Websocket-Protocol are connected in loopback mode
 	flow.Registry["WebSocket-default"] = flow.Registry["Pipe"]

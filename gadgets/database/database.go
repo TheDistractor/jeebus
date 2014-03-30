@@ -20,7 +20,7 @@ import (
 var dbPath = ""
 
 func init() {
-	flow.Registry["LevelDB"] = func() flow.Circuitry { return &LevelDB{} }
+	flow.Registry["LevelDB"] = func() flow.Circuitry { return new(LevelDB) }
 }
 
 var (

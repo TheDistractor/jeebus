@@ -11,12 +11,12 @@ import (
 )
 
 func init() {
-	flow.Registry["dbdump"] = func() flow.Circuitry { return &dumpCmd{} }
-	flow.Registry["dbexport"] = func() flow.Circuitry { return &exportCmd{} }
-	flow.Registry["dbimport"] = func() flow.Circuitry { return &importCmd{} }
-	flow.Registry["dbget"] = func() flow.Circuitry { return &getCmd{} }
-	flow.Registry["dbput"] = func() flow.Circuitry { return &putCmd{} }
-	flow.Registry["dbkeys"] = func() flow.Circuitry { return &keysCmd{} }
+	flow.Registry["dbdump"] = func() flow.Circuitry { return new(dumpCmd) }
+	flow.Registry["dbexport"] = func() flow.Circuitry { return new(exportCmd) }
+	flow.Registry["dbimport"] = func() flow.Circuitry { return new(importCmd) }
+	flow.Registry["dbget"] = func() flow.Circuitry { return new(getCmd) }
+	flow.Registry["dbput"] = func() flow.Circuitry { return new(putCmd) }
+	flow.Registry["dbkeys"] = func() flow.Circuitry { return new(keysCmd) }
 }
 
 type dumpCmd struct{ flow.Gadget }
