@@ -92,7 +92,7 @@ ng.directive 'circuitEditor', ->
         .attr class: 'pin', cx: ((d) -> d.x+.5), cy: ((d) -> d.y+.5), r: 3
       p.append('circle').call(pinDrag)
         .attr cx: ((d) -> d.x+.5), cy: ((d) -> d.y+.5), r: 7
-        .style "fill-opacity": 0 # don't show, but do pick up the mouse
+        .style "fill-opacity": .1 # don't show, but do pick up the mouse
         .on 'mouseup', (d) -> dragInfo.to = d.pin
       p.append('text').text (d) -> d.name
         .attr
