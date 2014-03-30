@@ -12,8 +12,8 @@ ng.directive 'circuitEditor', ->
     
     svg = d3.select(elem[0]).append 'svg'
       .attr height: "60%"
-    gadgets = svg.selectAll('.gadget').data(scope.data.gadgets)
-    wires = svg.selectAll('.wire').data(scope.data.wires)
+    gadgets = svg.selectAll('.gadget').data scope.data.gadgets, (d) -> d.id
+    wires = svg.selectAll('.wire').data scope.data.wires
 
     diag = d3.svg.diagonal()
       .projection (d) -> [d.y, d.x] # undo the x/y reversal from findPin
@@ -22,6 +22,7 @@ ng.directive 'circuitEditor', ->
       .origin Object
       .on 'dragstart', (d) ->
         @parentNode.appendChild @ # move to front
+        d3.event.sourceEvent.stopPropagation()
       .on 'drag', (d) ->
         d.x = d3.event.x | 0 # stay on int coordinates
         d.y = d3.event.y | 0 # stay on int coordinates
@@ -51,6 +52,7 @@ ng.directive 'circuitEditor', ->
       .attr class: 'type', y: (d) -> -4 + d.hh
     g.append('text').text (d) -> d.def.icon
       .attr class: 'iconfont', x: 0, y: 0
+    gadgets.exit().remove()
         
     pins = gadgets.selectAll('rect .pin').data (d) -> d.def.pins
     p = pins.enter()
@@ -66,8 +68,17 @@ ng.directive 'circuitEditor', ->
 
     wires.enter().insert('path', 'g') # uses insert to move to back right away
       .attr class: 'wire', d: diag
+    wires.exit().remove()
 
     gadgets.attr transform: (d) -> "translate(#{d.x},#{d.y})"
+    
+    svg.on 'mousedown', ->
+      # return  if d3.event.defaultPrevented
+      console.log 'click!', d3.mouse @
+
+    # svg.on 'contextmenu', ->
+    #   d3.event.preventDefault(); # prevent browser's contextual menu
+    #   console.log 'right click!', d3.event
 
 findPin = (name, gdata) ->
   [gid,pname] = name.split '.'
