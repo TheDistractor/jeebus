@@ -35,12 +35,10 @@ ng.directive 'circuitEditor', ->
 
     dragInfo = {}
     dragWire = svg.append('path').datum(dragInfo).attr class: 'drag'
-    dragDest = null
 
     pinDrag = d3.behavior.drag()
       .origin Object
       .on 'dragstart', (d) ->
-        console.log 'ds', d
         @parentNode.appendChild @ # move to front
         d3.event.sourceEvent.stopPropagation()
         dragInfo.from = d.pin
@@ -49,14 +47,14 @@ ng.directive 'circuitEditor', ->
         [mx,my] = d3.mouse(@)
         orig = dragInfo.source
         dragInfo.target = x: orig.x+my-d.y, y: orig.y+mx-d.x # flipped
-        console.log 'od', mx, my, orig
         dragWire.style stroke: 'red'
         dragWire.attr d: diag
       .on 'dragend', (d) ->
         dragWire.style stroke: 'none'
         if dragInfo.to
-          console.log 'add wire', dragInfo, dragDest # TODO: save to server
-          scope.data.wires.push from: dragInfo.from, to: dragInfo.to
+          nw = from: dragInfo.from, to: dragInfo.to
+          console.log 'add wire', nw # TODO: save to server
+          scope.data.wires.push nw
           delete dragInfo.to
           redraw()
 
@@ -90,8 +88,11 @@ ng.directive 'circuitEditor', ->
         for p in d.def.pins
           x: p.x, y: p.y, name: p.name, dir: p.dir, pin: "#{d.id}.#{p.name}"
       p = pins.enter()
-      p.append('circle').call(pinDrag)
+      p.append('circle')
         .attr class: 'pin', cx: ((d) -> d.x+.5), cy: ((d) -> d.y+.5), r: 3
+      p.append('circle').call(pinDrag)
+        .attr cx: ((d) -> d.x+.5), cy: ((d) -> d.y+.5), r: 7
+        .style "fill-opacity": 0 # don't show, but do pick up the mouse
         .on 'mouseup', (d) -> dragInfo.to = d.pin
       p.append('text').text (d) -> d.name
         .attr
@@ -111,8 +112,9 @@ ng.directive 'circuitEditor', ->
     svg.on 'mousedown', ->
       # return  if d3.event.defaultPrevented
       [x,y] = d3.mouse @
-      scope.data.gadgets.push
-        id: "g#{++lastg}", x: x|0, y: y|0, title: 'Gadget Two', type: 'Pipe'
+      ng = id: "g#{++lastg}", x: x|0, y: y|0, title: 'Gadget Two', type: 'Pipe'
+      console.log "add gadget", ng # TODO: save to server
+      scope.data.gadgets.push ng
       redraw()
 
 findPin = (name, gdata) ->
