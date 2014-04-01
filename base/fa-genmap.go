@@ -1,7 +1,7 @@
 // get the FontAwesome names and generate a JSON conversion map from it
 package main
 
-// run as: cd utils && go run fa-genmap.go >fa-map.json
+// run as: cd base && go run fa-genmap.go >fa-map.json
 
 import (
 	"encoding/json"
@@ -16,10 +16,7 @@ import (
 const url = "https://raw.githubusercontent.com/" +
 	"FortAwesome/Font-Awesome/master/src/icons.yml"
 
-type FaDef struct {
-	Id      string
-	Unicode string
-}
+type FaDef struct{ Id, Unicode string }
 
 func main() {
 	res, err := http.Get(url)
