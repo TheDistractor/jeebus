@@ -37,11 +37,11 @@ func init() {
 	flow.Registry["Attach"] = func() flow.Circuitry {
 		c := flow.NewCircuit()
 		c.Add("fan", "FanOut")
-		c.Add("sub", "MQTTSub")
+		c.Add("sub", "DataSub")
 		c.Add("tag", "AddTag")
 		c.Add("db", "LevelDB")
 		c.Add("cat", "Concat3")
-		c.Connect("fan.Out:sub", "sub.Topic", 0)
+		c.Connect("fan.Out:sub", "sub.In", 0)
 		c.Connect("fan.Out:tag", "tag.In", 0)
 		c.Connect("tag.Out", "db.In", 0)
 		c.Connect("db.Out", "cat.In1", 0)

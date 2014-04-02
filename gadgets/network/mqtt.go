@@ -37,9 +37,9 @@ func getInputOrConfig(vin flow.Input, vname string) string {
 // MQTTSub can subscribe to an MQTT topic. Registers as "MQTTSub".
 type MQTTSub struct {
 	flow.Gadget
-	Port  flow.Input
-	Topic flow.Input
-	Out   flow.Output
+	Port flow.Input
+	In   flow.Input
+	Out  flow.Output
 }
 
 // Start listening and subscribing to MQTT.
@@ -51,7 +51,7 @@ func (w *MQTTSub) Run() {
 	err = client.Connect("", "")
 	flow.Check(err)
 
-	for t := range w.Topic {
+	for t := range w.In {
 		topic := t.(string)
 		glog.V(2).Infoln("mqtt-sub", topic)
 		if strings.HasSuffix(topic, "/") {
