@@ -24,6 +24,7 @@ var (
 
 func init() {
 	flow.Registry["LevelDB"] = func() flow.Circuitry { return new(LevelDB) }
+	flow.Registry["DataSub"] = func() flow.Circuitry { return new(DataSub) }
 }
 
 func dbIterateOverKeys(from, to string, fun func(string, []byte)) {
@@ -159,6 +160,7 @@ func (w *LevelDB) Run() {
 				dbIterateOverKeys(prefix, "", func(k string, v []byte) {
 					db.Delete([]byte(k), nil)
 					w.Mods.Send(flow.Tag{k, nil})
+					publishChange(flow.Tag{k, nil})
 				})
 				w.Mods.Send(m)
 			case "<range>":
@@ -180,10 +182,75 @@ func (w *LevelDB) Run() {
 				} else {
 					dbPut(tag.Tag, tag.Msg)
 					w.Mods.Send(m)
+					publishChange(tag)
 				}
 			}
 		} else {
 			w.Out.Send(m)
 		}
 	}
+}
+
+// use a map of tag channels to publish changes to all DataSub gadgets
+// TODO: this will not clean up, all subscriptions will stay running forever
+
+var (
+	mutex       sync.Mutex
+	subscribers = map[*DataSub]chan flow.Tag{}
+)
+
+func publishChange(tag flow.Tag) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	for _, c := range subscribers {
+		c <- tag
+	}
+}
+
+// Generate database change messages based on one or more subscription prefixes.
+type DataSub struct {
+	flow.Gadget
+	In  flow.Input
+	Out flow.Output
+}
+
+// Subscribe to database changes to pick up and publish all the matching ones.
+func (g *DataSub) Run() {
+	// collect all subscription prefixes
+	subs := []string{}
+	for m := range g.In {
+		prefix := m.(string)
+		glog.V(2).Infoln("data-sub", prefix)
+		subs = append(subs, prefix)
+	}
+	// no subscriptions is treated as a subscription to all changes
+	if len(subs) == 0 {
+		subs = append(subs, "")
+	}
+	// set up a change channel
+	changes := g.subscribe()
+	defer g.unsubscribe()
+	// listen for changes and emit those which match
+	for t := range changes {
+		for _, s := range subs {
+			if strings.HasPrefix(t.Tag, s) {
+				g.Out.Send(t)
+				break
+			}
+		}
+	}
+}
+
+func (g *DataSub) subscribe() chan flow.Tag {
+	changes := make(chan flow.Tag)
+	mutex.Lock()
+	defer mutex.Unlock()
+	subscribers[g] = changes
+	return changes
+}
+
+func (g *DataSub) unsubscribe() {
+	mutex.Lock()
+	defer mutex.Unlock()
+	delete(subscribers, g)
 }
