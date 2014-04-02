@@ -135,9 +135,8 @@ func Put(key string, value interface{}) {
 // Acts on tags received on the input port. Registers itself as "LevelDB".
 type LevelDB struct {
 	flow.Gadget
-	In   flow.Input
-	Out  flow.Output
-	Mods flow.Output
+	In  flow.Input
+	Out flow.Output
 }
 
 // Open the database and start listening to incoming get/put/keys requests.
@@ -159,10 +158,8 @@ func (w *LevelDB) Run() {
 				glog.V(2).Infoln("clear", prefix)
 				dbIterateOverKeys(prefix, "", func(k string, v []byte) {
 					db.Delete([]byte(k), nil)
-					w.Mods.Send(flow.Tag{k, nil})
 					publishChange(flow.Tag{k, nil})
 				})
-				w.Mods.Send(m)
 			case "<range>":
 				prefix := tag.Msg.(string)
 				glog.V(3).Infoln("range", prefix)
@@ -175,13 +172,12 @@ func (w *LevelDB) Run() {
 				})
 			case "<register>":
 				dbRegister(tag.Msg.(string))
-				w.Mods.Send(m) // TODO: why is this sent to the Mods pin?
+				// publishChange(tag) // TODO: why was this being sent out?
 			default:
 				if strings.HasPrefix(tag.Tag, "<") {
 					w.Out.Send(m) // pass on other tags without processing
 				} else {
 					dbPut(tag.Tag, tag.Msg)
-					w.Mods.Send(m)
 					publishChange(tag)
 				}
 			}
@@ -193,6 +189,7 @@ func (w *LevelDB) Run() {
 
 // use a map of tag channels to publish changes to all DataSub gadgets
 // TODO: this will not clean up, all subscriptions will stay running forever
+//	cleanup could be done by closing the change channel(s), somehow...
 
 var (
 	mutex       sync.Mutex

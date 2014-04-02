@@ -65,9 +65,6 @@ circuits.replay =
     { data: "./gadgets/rfdata/20121130.txt.gz", to: "lr.Name" }
     { data: "./logger", to: "lg.Dir" }
   ]
-  labels: [
-    { external: "Out", internal: "db.Out" }
-  ]
   
 # the node mapping for nodes at JeeLabs, as pre-configured circuit
 circuits.nodesJeeLabs =
@@ -127,7 +124,6 @@ circuits.rf12toDatabase =
   ]
   labels: [
     { external: "In", internal: "st.In" }
-    { external: "Out", internal: "db.Mods" }
   ]
 
 # serial port test

@@ -148,12 +148,6 @@
                 "data": "./logger",
                 "to": "lg.Dir"
             }
-        ],
-        "labels": [
-            {
-                "external": "Out",
-                "internal": "db.Out"
-            }
         ]
     },
     "nodesJeeLabs": {
@@ -331,10 +325,6 @@
             {
                 "external": "In",
                 "internal": "st.In"
-            },
-            {
-                "external": "Out",
-                "internal": "db.Mods"
             }
         ]
     },

@@ -29,8 +29,6 @@ func ExampleLevelDB() {
 	g.Feed("db.In", flow.Tag{"a/c", nil})
 	g.Run()
 	// Output:
-	// Lost flow.Tag: {a/b 123}
-	// Lost flow.Tag: {a/c 456}
 	// Lost flow.Tag: {<get> a/b}
 	// Lost string: 123
 	// Lost flow.Tag: {<range> a/}
@@ -39,12 +37,10 @@ func ExampleLevelDB() {
 	// Lost flow.Tag: {<keys> a/}
 	// Lost string: b
 	// Lost string: c
-	// Lost flow.Tag: {a/b <nil>}
 	// Lost flow.Tag: {<get> a/b}
 	// Lost <nil>: <nil>
 	// Lost flow.Tag: {<keys> a/}
 	// Lost string: c
-	// Lost flow.Tag: {a/c <nil>}
 }
 
 func TestDatabase(t *testing.T) {
