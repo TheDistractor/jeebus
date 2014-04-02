@@ -19,10 +19,8 @@ import (
 
 var (
 	once sync.Once
-	db   openDb
+	db   *leveldb.DB
 )
-
-type openDb struct{ *leveldb.DB }
 
 func init() {
 	flow.Registry["LevelDB"] = func() flow.Circuitry { return new(LevelDB) }
@@ -40,6 +38,27 @@ func dbIterateOverKeys(from, to string, fun func(string, []byte)) {
 	for iter.Next() {
 		fun(string(iter.Key()), iter.Value())
 	}
+}
+
+func dbKeys(prefix string) (results []string) {
+	glog.V(3).Infoln("keys", prefix)
+	// TODO: decide whether this key logic is the most useful & least confusing
+	// TODO: should use skips and reverse iterators once the db gets larger!
+	skip := len(prefix)
+	prev := "/" // impossible value, this never matches actual results
+
+	dbIterateOverKeys(prefix, "", func(k string, v []byte) {
+		i := strings.IndexRune(k[skip:], '/') + skip
+		if i < skip {
+			i = len(k)
+		}
+		if prev != k[skip:i] {
+			// need to make a copy of the key, since it's owned by iter
+			prev = k[skip:i]
+			results = append(results, string(prev))
+		}
+	})
+	return
 }
 
 func dbGet(key string) (any interface{}) {
@@ -65,27 +84,6 @@ func dbPut(key string, value interface{}) {
 	}
 }
 
-func dbKeys(prefix string) (results []string) {
-	glog.V(3).Infoln("keys", prefix)
-	// TODO: decide whether this key logic is the most useful & least confusing
-	// TODO: should use skips and reverse iterators once the db gets larger!
-	skip := len(prefix)
-	prev := "/" // impossible value, this never matches actual results
-
-	dbIterateOverKeys(prefix, "", func(k string, v []byte) {
-		i := strings.IndexRune(k[skip:], '/') + skip
-		if i < skip {
-			i = len(k)
-		}
-		if prev != k[skip:i] {
-			// need to make a copy of the key, since it's owned by iter
-			prev = k[skip:i]
-			results = append(results, string(prev))
-		}
-	})
-	return
-}
-
 func dbRegister(key string) {
 	data, err := db.Get([]byte(key), nil)
 	if err == leveldb.ErrNotFound {
@@ -108,10 +106,16 @@ func openDatabase() {
 		if dbPath == "" {
 			glog.Fatalln("cannot open database, DATA_DIR not set")
 		}
-		d, err := leveldb.OpenFile(dbPath, nil)
+		ldb, err := leveldb.OpenFile(dbPath, nil)
 		flow.Check(err)
-		db = openDb{d}
+		db = ldb
 	})
+}
+
+// Get a list of keys from the database, given a prefix.
+func Keys(prefix string) []string {
+	openDatabase()
+	return dbKeys(prefix)
 }
 
 // Get an entry from the database, returns nil if not found.
@@ -124,12 +128,6 @@ func Get(key string) interface{} {
 func Put(key string, value interface{}) {
 	openDatabase()
 	dbPut(key, value)
-}
-
-// Get a list of keys from the database, given a prefix.
-func Keys(prefix string) []string {
-	openDatabase()
-	return dbKeys(prefix)
 }
 
 // LevelDB is a multi-purpose gadget to get, put, and scan keys in a database.
@@ -147,19 +145,20 @@ func (w *LevelDB) Run() {
 	for m := range w.In {
 		if tag, ok := m.(flow.Tag); ok {
 			switch tag.Tag {
-			case "<get>":
-				w.Out.Send(m)
-				w.Out.Send(dbGet(tag.Msg.(string)))
 			case "<keys>":
 				w.Out.Send(m)
 				for _, s := range dbKeys(tag.Msg.(string)) {
 					w.Out.Send(s)
 				}
+			case "<get>":
+				w.Out.Send(m)
+				w.Out.Send(dbGet(tag.Msg.(string)))
 			case "<clear>":
 				prefix := tag.Msg.(string)
 				glog.V(2).Infoln("clear", prefix)
 				dbIterateOverKeys(prefix, "", func(k string, v []byte) {
 					db.Delete([]byte(k), nil)
+					w.Mods.Send(flow.Tag{k, nil})
 				})
 				w.Mods.Send(m)
 			case "<range>":
@@ -174,7 +173,7 @@ func (w *LevelDB) Run() {
 				})
 			case "<register>":
 				dbRegister(tag.Msg.(string))
-				w.Mods.Send(m)
+				w.Mods.Send(m) // TODO: why is this sent to the Mods pin?
 			default:
 				if strings.HasPrefix(tag.Tag, "<") {
 					w.Out.Send(m) // pass on other tags without processing
