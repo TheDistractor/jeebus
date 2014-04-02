@@ -17,41 +17,24 @@ import (
 	dbutil "github.com/syndtr/goleveldb/leveldb/util"
 )
 
-var dbPath = ""
+var (
+	once sync.Once
+	db   openDb
+)
+
+type openDb struct{ *leveldb.DB }
 
 func init() {
 	flow.Registry["LevelDB"] = func() flow.Circuitry { return new(LevelDB) }
 }
 
-var (
-	dbMutex sync.Mutex
-	dbMap   = map[string]*openDb{}
-)
-
-type openDb struct {
-	name string
-	db   *leveldb.DB
-	refs int
-}
-
-func (odb *openDb) release() {
-	dbMutex.Lock()
-	defer dbMutex.Unlock()
-
-	odb.refs--
-	if odb.refs <= 0 {
-		odb.db.Close()
-		delete(dbMap, odb.name)
-	}
-}
-
-func (w *openDb) iterateOverKeys(from, to string, fun func(string, []byte)) {
+func dbIterateOverKeys(from, to string, fun func(string, []byte)) {
 	slice := &dbutil.Range{[]byte(from), []byte(to)}
 	if len(to) == 0 {
 		slice.Limit = append(slice.Start, 0xFF)
 	}
 
-	iter := w.db.NewIterator(slice, nil)
+	iter := db.NewIterator(slice, nil)
 	defer iter.Release()
 
 	for iter.Next() {
@@ -59,9 +42,9 @@ func (w *openDb) iterateOverKeys(from, to string, fun func(string, []byte)) {
 	}
 }
 
-func (w *openDb) Get(key string) (any interface{}) {
+func dbGet(key string) (any interface{}) {
 	glog.V(3).Infoln("get", key)
-	data, err := w.db.Get([]byte(key), nil)
+	data, err := db.Get([]byte(key), nil)
 	if err == leveldb.ErrNotFound {
 		return nil
 	}
@@ -71,25 +54,25 @@ func (w *openDb) Get(key string) (any interface{}) {
 	return
 }
 
-func (w *openDb) Put(key string, value interface{}) {
+func dbPut(key string, value interface{}) {
 	glog.V(2).Infoln("put", key, value)
 	if value != nil {
 		data, err := json.Marshal(value)
 		flow.Check(err)
-		w.db.Put([]byte(key), data, nil)
+		db.Put([]byte(key), data, nil)
 	} else {
-		w.db.Delete([]byte(key), nil)
+		db.Delete([]byte(key), nil)
 	}
 }
 
-func (w *openDb) Keys(prefix string) (results []string) {
+func dbKeys(prefix string) (results []string) {
 	glog.V(3).Infoln("keys", prefix)
 	// TODO: decide whether this key logic is the most useful & least confusing
 	// TODO: should use skips and reverse iterators once the db gets larger!
 	skip := len(prefix)
 	prev := "/" // impossible value, this never matches actual results
 
-	w.iterateOverKeys(prefix, "", func(k string, v []byte) {
+	dbIterateOverKeys(prefix, "", func(k string, v []byte) {
 		i := strings.IndexRune(k[skip:], '/') + skip
 		if i < skip {
 			i = len(k)
@@ -103,8 +86,8 @@ func (w *openDb) Keys(prefix string) (results []string) {
 	return
 }
 
-func (w *openDb) register(key string) {
-	data, err := w.db.Get([]byte(key), nil)
+func dbRegister(key string) {
+	data, err := db.Get([]byte(key), nil)
 	if err == leveldb.ErrNotFound {
 		glog.Warningln("cannot register:", key)
 		return
@@ -118,111 +101,85 @@ func (w *openDb) register(key string) {
 	}
 }
 
-func openDatabase() *openDb {
-	if dbPath == "" {
-		dbPath = flow.Config["DATA_DIR"]
+func openDatabase() {
+	// opening the database takes time, make sure we don't re-enter this code
+	once.Do(func() {
+		dbPath := flow.Config["DATA_DIR"]
 		if dbPath == "" {
-			glog.Errorln("cannot open database, DATA_DIR not set")
-			return nil
+			glog.Fatalln("cannot open database, DATA_DIR not set")
 		}
-	}
-
-	dbMutex.Lock()
-	defer dbMutex.Unlock()
-
-	odb, ok := dbMap[dbPath]
-	if !ok {
-		db, err := leveldb.OpenFile(dbPath, nil)
+		d, err := leveldb.OpenFile(dbPath, nil)
 		flow.Check(err)
-		odb = &openDb{dbPath, db, 0}
-		dbMap[dbPath] = odb
-	}
-	odb.refs++
-	return odb
+		db = openDb{d}
+	})
 }
-
-var db *openDb // initialised by the database Get/Put/Keys calls
 
 // Get an entry from the database, returns nil if not found.
 func Get(key string) interface{} {
-	if db == nil {
-		db = openDatabase()
-	}
-	return db.Get(key)
+	openDatabase()
+	return dbGet(key)
 }
 
 // Store or delete an entry in the database.
 func Put(key string, value interface{}) {
-	if db == nil {
-		db = openDatabase()
-	}
-	db.Put(key, value)
+	openDatabase()
+	dbPut(key, value)
 }
 
 // Get a list of keys from the database, given a prefix.
 func Keys(prefix string) []string {
-	if db == nil {
-		db = openDatabase()
-	}
-	return db.Keys(prefix)
+	openDatabase()
+	return dbKeys(prefix)
 }
 
 // LevelDB is a multi-purpose gadget to get, put, and scan keys in a database.
 // Acts on tags received on the input port. Registers itself as "LevelDB".
 type LevelDB struct {
 	flow.Gadget
-	Name flow.Input
 	In   flow.Input
 	Out  flow.Output
 	Mods flow.Output
-
-	odb *openDb
 }
 
 // Open the database and start listening to incoming get/put/keys requests.
 func (w *LevelDB) Run() {
-	// if a name is given, use it, else use the default from the configuration
-	if m, ok := <-w.Name; ok {
-		dbPath = m.(string)
-	}
-	w.odb = openDatabase()
-	defer w.odb.release()
+	openDatabase()
 	for m := range w.In {
 		if tag, ok := m.(flow.Tag); ok {
 			switch tag.Tag {
 			case "<get>":
 				w.Out.Send(m)
-				w.Out.Send(w.odb.Get(tag.Msg.(string)))
+				w.Out.Send(dbGet(tag.Msg.(string)))
 			case "<keys>":
 				w.Out.Send(m)
-				for _, s := range w.odb.Keys(tag.Msg.(string)) {
+				for _, s := range dbKeys(tag.Msg.(string)) {
 					w.Out.Send(s)
 				}
 			case "<clear>":
 				prefix := tag.Msg.(string)
 				glog.V(2).Infoln("clear", prefix)
-				w.odb.iterateOverKeys(prefix, "", func(k string, v []byte) {
-					w.odb.db.Delete([]byte(k), nil)
+				dbIterateOverKeys(prefix, "", func(k string, v []byte) {
+					db.Delete([]byte(k), nil)
 				})
 				w.Mods.Send(m)
 			case "<range>":
 				prefix := tag.Msg.(string)
 				glog.V(3).Infoln("range", prefix)
 				w.Out.Send(m)
-				w.odb.iterateOverKeys(prefix, "", func(k string, v []byte) {
+				dbIterateOverKeys(prefix, "", func(k string, v []byte) {
 					var any interface{}
 					err := json.Unmarshal(v, &any)
 					flow.Check(err)
 					w.Out.Send(flow.Tag{k, any})
 				})
 			case "<register>":
-				w.odb.register(tag.Msg.(string))
+				dbRegister(tag.Msg.(string))
 				w.Mods.Send(m)
 			default:
 				if strings.HasPrefix(tag.Tag, "<") {
 					w.Out.Send(m) // pass on other tags without processing
 				} else {
-					w.odb.Put(tag.Tag, tag.Msg)
+					dbPut(tag.Tag, tag.Msg)
 					w.Mods.Send(m)
 				}
 			}

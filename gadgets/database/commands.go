@@ -22,10 +22,9 @@ func init() {
 type dumpCmd struct{ flow.Gadget }
 
 func (g *dumpCmd) Run() {
-	odb := openDatabase()
-	defer odb.release()
+	openDatabase()
 
-	odb.iterateOverKeys(flag.Arg(1), flag.Arg(2), func(k string, v []byte) {
+	dbIterateOverKeys(flag.Arg(1), flag.Arg(2), func(k string, v []byte) {
 		fmt.Printf("%s = %s\n", k, v)
 	})
 }
@@ -33,13 +32,12 @@ func (g *dumpCmd) Run() {
 type exportCmd struct{ flow.Gadget }
 
 func (g *exportCmd) Run() {
-	odb := openDatabase()
-	defer odb.release()
+	openDatabase()
 
 	prefix := flag.Arg(1)
 	entries := make(map[string]interface{})
 
-	odb.iterateOverKeys(prefix, "", func(k string, v []byte) {
+	dbIterateOverKeys(prefix, "", func(k string, v []byte) {
 		var value interface{}
 		err := json.Unmarshal(v, &value)
 		flow.Check(err)
@@ -65,15 +63,14 @@ func (g *importCmd) Run() {
 	err = json.Unmarshal(data, &values)
 	flow.Check(err)
 
-	odb := openDatabase()
-	defer odb.release()
+	openDatabase()
 
 	for prefix, entries := range values {
 		var ndel, nadd int
 
 		// get and print all the key/value pairs from the database
-		odb.iterateOverKeys(prefix, "", func(k string, v []byte) {
-			err = odb.db.Delete([]byte(k), nil)
+		dbIterateOverKeys(prefix, "", func(k string, v []byte) {
+			err = db.Delete([]byte(k), nil)
 			flow.Check(err)
 			ndel++
 		})
@@ -81,7 +78,7 @@ func (g *importCmd) Run() {
 		for k, v := range entries {
 			val, err := json.Marshal(v)
 			flow.Check(err)
-			err = odb.db.Put([]byte(prefix+k), val, nil)
+			err = db.Put([]byte(prefix+k), val, nil)
 			flow.Check(err)
 			nadd++
 		}
@@ -93,17 +90,15 @@ func (g *importCmd) Run() {
 type getCmd struct{ flow.Gadget }
 
 func (g *getCmd) Run() {
-	odb := openDatabase()
-	defer odb.release()
+	openDatabase()
 
-	fmt.Println(odb.Get(flag.Arg(1)))
+	fmt.Println(dbGet(flag.Arg(1)))
 }
 
 type putCmd struct{ flow.Gadget }
 
 func (g *putCmd) Run() {
-	odb := openDatabase()
-	defer odb.release()
+	openDatabase()
 
 	var value interface{}
 	if flag.NArg() > 2 {
@@ -113,14 +108,13 @@ func (g *putCmd) Run() {
 			value = flag.Arg(2)
 		}
 	}
-	odb.Put(flag.Arg(1), value)
+	dbPut(flag.Arg(1), value)
 }
 
 type keysCmd struct{ flow.Gadget }
 
 func (g *keysCmd) Run() {
-	odb := openDatabase()
-	defer odb.release()
+	openDatabase()
 
-	fmt.Println(strings.Join(odb.Keys(flag.Arg(1)), "\n"))
+	fmt.Println(strings.Join(dbKeys(flag.Arg(1)), "\n"))
 }

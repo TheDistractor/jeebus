@@ -114,9 +114,9 @@ func (g *infoCmd) Run() {
 
 // Expose the Get/Put/Keys database access commands
 type Database interface {
-    Get(key string) interface{}
-    Put(key string, value interface{})
-    Keys(prefix string) []string
+	Get(key string) interface{}
+	Put(key string, value interface{})
+	Keys(prefix string) []string
 }
 
 // TODO: is there no simpler way to expose this, in a sort of delegated way?

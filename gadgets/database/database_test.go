@@ -9,16 +9,15 @@ import (
 	_ "github.com/jcw/flow/gadgets"
 )
 
-var testDb = path.Join(os.TempDir(), "flow-test-db")
-
 func init() {
+	testDb := path.Join(os.TempDir(), "flow-test-db")
 	println(testDb)
+	flow.Config["DATA_DIR"] = testDb
 }
 
 func ExampleLevelDB() {
 	g := flow.NewCircuit()
 	g.Add("db", "LevelDB")
-	g.Feed("db.Name", testDb)
 	g.Feed("db.In", flow.Tag{"a/b", "123"})
 	g.Feed("db.In", flow.Tag{"a/c", "456"})
 	g.Feed("db.In", flow.Tag{"<get>", "a/b"})
@@ -51,6 +50,5 @@ func ExampleLevelDB() {
 func TestDatabase(t *testing.T) {
 	g := flow.NewCircuit()
 	g.Add("db", "LevelDB")
-	g.Feed("db.Name", testDb)
 	g.Run()
 }
