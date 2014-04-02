@@ -10,7 +10,7 @@ import (
 	"github.com/jcw/flow"
 	_ "github.com/jcw/flow/gadgets"
 
-	_ "github.com/jcw/jeebus/gadgets/database"
+	"github.com/jcw/jeebus/gadgets/database"
 	_ "github.com/jcw/jeebus/gadgets/fbpparse"
 	_ "github.com/jcw/jeebus/gadgets/javascript"
 	_ "github.com/jcw/jeebus/gadgets/network"
@@ -110,4 +110,28 @@ func (g *infoCmd) Run() {
 	fmt.Println("Registered gadgets and circuits:\n")
 	flow.PrintRegistry()
 	fmt.Println()
+}
+
+// Expose the Get/Put/Keys database access commands
+type Database interface {
+    Get(key string) interface{}
+    Put(key string, value interface{})
+    Keys(prefix string) []string
+}
+
+// TODO: is there no simpler way to expose this, in a sort of delegated way?
+
+// Get an entry from the database, returns nil if not found.
+func Get(key string) interface{} {
+	return database.Get(key)
+}
+
+// Store or delete an entry in the database.
+func Put(key string, value interface{}) {
+	database.Put(key, value)
+}
+
+// Get a list of keys from the database, given a prefix.
+func Keys(prefix string) []string {
+	return database.Keys(prefix)
 }

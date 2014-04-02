@@ -59,7 +59,7 @@ func (w *openDb) iterateOverKeys(from, to string, fun func(string, []byte)) {
 	}
 }
 
-func (w *openDb) get(key string) (any interface{}) {
+func (w *openDb) Get(key string) (any interface{}) {
 	glog.V(3).Infoln("get", key)
 	data, err := w.db.Get([]byte(key), nil)
 	if err == leveldb.ErrNotFound {
@@ -71,7 +71,7 @@ func (w *openDb) get(key string) (any interface{}) {
 	return
 }
 
-func (w *openDb) put(key string, value interface{}) {
+func (w *openDb) Put(key string, value interface{}) {
 	glog.V(2).Infoln("put", key, value)
 	if value != nil {
 		data, err := json.Marshal(value)
@@ -82,7 +82,7 @@ func (w *openDb) put(key string, value interface{}) {
 	}
 }
 
-func (w *openDb) keys(prefix string) (results []string) {
+func (w *openDb) Keys(prefix string) (results []string) {
 	glog.V(3).Infoln("keys", prefix)
 	// TODO: decide whether this key logic is the most useful & least confusing
 	// TODO: should use skips and reverse iterators once the db gets larger!
@@ -141,7 +141,33 @@ func openDatabase() *openDb {
 	return odb
 }
 
-// LevelDB is a multi-purpose .Feed( to get, put, and scan keys in a database.
+var db *openDb // initialised by the database Get/Put/Keys calls
+
+// Get an entry from the database, returns nil if not found.
+func Get(key string) interface{} {
+	if db == nil {
+		db = openDatabase()
+	}
+	return db.Get(key)
+}
+
+// Store or delete an entry in the database.
+func Put(key string, value interface{}) {
+	if db == nil {
+		db = openDatabase()
+	}
+	db.Put(key, value)
+}
+
+// Get a list of keys from the database, given a prefix.
+func Keys(prefix string) []string {
+	if db == nil {
+		db = openDatabase()
+	}
+	return db.Keys(prefix)
+}
+
+// LevelDB is a multi-purpose gadget to get, put, and scan keys in a database.
 // Acts on tags received on the input port. Registers itself as "LevelDB".
 type LevelDB struct {
 	flow.Gadget
@@ -166,10 +192,10 @@ func (w *LevelDB) Run() {
 			switch tag.Tag {
 			case "<get>":
 				w.Out.Send(m)
-				w.Out.Send(w.odb.get(tag.Msg.(string)))
+				w.Out.Send(w.odb.Get(tag.Msg.(string)))
 			case "<keys>":
 				w.Out.Send(m)
-				for _, s := range w.odb.keys(tag.Msg.(string)) {
+				for _, s := range w.odb.Keys(tag.Msg.(string)) {
 					w.Out.Send(s)
 				}
 			case "<clear>":
@@ -196,7 +222,7 @@ func (w *LevelDB) Run() {
 				if strings.HasPrefix(tag.Tag, "<") {
 					w.Out.Send(m) // pass on other tags without processing
 				} else {
-					w.odb.put(tag.Tag, tag.Msg)
+					w.odb.Put(tag.Tag, tag.Msg)
 					w.Mods.Send(m)
 				}
 			}

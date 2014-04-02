@@ -96,7 +96,7 @@ func (g *getCmd) Run() {
 	odb := openDatabase()
 	defer odb.release()
 
-	fmt.Println(odb.get(flag.Arg(1)))
+	fmt.Println(odb.Get(flag.Arg(1)))
 }
 
 type putCmd struct{ flow.Gadget }
@@ -113,7 +113,7 @@ func (g *putCmd) Run() {
 			value = flag.Arg(2)
 		}
 	}
-	odb.put(flag.Arg(1), value)
+	odb.Put(flag.Arg(1), value)
 }
 
 type keysCmd struct{ flow.Gadget }
@@ -122,5 +122,5 @@ func (g *keysCmd) Run() {
 	odb := openDatabase()
 	defer odb.release()
 
-	fmt.Println(strings.Join(odb.keys(flag.Arg(1)), "\n"))
+	fmt.Println(strings.Join(odb.Keys(flag.Arg(1)), "\n"))
 }
