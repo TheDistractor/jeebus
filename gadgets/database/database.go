@@ -199,6 +199,9 @@ var (
 func publishChange(tag flow.Tag) {
 	mutex.Lock()
 	defer mutex.Unlock()
+	// all channels have capacity one, so  this loop will run to completion
+	// this is essential to release the lock again for the next iteration
+	// TODO: investigate whether RWMutex would make any difference here
 	for _, c := range subscribers {
 		c <- tag
 	}
@@ -239,7 +242,7 @@ func (g *DataSub) Run() {
 }
 
 func (g *DataSub) subscribe() chan flow.Tag {
-	changes := make(chan flow.Tag)
+	changes := make(chan flow.Tag, 1) // don't block publishChange
 	mutex.Lock()
 	defer mutex.Unlock()
 	subscribers[g] = changes
