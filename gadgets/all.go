@@ -2,6 +2,10 @@
 package jeebus
 
 import (
+	"bufio"
+	"bytes"
+	"io/ioutil"
+	"net/textproto"
 	"flag"
 	"fmt"
 	"sort"
@@ -11,7 +15,7 @@ import (
 	"github.com/jcw/flow"
 	_ "github.com/jcw/flow/gadgets"
 
-	"github.com/jcw/jeebus/gadgets/database"
+	_ "github.com/jcw/jeebus/gadgets/database"
 	_ "github.com/jcw/jeebus/gadgets/fbpparse"
 	_ "github.com/jcw/jeebus/gadgets/javascript"
 	_ "github.com/jcw/jeebus/gadgets/network"
@@ -113,29 +117,48 @@ func (g *infoCmd) Run() {
 	fmt.Println()
 }
 
-// Expose the Get/Put/Keys database access commands
-type Database interface {
-	Get(key string) interface{}
-	Put(key string, value interface{})
-	Keys(prefix string) []string
+// General-purpose map for exchanging structured data.
+// The "$" entry can be used to represent an anonymous payload.
+type Map map[string]interface{}
+
+// Parse description into a map of strings, set the "$" entry to a []byte value.
+func ParseDescription(desc string) Map {
+	// expects mime-type header followed by optional empty line and description
+	b := bufio.NewReader(bytes.NewBufferString(desc + "\n\n"))
+	header, err := textproto.NewReader(b).ReadMIMEHeader()
+	flow.Check(err)
+	t, err := ioutil.ReadAll(b)
+	flow.Check(err)
+	result := Map{ "$": bytes.TrimSpace(t) }
+	for k, v := range header {
+		result[k] = strings.Join(v, "\n")
+	}
+	return result
 }
 
-// TODO: is there no simpler way to expose this, in a sort of delegated way?
-
-// Get an entry from the database, returns nil if not found.
-func Get(key string) interface{} {
-	return database.Get(key)
-}
-
-// Store or delete an entry in the database.
-func Put(key string, value interface{}) {
-	database.Put(key, value)
-}
-
-// Get a list of keys from the database, given a prefix.
-func Keys(prefix string) []string {
-	return database.Keys(prefix)
-}
+// // Expose the Get/Put/Keys database access commands
+// type Database interface {
+// 	Get(key string) interface{}
+// 	Put(key string, value interface{})
+// 	Keys(prefix string) []string
+// }
+// 
+// // TODO: is there no simpler way to expose this, in a sort of delegated way?
+// 
+// // Get an entry from the database, returns nil if not found.
+// func Get(key string) interface{} {
+// 	return database.Get(key)
+// }
+// 
+// // Store or delete an entry in the database.
+// func Put(key string, value interface{}) {
+// 	database.Put(key, value)
+// }
+// 
+// // Get a list of keys from the database, given a prefix.
+// func Keys(prefix string) []string {
+// 	return database.Keys(prefix)
+// }
 
 // Convert a JavaScript milliseconds-since-1970-UTC time to Go time.
 func MsToTime(t int64) time.Time {
