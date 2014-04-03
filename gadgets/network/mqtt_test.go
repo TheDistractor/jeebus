@@ -10,7 +10,7 @@ func ExampleMQTTSub() {
 	g := flow.NewCircuit()
 	g.Add("s", "MQTTSub")
 	g.Feed("s.Port", ":1883")
-	g.Feed("s.Topic", "#")
+	g.Feed("s.In", "#")
 	g.Run()
 }
 

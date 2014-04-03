@@ -16,7 +16,7 @@ func (g *subCmd) Run() {
 	c.Add("c", "CmdLine")
 	c.Add("s", "MQTTSub")
 	c.Add("p", "Printer")
-	c.Connect("c.Out", "s.Topic", 0)
+	c.Connect("c.Out", "s.In", 0)
 	c.Connect("s.Out", "p.In", 0)
 	c.Feed("a.Type", "skip")
 	c.Feed("s.Port", ":1883")
