@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/jcw/flow"
 	_ "github.com/jcw/flow/gadgets"
@@ -134,4 +135,14 @@ func Put(key string, value interface{}) {
 // Get a list of keys from the database, given a prefix.
 func Keys(prefix string) []string {
 	return database.Keys(prefix)
+}
+
+// Convert a JavaScript milliseconds-since-1970-UTC time to Go time.
+func MsToTime(t int64) time.Time {
+	return time.Unix(0, 1e6*t)
+}
+
+// Convert Go time to a JavaScript milliseconds-since-1970-UTC time.
+func TimeToMs(t time.Time) int64 {
+	return t.UnixNano() / 1e6
 }

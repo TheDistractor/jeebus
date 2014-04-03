@@ -93,14 +93,14 @@ ng.factory 'jeebus', ($rootScope, $q) ->
     ws.send angular.toJson payload
     @
 
+  # Return list of keys as promise, matching the given prefix in the database.
+  keys = (prefix) -> rpc 'keys', prefix
+      
   # Fetch a key/value pair from the server database, value returned as promise.
-  get = (key) ->
-    rpc 'get', key
+  get = (key) -> rpc 'get', key
       
   # Store a key/value pair in the server database.
-  put = (key, value) ->
-    send [0, 'put', key, value]
-    @
+  put = (key, value) -> send [0, 'put', key, value]
       
   # Perform an RPC call, i.e. register result callback and return a promise.
   rpc = (cmd, args...) ->
@@ -130,21 +130,25 @@ ng.factory 'jeebus', ($rootScope, $q) ->
     g.get = (key) ->
       @rows[@keys[key]]
       
-    g.put = (key, row) ->
+    g.set = (key, row) -> # store changes locally
       row.id = key
       @keys[row.id] ?= @rows.length
       @rows[@keys[row.id]] = row
+      
+    g.put = (key, row) -> # store changes locally as well as on server
+      @set key, row
+      put "/#{table}/#{key}", row
 
     g.on 'Out', (m) ->
       switch m.Tag
         when '<range>' then @emit 'init', table
         when '<sync>' then @emit 'sync', table
         else @emit 'data', m.Tag.slice(2 + table.length), m.Msg
-    g.on 'data', rowHandler ? g.put
+    g.on 'data', rowHandler ? g.set
 
     g.rows = []
     g.keys = {}
     g
     
-  window.send = send # console access, for debugging
-  {connect,send,get,put,rpc,gadget,attach}
+  # window.send = send # console access, for debugging
+  {connect,send,keys,get,put,rpc,gadget,attach}
