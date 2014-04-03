@@ -113,23 +113,23 @@ func openDatabase() {
 	})
 }
 
-// Get a list of keys from the database, given a prefix.
-func Keys(prefix string) []string {
-	openDatabase()
-	return dbKeys(prefix)
-}
-
-// Get an entry from the database, returns nil if not found.
-func Get(key string) interface{} {
-	openDatabase()
-	return dbGet(key)
-}
-
-// Store or delete an entry in the database.
-func Put(key string, value interface{}) {
-	openDatabase()
-	dbPut(key, value)
-}
+// // Get a list of keys from the database, given a prefix.
+// func Keys(prefix string) []string {
+// 	openDatabase()
+// 	return dbKeys(prefix)
+// }
+// 
+// // Get an entry from the database, returns nil if not found.
+// func Get(key string) interface{} {
+// 	openDatabase()
+// 	return dbGet(key)
+// }
+// 
+// // Store or delete an entry in the database.
+// func Put(key string, value interface{}) {
+// 	openDatabase()
+// 	dbPut(key, value)
+// }
 
 // LevelDB is a multi-purpose gadget to get, put, and scan keys in a database.
 // Acts on tags received on the input port. Registers itself as "LevelDB".
