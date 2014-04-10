@@ -113,23 +113,23 @@ func openDatabase() {
 	})
 }
 
-// Get a list of keys from the database, given a prefix.
-func Keys(prefix string) []string {
-	openDatabase()
-	return dbKeys(prefix)
-}
-
-// Get an entry from the database, returns nil if not found.
-func Get(key string) interface{} {
-	openDatabase()
-	return dbGet(key)
-}
-
-// Store or delete an entry in the database.
-func Put(key string, value interface{}) {
-	openDatabase()
-	dbPut(key, value)
-}
+// // Get a list of keys from the database, given a prefix.
+// func Keys(prefix string) []string {
+// 	openDatabase()
+// 	return dbKeys(prefix)
+// }
+// 
+// // Get an entry from the database, returns nil if not found.
+// func Get(key string) interface{} {
+// 	openDatabase()
+// 	return dbGet(key)
+// }
+// 
+// // Store or delete an entry in the database.
+// func Put(key string, value interface{}) {
+// 	openDatabase()
+// 	dbPut(key, value)
+// }
 
 // LevelDB is a multi-purpose gadget to get, put, and scan keys in a database.
 // Acts on tags received on the input port. Registers itself as "LevelDB".
@@ -192,13 +192,17 @@ func (w *LevelDB) Run() {
 //	cleanup could be done by closing the change channel(s), somehow...
 
 var (
-	mutex       sync.Mutex
+	mutex       sync.RWMutex //this allows RLock on publishChange which would benefit reentrant publishes
 	subscribers = map[*DataSub]chan flow.Tag{}
 )
 
 func publishChange(tag flow.Tag) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	mutex.RLock()
+	defer mutex.RUnlock()
+	// all channels are buffered (-capacity one-), so  this loop will run to completion
+	// this is essential to release the lock again for the next iteration
+	// TODO: investigate whether RWMutex would make any difference here
+	// lightbulb: we only need a reader lock so others dont modify subscribers whilst we range
 	for _, c := range subscribers {
 		c <- tag
 	}
@@ -239,15 +243,18 @@ func (g *DataSub) Run() {
 }
 
 func (g *DataSub) subscribe() chan flow.Tag {
-	changes := make(chan flow.Tag)
-	mutex.Lock()
+	//lightbulb: TODO: this buffer should be calculated more effectively! do we have data to derive??
+	//5+1 seems ok with aggregator added (more stable than 1) but will still fail on 'busy' systems.
+	bufSize := 5 //a single subscriber may get swamped (e.g multiple sensor subscriptions) that cause further writes.
+	changes := make(chan flow.Tag, bufSize+1) // don't block publishChange
+	mutex.Lock() //full W lock to modify
 	defer mutex.Unlock()
 	subscribers[g] = changes
 	return changes
 }
 
 func (g *DataSub) unsubscribe() {
-	mutex.Lock()
+	mutex.Lock() //full W lock to modify
 	defer mutex.Unlock()
 	delete(subscribers, g)
 }
