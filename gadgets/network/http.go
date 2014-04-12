@@ -22,21 +22,11 @@ func init() {
 	// websockets without Sec-Websocket-Protocol are connected in loopback mode
 	flow.Registry["WebSocket-default"] = flow.Registry["Pipe"]
 
-	// use a special channel to pick up JSON "ipc" messages from stdin
-	// this is currently used to broadcast reload triggers to all websockets
-	go func() {
-		// TODO: turn into a gadget, so that this can also be used with MQTT
-		for m := range ipcFromNodeJs() {
-			// FIXME: yuck, the JSON parsing is immediately re-encoded below!
-			// can't send a []byte, since this sends as binary msg iso JSON
-			var any interface{}
-			if err := json.Unmarshal(m, &any); err == nil {
-				for _, ws := range wsClients {
-					websocket.JSON.Send(ws, any)
-				}
-			}
-		}
-	}()
+	// moved ipc reload into simple gadget so stdio can be tapped by other processes
+	// added this specific gadget to 'init' circuit so it can be made optional
+	flow.Registry["WSLiveReload"] = func() flow.Circuitry { return new(WSLiveReload) }
+
+
 }
 
 // hack alert! special code to pick up node.js live reload triggers
@@ -81,6 +71,38 @@ func (fh *flowHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	fh.s.Out.Send(req.URL)
 	fh.h.ServeHTTP(w, req)
 }
+
+
+type WSLiveReload struct {
+	flow.Gadget
+}
+
+func (g *WSLiveReload) Run() {
+	// use a special channel to pick up JSON "ipc" messages from stdin
+	// this is currently used to broadcast reload triggers to all websockets
+	//go func() {
+		// TODO: turn into a gadget, so that this can also be used with MQTT
+		for m := range ipcFromNodeJs() {
+			// FIXME: yuck, the JSON parsing is immediately re-encoded below!
+			// can't send a []byte, since this sends as binary msg iso JSON
+			var any interface{}
+			if err := json.Unmarshal(m, &any); err == nil {
+				for _, ws := range wsClients {
+					websocket.JSON.Send(ws, any)
+				}
+			}
+		}
+	//}()
+
+
+}
+
+
+
+
+
+
+
 
 // Set up the handlers, then start the server and start processing requests.
 func (w *HTTPServer) Run() {

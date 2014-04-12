@@ -6,6 +6,7 @@ circuits = {}
 circuits.main =
   gadgets: [
     { name: "http", type: "HTTPServer" }
+    { name: "reload", type: "WSLiveReload" } #if your using node in development mode
     { name: "init", type: "init" }
   ]
   feeds: [

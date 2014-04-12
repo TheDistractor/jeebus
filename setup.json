@@ -6,6 +6,10 @@
                 "type": "HTTPServer"
             },
             {
+                "name": "reload",
+                "type": "WSLiveReload"
+            },
+            {
                 "name": "init",
                 "type": "init"
             }
