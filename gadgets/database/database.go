@@ -197,20 +197,12 @@ var (
 )
 
 func publishChange(tag flow.Tag) {
-<<<<<<< HEAD
 	mutex.RLock()
 	defer mutex.RUnlock()
 	// all channels are buffered (-capacity one-), so  this loop will run to completion
 	// this is essential to release the lock again for the next iteration
 	// TODO: investigate whether RWMutex would make any difference here
 	// lightbulb: we only need a reader lock so others dont modify subscribers whilst we range
-=======
-	mutex.Lock()
-	defer mutex.Unlock()
-	// all channels have capacity one, so  this loop will run to completion
-	// this is essential to release the lock again for the next iteration
-	// TODO: investigate whether RWMutex would make any difference here
->>>>>>> upstream/master
 	for _, c := range subscribers {
 		c <- tag
 	}
@@ -251,16 +243,11 @@ func (g *DataSub) Run() {
 }
 
 func (g *DataSub) subscribe() chan flow.Tag {
-<<<<<<< HEAD
 	//lightbulb: TODO: this buffer should be calculated more effectively! do we have data to derive??
 	//5+1 seems ok with aggregator added (more stable than 1) but will still fail on 'busy' systems.
 	bufSize := 5 //a single subscriber may get swamped (e.g multiple sensor subscriptions) that cause further writes.
 	changes := make(chan flow.Tag, bufSize+1) // don't block publishChange
 	mutex.Lock() //full W lock to modify
-=======
-	changes := make(chan flow.Tag, 1) // don't block publishChange
-	mutex.Lock()
->>>>>>> upstream/master
 	defer mutex.Unlock()
 	subscribers[g] = changes
 	return changes
