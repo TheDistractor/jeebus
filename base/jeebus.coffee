@@ -46,7 +46,8 @@ ng.factory 'jeebus', ($rootScope, $q) ->
 
     reconnect = (firstCall) ->
       # the websocket is served from the same site as the web page
-      ws = new WebSocket "ws://#{location.host}/ws", [appTag]
+      wsProto = (if "https:" is document.location.protocol then "wss://" else "ws://")
+      ws = new WebSocket "#{wsProto}#{location.host}/ws", [appTag]
 
       ws.onopen = ->
         # location.reload()  unless firstCall
