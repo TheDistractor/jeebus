@@ -21,7 +21,7 @@ import (
 	_ "github.com/jcw/jeebus/gadgets/fbpparse"
 	_ "github.com/jcw/jeebus/gadgets/javascript"
 	_ "github.com/jcw/jeebus/gadgets/network"
-//	_ "github.com/jcw/jeebus/gadgets/serial"
+	_ "github.com/jcw/jeebus/gadgets/serial"
 )
 
 var Version = "0.9.0"
